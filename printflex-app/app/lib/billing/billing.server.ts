@@ -1,4 +1,5 @@
 import prisma from "../../db.server";
+import { audit } from "../audit.server";
 import type { authenticate } from "../../shopify.server";
 import type { LimitBehaviour, PlanId } from "../types";
 import { ALL_BILLING_PLANS, BILLING_PLAN_NAMES, isAnnual, planIdForBillingName, type BillingPlanName } from "./plans-config.server";
@@ -44,7 +45,11 @@ export function stateFromSubscriptions(subscriptions: readonly ActiveSubscriptio
 export async function syncSubscription(billing: BillingApi, shopId: string): Promise<SubscriptionState> {
   const { appSubscriptions } = await billing.check({ plans: [...ALL_BILLING_PLANS], isTest: IS_TEST_BILLING });
   const state = stateFromSubscriptions(appSubscriptions);
-  await prisma.shop.update({ where: { id: shopId }, data: { plan: state.planId } });
+  const before = await prisma.shop.findUniqueOrThrow({ where: { id: shopId }, select: { plan: true } });
+  if (before.plan !== state.planId) {
+    await prisma.shop.update({ where: { id: shopId }, data: { plan: state.planId } });
+    await audit(shopId, "shopify", "plan.changed", null, { from: before.plan, to: state.planId, annual: state.annual });
+  }
   return state;
 }
 
@@ -62,4 +67,5 @@ export async function cancelSubscription(billing: BillingApi, shopId: string, su
 
 export async function setLimitBehaviour(shopId: string, behaviour: LimitBehaviour): Promise<void> {
   await prisma.shop.update({ where: { id: shopId }, data: { limitBehaviour: behaviour } });
+  await audit(shopId, "merchant", "limit.changed", null, { behaviour });
 }

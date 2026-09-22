@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData, useRevalidator } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { RouteError } from "../components/RouteError";
 import { downloadFile } from "../components/download";
 import prisma from "../db.server";
 import { getQueue } from "../lib/jobs/worker.server";
@@ -222,3 +223,7 @@ export default function JobPage() {
 }
 
 export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);
+
+export function ErrorBoundary() {
+  return <RouteError />;
+}

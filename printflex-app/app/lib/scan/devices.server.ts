@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createCookie } from "react-router";
 import prisma from "../../db.server";
+import { audit } from "../audit.server";
 import { pinAttemptAllowed, resetPinAttempts, verifyPinHash } from "./pin.server";
 
 /**
@@ -97,6 +98,7 @@ export async function listDevices(shopId: string) {
 
 export async function revokeDevice(shopId: string, deviceId: string, now: Date = new Date()): Promise<boolean> {
   const result = await prisma.scanDevice.updateMany({ where: { id: deviceId, shopId, revokedAt: null }, data: { revokedAt: now } });
+  if (result.count > 0) await audit(shopId, "merchant", "device.revoked", deviceId);
   return result.count > 0;
 }
 

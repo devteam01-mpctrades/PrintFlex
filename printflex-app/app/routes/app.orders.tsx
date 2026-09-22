@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { RouteError } from "../components/RouteError";
 import { BulkActionBar } from "../components/orders/BulkActionBar";
 import { FiltersBar } from "../components/orders/FiltersBar";
 import { OrdersTable } from "../components/orders/OrdersTable";
@@ -281,3 +282,7 @@ export default function OrdersPage() {
 export const headers: HeadersFunction = (headersArgs) => {
   return boundary.headers(headersArgs);
 };
+
+export function ErrorBoundary() {
+  return <RouteError />;
+}

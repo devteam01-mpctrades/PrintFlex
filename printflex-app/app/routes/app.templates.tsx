@@ -2,6 +2,7 @@ import { useRef } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { redirect, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { RouteError } from "../components/RouteError";
 import prisma from "../db.server";
 import { canCreateAnother, getPlan } from "../lib/plans.server";
 import { requireShop } from "../lib/request.server";
@@ -150,3 +151,7 @@ export default function TemplatesPage() {
 }
 
 export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);
+
+export function ErrorBoundary() {
+  return <RouteError />;
+}

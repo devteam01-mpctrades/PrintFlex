@@ -1,3 +1,4 @@
+import { ScanError } from "../components/scan/ScanError";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Form, useLoaderData, useNavigate, useSubmit } from "react-router";
@@ -130,4 +131,8 @@ export default function ScanHub() {
       </section>
     </ScanShell>
   );
+}
+
+export function ErrorBoundary() {
+  return <ScanError />;
 }

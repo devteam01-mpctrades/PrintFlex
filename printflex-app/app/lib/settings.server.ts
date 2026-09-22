@@ -19,6 +19,12 @@ export interface PackSettings {
   allowShortPick: boolean;
 }
 
+export interface DefaultsSettings {
+  paperSize: "A4" | "LETTER";
+  /** The document set the morning batch and "Default set" print. */
+  documentSet: Array<"INVOICE" | "PACKING_SLIP" | "PICK_LIST">;
+}
+
 export interface ShopSettings {
   tagNames: TagNames;
   /** How long a printed QR code keeps opening its order, in days. */
@@ -26,7 +32,12 @@ export interface ShopSettings {
   pack: PackSettings;
   /** Master switch for automatic invoice emails; off after uninstall. */
   emailsEnabled: boolean;
+  defaults: DefaultsSettings;
+  /** Onboarding step 1, when the merchant confirmed store details. */
+  onboardingConfirmedAt: string | null;
 }
+
+export const DEFAULT_DEFAULTS: DefaultsSettings = { paperSize: "A4", documentSet: ["INVOICE", "PACKING_SLIP", "PICK_LIST"] };
 
 export const DEFAULT_PACK_SETTINGS: PackSettings = {
   requireAllChecked: true,
@@ -66,8 +77,17 @@ export function parseSettings(json: string | null | undefined): ShopSettings {
   const days = Number(root.scanTokenDays);
   const pack = isRecord(root.pack) ? root.pack : {};
   const bool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
+  const defaults = isRecord(root.defaults) ? root.defaults : {};
+  const set = Array.isArray(defaults.documentSet)
+    ? defaults.documentSet.filter((d): d is "INVOICE" | "PACKING_SLIP" | "PICK_LIST" => d === "INVOICE" || d === "PACKING_SLIP" || d === "PICK_LIST")
+    : [];
   return {
     emailsEnabled: bool(root.emailsEnabled, true),
+    defaults: {
+      paperSize: defaults.paperSize === "LETTER" ? "LETTER" : "A4",
+      documentSet: set.length ? [...new Set(set)] : DEFAULT_DEFAULTS.documentSet,
+    },
+    onboardingConfirmedAt: typeof root.onboardingConfirmedAt === "string" ? root.onboardingConfirmedAt : null,
     pack: {
       requireAllChecked: bool(pack.requireAllChecked, DEFAULT_PACK_SETTINGS.requireAllChecked),
       showPhotos: bool(pack.showPhotos, DEFAULT_PACK_SETTINGS.showPhotos),

@@ -1,3 +1,4 @@
+import { ScanError } from "../components/scan/ScanError";
 import type { ClientLoaderFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { cacheBatch, cachedBatch, cacheSheet } from "../components/scan/offline";
@@ -81,4 +82,8 @@ export default function ScanBatchPage() {
       <a className="btn secondary" href="/scan">Scan an order</a>
     </ScanShell>
   );
+}
+
+export function ErrorBoundary() {
+  return <ScanError />;
 }

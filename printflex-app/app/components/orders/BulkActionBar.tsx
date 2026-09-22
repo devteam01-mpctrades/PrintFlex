@@ -86,10 +86,10 @@ export function BulkActionBar(props: Props) {
           ></s-checkbox>
         </s-box>
         {offerSelectAll ? (
-          <s-paragraph>
-            All {pageRowCount} orders on this page are selected.{" "}
-            <s-link onClick={props.onSelectAllMatching}>Select all {total} matching this filter</s-link>
-          </s-paragraph>
+          <s-stack direction="inline" gap="small" alignItems="center">
+            <s-text>All {pageRowCount} orders on this page are selected.</s-text>
+            <s-button variant="tertiary" onClick={props.onSelectAllMatching}>Select all {total} matching this filter</s-button>
+          </s-stack>
         ) : null}
       </s-section>
 

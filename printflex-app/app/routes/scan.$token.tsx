@@ -1,3 +1,4 @@
+import { ScanError } from "../components/scan/ScanError";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useActionData, useLoaderData } from "react-router";
 import { ScanShell } from "../components/scan/ScanShell";
@@ -82,4 +83,8 @@ export default function ScanTokenPage() {
     );
   }
   return null;
+}
+
+export function ErrorBoundary() {
+  return <ScanError />;
 }

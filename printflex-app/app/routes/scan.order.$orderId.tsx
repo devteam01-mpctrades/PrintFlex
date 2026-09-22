@@ -1,3 +1,4 @@
+import { ScanError } from "../components/scan/ScanError";
 import type { ClientLoaderFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { cacheSheet, cachedSheet } from "../components/scan/offline";
@@ -50,4 +51,8 @@ export default function ScanOrderPage() {
       )}
     </ScanShell>
   );
+}
+
+export function ErrorBoundary() {
+  return <ScanError />;
 }

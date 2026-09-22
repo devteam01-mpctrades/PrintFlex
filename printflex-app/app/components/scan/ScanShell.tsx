@@ -29,6 +29,7 @@ export const SCAN_CSS = `
   label { display: block; font-weight: 600; margin: 12px 0 6px; }
   input, select { width: 100%; font: inherit; font-size: 20px; padding: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: var(--ink); }
   input:focus { outline: 3px solid #93c5fd; outline-offset: 1px; border-color: #3b82f6; }
+  .btn:focus-visible, a:focus-visible, button:focus-visible, [role="button"]:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
   input.pin { letter-spacing: .3em; text-align: center; font-size: 28px; }
   .btn { display: block; width: 100%; font: inherit; font-size: 18px; font-weight: 700; padding: 16px; border-radius: 12px; border: 0; background: var(--accent); color: white; cursor: pointer; text-align: center; text-decoration: none; margin-top: 12px; min-height: 56px; }
   .btn.secondary { background: white; color: var(--ink); border: 1.5px solid #cbd5e1; }

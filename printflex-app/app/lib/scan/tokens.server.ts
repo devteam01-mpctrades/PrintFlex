@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import prisma from "../../db.server";
+import { audit } from "../audit.server";
 import { parseSettings } from "../settings.server";
 
 /**
@@ -45,6 +46,7 @@ export async function getScanSecret(shopId: string): Promise<string> {
 /** Rotating the secret invalidates every outstanding token at once. */
 export async function rotateScanSecret(shopId: string): Promise<void> {
   await prisma.shop.update({ where: { id: shopId }, data: { scanSecret: b64url(randomBytes(32)) } });
+  await audit(shopId, "merchant", "scan.secret_rotated");
 }
 
 export type ScanTarget = { kind: "order"; orderId: string } | { kind: "batch"; jobId: string };
@@ -122,6 +124,7 @@ export async function revokeOrderTokens(shopId: string, orderId: string, now: Da
     where: { shopId, orderId, revokedAt: null },
     data: { revokedAt: now },
   });
+  if (result.count > 0) await audit(shopId, "merchant", "scan.tokens_revoked", orderId, { count: result.count });
   return result.count;
 }
 

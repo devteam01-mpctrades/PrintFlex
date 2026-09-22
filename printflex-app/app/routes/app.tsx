@@ -1,4 +1,5 @@
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { isRouteErrorResponse, Outlet, useLoaderData, useRouteError } from "react-router";
+import { RouteError } from "../components/RouteError";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
@@ -62,7 +63,11 @@ export default function App() {
 
 // Shopify needs React Router to catch some thrown responses, so that their headers are included in the response.
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+  if (isRouteErrorResponse(error) && error.status >= 400 && error.status < 500 && error.status !== 401 && error.status !== 403) {
+    return <RouteError />;
+  }
+  return boundary.error(error);
 }
 
 export const headers: HeadersFunction = (headersArgs) => {

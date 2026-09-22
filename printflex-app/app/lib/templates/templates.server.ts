@@ -1,5 +1,6 @@
 import type { Template, TemplateVersion } from "@prisma/client";
 import prisma from "../../db.server";
+import { audit } from "../audit.server";
 import { canCreateAnother } from "../plans.server";
 import type { DocumentType } from "../types";
 
@@ -303,6 +304,7 @@ export async function createTemplate(
     data: { shopId, documentType, name: trimmed, settingsJson, assignmentRuleJson, version: 1 },
   });
   await prisma.templateVersion.create({ data: { templateId: template.id, version: 1, settingsJson, assignmentRuleJson } });
+  await audit(shopId, "merchant", "template.created", template.id, { name: trimmed, documentType });
   return { ok: true, template };
 }
 
@@ -310,6 +312,8 @@ export interface SaveInput {
   name?: string;
   settings: TemplateSettings;
   rule: AssignmentRule;
+  /** Set by restoreVersion for the audit log. */
+  restoredFrom?: number;
 }
 
 /**
@@ -334,6 +338,7 @@ export async function saveTemplate(shopId: string, templateId: string, input: Sa
     prisma.template.update({ where: { id: templateId }, data: { name, settingsJson, assignmentRuleJson, version } }),
     prisma.templateVersion.create({ data: { templateId, version, settingsJson, assignmentRuleJson } }),
   ]);
+  await audit(shopId, "merchant", input.restoredFrom ? "template.restored" : "template.saved", templateId, { name, version, ...(input.restoredFrom ? { from: input.restoredFrom } : {}) });
   return template;
 }
 
@@ -351,6 +356,7 @@ export async function restoreVersion(shopId: string, templateId: string, version
   return saveTemplate(shopId, templateId, {
     settings: parseTemplateSettings(old.settingsJson),
     rule: parseAssignmentRule(old.assignmentRuleJson),
+    restoredFrom: version,
   });
 }
 
@@ -363,5 +369,6 @@ export async function deleteTemplate(shopId: string, templateId: string): Promis
   const siblings = await prisma.template.count({ where: { shopId, documentType: template.documentType, active: true } });
   if (siblings <= 1) return { ok: false, reason: "last-of-type" };
   await prisma.template.update({ where: { id: templateId }, data: { active: false } });
+  await audit(shopId, "merchant", "template.deleted", templateId, { name: template.name });
   return { ok: true };
 }

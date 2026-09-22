@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { redirect, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { RouteError } from "../components/RouteError";
 import { useNativeEvent } from "../components/orders/useNativeEvent";
 import prisma from "../db.server";
 import { wrapDocument } from "../lib/render/batch-html.server";
@@ -437,3 +438,7 @@ export default function TemplateStudio() {
 }
 
 export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);
+
+export function ErrorBoundary() {
+  return <RouteError />;
+}

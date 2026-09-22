@@ -1,6 +1,7 @@
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import prisma from "../../db.server";
+import { audit } from "../audit.server";
 
 const scrypt = promisify(scryptCallback);
 const PIN_PATTERN = /^\d{4,8}$/;
@@ -34,11 +35,13 @@ export type SetPinResult = { ok: true; pinVersion: number } | { ok: false; reaso
 export async function setStorePin(shopId: string, pin: string): Promise<SetPinResult> {
   if (!isValidPin(pin)) return { ok: false, reason: "format" };
   const pinHash = await hashPin(pin);
+  const before = await prisma.shop.findUniqueOrThrow({ where: { id: shopId }, select: { pinHash: true } });
   const shop = await prisma.shop.update({
     where: { id: shopId },
     data: { pinHash, pinVersion: { increment: 1 } },
     select: { pinVersion: true },
   });
+  await audit(shopId, "merchant", before.pinHash ? "pin.rotated" : "pin.set", null, { pinVersion: shop.pinVersion });
   return { ok: true, pinVersion: shop.pinVersion };
 }
 
