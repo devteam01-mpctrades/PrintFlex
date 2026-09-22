@@ -5,7 +5,7 @@ import { Form, useLoaderData, useNavigate, useSubmit } from "react-router";
 import { CameraScanner } from "../components/scan/CameraScanner";
 import { ScanShell } from "../components/scan/ScanShell";
 import { getDeviceSession } from "../lib/scan/devices.server";
-import { tokenFromScan } from "../lib/scan/lookup.server";
+import { tokenFromScan } from "../lib/scan/token-parse";
 import { shopName } from "../lib/scan/scan-request.server";
 
 /**

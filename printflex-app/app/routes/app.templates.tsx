@@ -9,11 +9,11 @@ import { requireShop } from "../lib/request.server";
 import {
   createTemplate,
   describeRule,
-  DOCUMENT_TYPE_LABELS,
   orderByPrecedence,
   parseAssignmentRule,
   templatesForType,
 } from "../lib/templates/templates.server";
+import { DOCUMENT_TYPE_LABELS } from "../lib/templates/template-constants";
 import { DOCUMENT_TYPES, type DocumentType } from "../lib/types";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {

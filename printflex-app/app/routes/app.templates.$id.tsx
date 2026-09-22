@@ -14,17 +14,13 @@ import { ruleFromForm, settingsFromForm } from "../lib/templates/template-form.s
 import {
   deleteTemplate,
   describeRule,
-  DOCUMENT_TYPE_LABELS,
-  FIELD_LABELS,
-  FIELDS_BY_TYPE,
-  FONT_CHOICES,
   listVersions,
   parseAssignmentRule,
   parseTemplateSettings,
   restoreVersion,
   saveTemplate,
-  type TemplateSettings,
 } from "../lib/templates/templates.server";
+import { DOCUMENT_TYPE_LABELS, FIELD_LABELS, FIELDS_BY_TYPE, FONT_CHOICES, type TemplateSettings } from "../lib/templates/template-constants";
 import type { DocumentType } from "../lib/types";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {

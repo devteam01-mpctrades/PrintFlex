@@ -1,4 +1,5 @@
 import prisma from "../../db.server";
+import { tokenFromScan } from "./token-parse";
 
 /**
  * Resolve what a scanner or a person typed to an order. Accepts "#KS-10236",
@@ -12,10 +13,7 @@ export type LookupResult =
   | { kind: "ambiguous"; candidates: Array<{ id: string; orderName: string }> }
   | { kind: "none" };
 
-export function tokenFromScan(value: string): string | null {
-  const match = /\/scan\/([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\b/.exec(value.trim());
-  return match ? match[1] : null;
-}
+export { tokenFromScan } from "./token-parse";
 
 export async function lookupOrder(shopId: string, raw: string): Promise<LookupResult> {
   const value = raw.trim();
