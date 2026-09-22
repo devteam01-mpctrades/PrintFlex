@@ -6,6 +6,8 @@ import {
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
+import { backfillOrders } from "./lib/orders/sync.server";
+import { syncShopFromShopify } from "./lib/shops.server";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -18,6 +20,22 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,
+  },
+  hooks: {
+    afterAuth: async ({ session, admin }) => {
+      const shop = await syncShopFromShopify(admin, session.shop);
+      const synced = await prisma.orderIndex.count({ where: { shopId: shop.id } });
+      if (synced === 0) {
+        // First install: backfill in the background so auth completes fast.
+        void backfillOrders(admin, shop.id)
+          .then((summary) =>
+            console.log(`Initial order backfill for ${session.shop}:`, summary),
+          )
+          .catch((error: unknown) =>
+            console.error(`Initial order backfill failed for ${session.shop}`, error),
+          );
+      }
+    },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
