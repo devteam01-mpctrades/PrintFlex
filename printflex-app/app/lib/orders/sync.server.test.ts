@@ -11,6 +11,7 @@ function snapshot(overrides: Partial<OrderSnapshot> = {}): OrderSnapshot {
     customerName: "Yuki Tanaka",
     customerEmail: "yuki@example.com",
     countryCode: "JP",
+    shippingCity: "Tokyo",
     itemCount: 5,
     totalAmount: "112.00",
     currency: "USD",

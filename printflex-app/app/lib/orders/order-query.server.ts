@@ -27,6 +27,7 @@ export const ORDER_INDEX_FRAGMENT = `#graphql
     }
     shippingAddress {
       name
+      city
       countryCodeV2
     }
     shippingLine {
@@ -102,7 +103,7 @@ export interface OrderNode {
     presentmentMoney: { amount: string; currencyCode: string };
   };
   customer: { displayName: string; email: string | null } | null;
-  shippingAddress: { name: string | null; countryCodeV2: string | null } | null;
+  shippingAddress: { name: string | null; city: string | null; countryCodeV2: string | null } | null;
   shippingLine: { title: string } | null;
   lineItems: { nodes: LineItemNode[] };
 }

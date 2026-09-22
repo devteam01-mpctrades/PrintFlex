@@ -49,6 +49,7 @@ model Shop {
   meterPeriodStart   DateTime?
   timezone           String    @default("UTC")
   pinHash            String?
+  pinVersion         Int       @default(0)
   scanSecret         String?
   settingsJson       String    @default("{}")
   invoicePrefix      String    @default("INV-")
@@ -70,6 +71,25 @@ model Shop {
   bins         BinMap[]
   bundles      BundleMap[]
   auditEntries AuditEntry[]
+  scanDevices  ScanDevice[]
+}
+
+// A phone or scanning bench that signed in with the store PIN. The cookie
+// holds "<id>.<secret>"; only sha256(secret) is stored. A device stays valid
+// while it is not revoked and its pinVersion matches the shop's.
+model ScanDevice {
+  id         String    @id @default(cuid())
+  shopId     String
+  name       String
+  secretHash String    @unique
+  pinVersion Int
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, revokedAt])
 }
 
 model Template {
@@ -112,6 +132,7 @@ model OrderIndex {
   customerName      String?
   customerEmail     String?
   countryCode       String?
+  shippingCity      String?
   itemCount         Int       @default(0)
   totalAmount       Decimal   @default(0)
   currency          String    @default("USD")

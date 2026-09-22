@@ -7,6 +7,7 @@ export interface OrderSnapshot {
   customerName: string | null;
   customerEmail: string | null;
   countryCode: string | null;
+  shippingCity: string | null;
   itemCount: number;
   totalAmount: string;
   currency: string;
@@ -47,6 +48,7 @@ export function mapOrderNode(node: OrderNode): OrderSnapshot {
       blankToNull(node.customer?.displayName) ?? blankToNull(node.shippingAddress?.name),
     customerEmail: blankToNull(node.customer?.email) ?? blankToNull(node.email),
     countryCode: blankToNull(node.shippingAddress?.countryCodeV2),
+    shippingCity: blankToNull(node.shippingAddress?.city),
     itemCount: node.currentSubtotalLineItemsQuantity,
     totalAmount: money.amount,
     currency: money.currencyCode,

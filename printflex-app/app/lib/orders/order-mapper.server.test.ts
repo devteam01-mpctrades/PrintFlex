@@ -15,7 +15,7 @@ const node: OrderNode = {
   currentSubtotalLineItemsQuantity: 3,
   currentTotalPriceSet: { presentmentMoney: { amount: "64.90", currencyCode: "EUR" } },
   customer: { displayName: "Marie Dupont", email: "marie@example.com" },
-  shippingAddress: { name: "M. Dupont", countryCodeV2: "FR" },
+  shippingAddress: { name: "M. Dupont", city: "Paris", countryCodeV2: "FR" },
   shippingLine: { title: "Colissimo" },
   lineItems: {
     nodes: [
@@ -52,6 +52,7 @@ describe("mapOrderNode", () => {
       customerName: "Marie Dupont",
       customerEmail: "marie@example.com",
       countryCode: "FR",
+      shippingCity: "Paris",
       itemCount: 3,
       totalAmount: "64.90",
       currency: "EUR",

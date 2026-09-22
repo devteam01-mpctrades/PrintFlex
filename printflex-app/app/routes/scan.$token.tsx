@@ -1,0 +1,122 @@
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { redirect, useActionData, useLoaderData } from "react-router";
+import { OrderSummaryCard } from "../components/scan/OrderSummaryCard";
+import { ScanShell } from "../components/scan/ScanShell";
+import { SignInForm } from "../components/scan/SignInForm";
+import prisma from "../db.server";
+import { clientKeyFor, getDeviceSession, signInDevice } from "../lib/scan/devices.server";
+import { loadOrderSummary } from "../lib/scan/lookup.server";
+import { shopName } from "../lib/scan/scan-request.server";
+import { verifyScanToken } from "../lib/scan/tokens.server";
+import { batchLabel } from "../lib/render/render-batch.server";
+
+/**
+ * /scan/:token — what the printed QR opens. Verifies the token, asks for the
+ * store PIN once per device, then shows the order.
+ */
+
+const TOKEN_MESSAGES = {
+  unknown: "This code is not one PrintFlex recognises. Scan the QR code printed by PrintFlex on the packing slip or invoice.",
+  "bad-signature": "This code was printed for a different store or has been tampered with. Print the order again to get a fresh code.",
+  expired: "This code has expired. Codes stop working after the period set in PrintFlex settings. Print the order again to get a fresh code.",
+  revoked: "This code was revoked from the PrintFlex admin. Print the order again to get a fresh code.",
+} as const;
+
+export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+  const verified = await verifyScanToken(params.token ?? "");
+  if (!verified.ok) {
+    return { kind: "invalid" as const, message: TOKEN_MESSAGES[verified.reason] };
+  }
+  const label = await shopName(verified.shopId);
+  const session = await getDeviceSession(request);
+  if (!session || session.shopId !== verified.shopId) {
+    return { kind: "signin" as const, shopLabel: label, error: null as string | null };
+  }
+  if (verified.target.kind === "batch") {
+    const job = await prisma.documentJob.findUnique({ where: { id: verified.target.jobId }, select: { id: true, total: true, state: true } });
+    return {
+      kind: "batch" as const,
+      device: session.name,
+      batch: job ? { label: batchLabel(job.id), total: job.total } : null,
+    };
+  }
+  const order = await loadOrderSummary(verified.shopId, verified.target.orderId);
+  return { kind: "order" as const, device: session.name, order };
+};
+
+export const action = async ({ request, params }: ActionFunctionArgs) => {
+  const verified = await verifyScanToken(params.token ?? "");
+  if (!verified.ok) return redirect(`/scan/${params.token}`);
+  const form = await request.formData();
+  const result = await signInDevice(
+    verified.shopId,
+    String(form.get("pin") ?? ""),
+    String(form.get("deviceName") ?? ""),
+    clientKeyFor(request),
+  );
+  if (!result.ok) {
+    const errors = {
+      "no-pin": "This store has not set a PIN yet. Ask the store owner to set one under Scan & pack in PrintFlex.",
+      throttled: "Too many attempts. Wait 15 minutes and try again.",
+      "wrong-pin": "That PIN is not right. Try again.",
+      name: "Give this device a name so the store can see who packed what.",
+    };
+    return { error: errors[result.reason] };
+  }
+  return redirect(`/scan/${params.token}`, { headers: { "Set-Cookie": result.setCookie } });
+};
+
+export default function ScanTokenPage() {
+  const data = useLoaderData<typeof loader>();
+  const actionError = useActionData<{ error?: string }>()?.error;
+
+  if (data.kind === "invalid") {
+    return (
+      <ScanShell title="Code not valid">
+        <section className="card">
+          <h1>This code will not open</h1>
+          <p>{data.message}</p>
+          <a className="btn secondary" href="/scan">Type an order number instead</a>
+        </section>
+      </ScanShell>
+    );
+  }
+  if (data.kind === "signin") {
+    return (
+      <ScanShell title="Sign in">
+        <SignInForm shopLabel={data.shopLabel} error={data.error ?? actionError} />
+      </ScanShell>
+    );
+  }
+  if (data.kind === "batch") {
+    return (
+      <ScanShell title="Batch" device={data.device}>
+        <section className="card">
+          <h1>{data.batch?.label ?? "Batch"}</h1>
+          <p className="muted">{data.batch ? `${data.batch.total} orders in this batch.` : "This batch no longer exists."}</p>
+          <p>Batch progress on the phone arrives in a later update. Scan an order sheet to open that order.</p>
+          <a className="btn secondary" href="/scan">Scan an order</a>
+        </section>
+      </ScanShell>
+    );
+  }
+  return (
+    <ScanShell title="Order" device={data.device}>
+      {data.order ? (
+        <>
+          <OrderSummaryCard order={data.order} />
+          <section className="card">
+            <p className="muted">Checking items and marking the order packed arrive in the next update.</p>
+            <a className="btn secondary" href="/scan">Scan another order</a>
+          </section>
+        </>
+      ) : (
+        <section className="card">
+          <h1>Order not found</h1>
+          <p>This order is no longer in PrintFlex. It may have been deleted in Shopify.</p>
+          <a className="btn secondary" href="/scan">Scan another order</a>
+        </section>
+      )}
+    </ScanShell>
+  );
+}

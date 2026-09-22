@@ -38,6 +38,7 @@ function toUpdateData(snapshot: OrderSnapshot) {
     customerName: snapshot.customerName,
     customerEmail: snapshot.customerEmail,
     countryCode: snapshot.countryCode,
+    shippingCity: snapshot.shippingCity,
     itemCount: snapshot.itemCount,
     totalAmount: new Prisma.Decimal(snapshot.totalAmount),
     currency: snapshot.currency,

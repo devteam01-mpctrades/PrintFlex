@@ -12,6 +12,7 @@ function snapshot(n: number, overrides: Partial<OrderSnapshot> = {}): OrderSnaps
     customerName: `Customer ${n}`,
     customerEmail: `customer${n}@example.com`,
     countryCode: "US",
+    shippingCity: "Austin",
     itemCount: 1,
     totalAmount: "10.00",
     currency: "USD",
