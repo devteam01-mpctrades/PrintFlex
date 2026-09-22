@@ -17,6 +17,19 @@ export interface OrderSnapshot {
   shopifyCreatedAt: Date;
   shopifyUpdatedAt: Date;
   cancelledAt: Date | null;
+  lineItems: LineItemSnapshot[];
+}
+
+export interface LineItemSnapshot {
+  shopifyLineItemId: string;
+  title: string;
+  variantTitle: string | null;
+  sku: string | null;
+  quantity: number;
+  variantId: string | null;
+  productId: string | null;
+  imageUrl: string | null;
+  position: number;
 }
 
 function blankToNull(value: string | null | undefined): string | null {
@@ -44,5 +57,16 @@ export function mapOrderNode(node: OrderNode): OrderSnapshot {
     shopifyCreatedAt: new Date(node.createdAt),
     shopifyUpdatedAt: new Date(node.updatedAt),
     cancelledAt: node.cancelledAt ? new Date(node.cancelledAt) : null,
+    lineItems: node.lineItems.nodes.map((item, position) => ({
+      shopifyLineItemId: item.id,
+      title: item.title,
+      variantTitle: blankToNull(item.variantTitle),
+      sku: blankToNull(item.sku),
+      quantity: item.quantity,
+      variantId: item.variant?.id ?? null,
+      productId: item.product?.id ?? null,
+      imageUrl: item.image?.url ?? null,
+      position,
+    })),
   };
 }

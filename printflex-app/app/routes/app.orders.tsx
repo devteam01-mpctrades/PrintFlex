@@ -1,166 +1,243 @@
+import { useEffect, useRef } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import prisma from "../db.server";
-import { backfillOrders, findOrderIdByName, syncOrderById } from "../lib/orders/sync.server";
+import { BulkActionBar } from "../components/orders/BulkActionBar";
+import { FiltersBar } from "../components/orders/FiltersBar";
+import { OrdersTable } from "../components/orders/OrdersTable";
+import { SavedViewsBar } from "../components/orders/SavedViewsBar";
+import { useSelection } from "../components/orders/useSelection";
+import { createDocumentJob, markOrdersPrinted, parseDocumentTypes } from "../lib/jobs/create-job.server";
+import {
+  filterQueryString,
+  hasActiveFilters,
+  listOrders,
+  loadFacets,
+  parseFilters,
+  parseSelectionSpec,
+  resolveSelection,
+} from "../lib/orders/list.server";
+import { canSaveView, deleteView, listSavedViews, saveView } from "../lib/orders/saved-views.server";
+import { backfillOrders } from "../lib/orders/sync.server";
+import { getPlan } from "../lib/plans.server";
 import { requireShop } from "../lib/request.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await requireShop(request);
+  const url = new URL(request.url);
+  const filters = parseFilters(url.searchParams);
 
-  const [count, recent] = await Promise.all([
-    prisma.orderIndex.count({ where: { shopId: shop.id } }),
-    prisma.orderIndex.findMany({
-      where: { shopId: shop.id },
-      orderBy: { shopifyUpdatedAt: "desc" },
-      take: 10,
-      select: {
-        id: true,
-        orderName: true,
-        customerName: true,
-        countryCode: true,
-        itemCount: true,
-        totalAmount: true,
-        currency: true,
-        fulfillmentStatus: true,
-        documentStatus: true,
-        shopifyUpdatedAt: true,
-      },
-    }),
+  const [list, facets, views, canSave] = await Promise.all([
+    listOrders(shop.id, filters, shop.timezone),
+    loadFacets(shop.id),
+    listSavedViews(shop.id),
+    canSaveView(shop.id, shop.plan),
   ]);
 
   return {
-    count,
-    recent: recent.map((o) => ({ ...o, totalAmount: o.totalAmount.toString() })),
+    shopId: shop.id,
+    planName: getPlan(shop.plan).name,
+    filters,
+    queryString: filterQueryString(filters),
+    hasFilters: hasActiveFilters(filters),
+    list,
+    facets,
+    views,
+    canSave,
   };
 };
 
-type ActionResult =
-  | { ok: true; message: string }
-  | { ok: false; message: string };
+interface ActionResult {
+  ok: boolean;
+  message: string;
+  /** Set by saveView so the client can navigate to the new view. */
+  query?: string;
+  /** Set by bulk actions so the client can clear its selection. */
+  clearSelection?: boolean;
+}
+
+const DOCUMENT_WORDS: Record<string, string> = {
+  INVOICE: "invoices",
+  PACKING_SLIP: "packing slips",
+  PICK_LIST: "a pick list",
+};
 
 export const action = async ({ request }: ActionFunctionArgs): Promise<ActionResult> => {
   const { shop, admin } = await requireShop(request);
   const form = await request.formData();
-  const intent = form.get("intent");
+  const intent = String(form.get("intent") ?? "");
 
-  if (intent === "backfill") {
-    const summary = await backfillOrders(admin, shop.id);
-    return {
-      ok: true,
-      message: `Synced ${summary.seen} orders across ${summary.pages} pages: ${summary.created} new, ${summary.updated} updated, ${summary.stale} already current.`,
-    };
-  }
-
-  if (intent === "resync") {
-    const orderName = String(form.get("orderName") ?? "").trim();
-    if (!orderName) {
-      return { ok: false, message: "Enter an order number such as #1001, then try again." };
-    }
-    const orderId = await findOrderIdByName(admin, orderName);
-    if (!orderId) {
+  switch (intent) {
+    case "print": {
+      const documentTypes = parseDocumentTypes(String(form.get("documentTypes") ?? ""));
+      const spec = parseSelectionSpec(String(form.get("selection") ?? "{}"));
+      const { orders, truncated } = await resolveSelection(shop.id, spec, shop.timezone);
+      if (orders.length === 0) {
+        return { ok: false, message: "Nothing to print: the selection resolved to no orders." };
+      }
+      const job = await createDocumentJob({
+        shopId: shop.id,
+        documentTypes,
+        orderIds: orders.map((o) => o.id),
+      });
+      const what = documentTypes.map((t) => DOCUMENT_WORDS[t]).join(", ");
       return {
-        ok: false,
-        message: `No order named ${orderName} was found in Shopify. Check the number and try again.`,
+        ok: true,
+        clearSelection: true,
+        message:
+          `Queued ${what} for ${orders.length} orders as job ${job.id.slice(-6).toUpperCase()}. ` +
+          (truncated ? "The selection was capped at 1,000 orders. " : "") +
+          "Rendering is not built yet; the job will start producing PDFs in Phase 5.",
       };
     }
-    const outcome = await syncOrderById(admin, shop.id, orderId);
-    const wording: Record<typeof outcome, string> = {
-      created: `${orderName} was added.`,
-      updated: `${orderName} was refreshed.`,
-      stale: `${orderName} was already up to date.`,
-      missing: `${orderName} no longer exists in Shopify.`,
-    };
-    return { ok: true, message: wording[outcome] };
-  }
 
-  return { ok: false, message: "Unknown action." };
+    case "markPrinted": {
+      const spec = parseSelectionSpec(String(form.get("selection") ?? "{}"));
+      const { orders } = await resolveSelection(shop.id, spec, shop.timezone);
+      const { marked } = await markOrdersPrinted(shop.id, orders.map((o) => o.id));
+      const skipped = orders.length - marked;
+      return {
+        ok: true,
+        clearSelection: true,
+        message:
+          `Marked ${marked} ${marked === 1 ? "order" : "orders"} as printed.` +
+          (skipped > 0 ? ` ${skipped} were already printed or packed and were left as they were.` : ""),
+      };
+    }
+
+    case "saveView": {
+      const result = await saveView(
+        shop.id,
+        shop.plan,
+        String(form.get("name") ?? ""),
+        String(form.get("query") ?? ""),
+      );
+      if (result.ok) return { ok: true, message: `Saved "${result.view.name}".`, query: result.view.query };
+      const messages = {
+        plan: "Saved views are included on Premium and Unlimited. Upgrade on Plans & billing to save this view.",
+        name: "Give the view a name of up to 60 characters.",
+        duplicate: "A view with that name already exists. Choose another name.",
+      };
+      return { ok: false, message: messages[result.reason] };
+    }
+
+    case "deleteView": {
+      const deleted = await deleteView(shop.id, String(form.get("viewId") ?? ""));
+      return deleted
+        ? { ok: true, message: "View deleted.", query: "" }
+        : { ok: false, message: "That view no longer exists." };
+    }
+
+    case "backfill": {
+      const summary = await backfillOrders(admin, shop.id);
+      return {
+        ok: true,
+        message: `Synced ${summary.seen} orders: ${summary.created} new, ${summary.updated} updated, ${summary.stale} already current.`,
+      };
+    }
+
+    default:
+      return { ok: false, message: "Unknown action." };
+  }
 };
 
 export default function OrdersPage() {
-  const { count, recent } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionResult>();
-  const busy = fetcher.state !== "idle";
+  const { list, filters, queryString } = data;
+
+  const selection = useSelection({
+    shopId: data.shopId,
+    queryString,
+    rows: list.rows,
+    total: list.total,
+    alreadyPrintedTotal: list.alreadyPrintedTotal,
+  });
+
+  // A bulk action that succeeded leaves nothing selected.
+  const handled = useRef<ActionResult | null>(null);
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.clearSelection && handled.current !== fetcher.data) {
+      handled.current = fetcher.data;
+      selection.clear();
+    }
+  }, [fetcher.state, fetcher.data, selection]);
+
+  // A scanned barcode resolves to exactly one order: select it.
+  const jumped = useRef<string | null>(null);
+  useEffect(() => {
+    if (list.jumpToId && jumped.current !== list.jumpToId) {
+      jumped.current = list.jumpToId;
+      const index = list.rows.findIndex((r) => r.id === list.jumpToId);
+      if (index >= 0) selection.toggle(index, true, false);
+    }
+  }, [list.jumpToId, list.rows, selection]);
+
+  const jumpedRow = list.jumpToId ? list.rows.find((r) => r.id === list.jumpToId) : undefined;
+  const syncing = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "backfill";
 
   return (
     <s-page heading="Orders">
-      <s-banner tone="info" heading="Orders is under construction">
-        <s-paragraph>
-          Order sync is live: new and changed orders arrive by webhook within
-          seconds. The full table with filters, saved views, selection and bulk
-          printing arrives in Phase 4.
-        </s-paragraph>
-      </s-banner>
+      <s-button
+        slot="secondary-actions"
+        disabled={syncing || undefined}
+        onClick={() => fetcher.submit({ intent: "backfill" }, { method: "post" })}
+      >
+        {syncing ? "Syncing…" : "Sync from Shopify"}
+      </s-button>
 
-      {fetcher.data ? (
+      {fetcher.data && fetcher.state === "idle" ? (
         <s-banner tone={fetcher.data.ok ? "success" : "critical"}>
           <s-paragraph>{fetcher.data.message}</s-paragraph>
         </s-banner>
       ) : null}
 
-      <s-section heading="Sync">
-        <s-paragraph>
-          {count === 0
-            ? "No orders synced yet. Run a sync to pull the last 60 days of orders from Shopify."
-            : `${count} orders synced. Sync runs automatically on install and on every order webhook.`}
-        </s-paragraph>
-        <fetcher.Form method="post">
-          <input type="hidden" name="intent" value="backfill" />
-          <s-button type="submit" variant="primary" disabled={busy || undefined}>
-            {busy ? "Syncing…" : "Sync all orders now"}
-          </s-button>
-        </fetcher.Form>
-        <s-divider />
-        <fetcher.Form method="post">
-          <input type="hidden" name="intent" value="resync" />
-          <s-stack direction="inline" gap="base" alignItems="end">
-            <s-text-field
-              name="orderName"
-              label="Re-sync one order"
-              placeholder="#1001"
-            ></s-text-field>
-            <s-button type="submit" disabled={busy || undefined}>
-              Re-sync
-            </s-button>
-          </s-stack>
-        </fetcher.Form>
+      {jumpedRow ? (
+        <s-banner tone="info">
+          <s-paragraph>
+            Jumped to {jumpedRow.orderName} for {jumpedRow.customerName ?? "a guest"}. It is selected
+            below.
+          </s-paragraph>
+        </s-banner>
+      ) : null}
+
+      <SavedViewsBar
+        views={data.views}
+        activeQuery={queryString}
+        hasFilters={data.hasFilters}
+        canSave={data.canSave}
+        planName={data.planName}
+      />
+
+      <s-section heading="Filters">
+        <FiltersBar filters={filters} facets={data.facets} hasFilters={data.hasFilters} />
       </s-section>
 
-      <s-section heading="Most recently updated">
-        {recent.length === 0 ? (
-          <s-paragraph>Nothing here yet. Synced orders will appear in this list.</s-paragraph>
-        ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Order</s-table-header>
-              <s-table-header>Customer</s-table-header>
-              <s-table-header>Items</s-table-header>
-              <s-table-header>Total</s-table-header>
-              <s-table-header>Fulfilment</s-table-header>
-              <s-table-header>Status</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {recent.map((order) => (
-                <s-table-row key={order.id}>
-                  <s-table-cell>{order.orderName}</s-table-cell>
-                  <s-table-cell>
-                    {order.customerName ?? "—"}
-                    {order.countryCode ? ` · ${order.countryCode}` : ""}
-                  </s-table-cell>
-                  <s-table-cell>{order.itemCount}</s-table-cell>
-                  <s-table-cell>
-                    {order.totalAmount} {order.currency}
-                  </s-table-cell>
-                  <s-table-cell>{order.fulfillmentStatus}</s-table-cell>
-                  <s-table-cell>
-                    <s-badge>{order.documentStatus}</s-badge>
-                  </s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
-        )}
-      </s-section>
+      <BulkActionBar
+        summary={selection.summary}
+        spec={selection.spec}
+        total={list.total}
+        pageRowCount={list.rows.length}
+        allOnPageSelected={selection.allOnPageSelected}
+        fetcher={fetcher}
+        onSelectAllMatching={selection.selectAllMatching}
+        onClear={selection.clear}
+        onExcludePrinted={selection.excludePrinted}
+      />
+
+      <OrdersTable
+        rows={list.rows}
+        page={list.page}
+        pageCount={list.pageCount}
+        total={list.total}
+        queryString={queryString}
+        isSelected={selection.isSelected}
+        allOnPageSelected={selection.allOnPageSelected}
+        pageSelectedCount={selection.pageSelectedCount}
+        onToggle={selection.toggle}
+        onSelectPage={selection.selectPage}
+        highlightId={list.jumpToId}
+      />
     </s-page>
   );
 }

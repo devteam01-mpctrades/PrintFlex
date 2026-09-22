@@ -71,16 +71,20 @@ export async function applyOrderSnapshot(
     },
     data,
   });
-  if (updated.count > 0) return "updated";
 
   const existing = await prisma.orderIndex.findUnique({
     where: { shopId_shopifyOrderId: { shopId, shopifyOrderId: snapshot.shopifyOrderId } },
     select: { id: true },
   });
+
+  if (updated.count > 0 && existing) {
+    await replaceLineItems(existing.id, snapshot);
+    return "updated";
+  }
   if (existing) return "stale";
 
   try {
-    await prisma.orderIndex.create({
+    const created = await prisma.orderIndex.create({
       data: {
         shopId,
         shopifyOrderId: snapshot.shopifyOrderId,
@@ -88,6 +92,7 @@ export async function applyOrderSnapshot(
         ...data,
       },
     });
+    await replaceLineItems(created.id, snapshot);
     return "created";
   } catch (error) {
     // Lost a race with a concurrent insert for the same order: apply as an update.
@@ -100,10 +105,27 @@ export async function applyOrderSnapshot(
         },
         data,
       });
-      return retry.count > 0 ? "updated" : "stale";
+      if (retry.count > 0) {
+        const row = await prisma.orderIndex.findUniqueOrThrow({
+          where: { shopId_shopifyOrderId: { shopId, shopifyOrderId: snapshot.shopifyOrderId } },
+          select: { id: true },
+        });
+        await replaceLineItems(row.id, snapshot);
+        return "updated";
+      }
+      return "stale";
     }
     throw error;
   }
+}
+
+async function replaceLineItems(orderId: string, snapshot: OrderSnapshot): Promise<void> {
+  await prisma.$transaction([
+    prisma.orderLineItem.deleteMany({ where: { orderId } }),
+    prisma.orderLineItem.createMany({
+      data: snapshot.lineItems.map((item) => ({ orderId, ...item })),
+    }),
+  ]);
 }
 
 async function tagNamesForShop(shopId: string): Promise<TagNames> {
@@ -151,9 +173,9 @@ export interface BackfillSummary {
   stale: number;
 }
 
-const PAGE_SIZE = 50;
-/** Conservative estimate of one page's cost, used to pace requests. */
-const ESTIMATED_PAGE_COST = 150;
+const PAGE_SIZE = 20;
+/** Conservative estimate of one page's cost (20 orders × up to 50 line items). */
+const ESTIMATED_PAGE_COST = 700;
 
 /**
  * Walk every order Shopify will return (the last 60 days without the

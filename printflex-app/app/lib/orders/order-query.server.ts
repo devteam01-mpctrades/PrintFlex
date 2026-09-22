@@ -32,6 +32,24 @@ export const ORDER_INDEX_FRAGMENT = `#graphql
     shippingLine {
       title
     }
+    lineItems(first: 50) {
+      nodes {
+        id
+        title
+        variantTitle
+        sku
+        quantity
+        variant {
+          id
+        }
+        product {
+          id
+        }
+        image {
+          url(transform: { maxWidth: 200, maxHeight: 200 })
+        }
+      }
+    }
   }
 `;
 
@@ -86,6 +104,18 @@ export interface OrderNode {
   customer: { displayName: string; email: string | null } | null;
   shippingAddress: { name: string | null; countryCodeV2: string | null } | null;
   shippingLine: { title: string } | null;
+  lineItems: { nodes: LineItemNode[] };
+}
+
+export interface LineItemNode {
+  id: string;
+  title: string;
+  variantTitle: string | null;
+  sku: string | null;
+  quantity: number;
+  variant: { id: string } | null;
+  product: { id: string } | null;
+  image: { url: string } | null;
 }
 
 export interface OrderByIdData {

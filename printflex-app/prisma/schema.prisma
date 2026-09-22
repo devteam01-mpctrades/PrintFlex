@@ -58,6 +58,7 @@ model Shop {
   updatedAt          DateTime  @updatedAt
 
   templates    Template[]
+  savedViews   SavedView[]
   orders       OrderIndex[]
   jobs         DocumentJob[]
   documents    Document[]
@@ -125,7 +126,8 @@ model OrderIndex {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop       Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  lineItems  OrderLineItem[]
   documents  Document[]
   scanTokens ScanToken[]
   packEvents PackEvent[]
@@ -274,4 +276,41 @@ model AuditEntry {
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId, createdAt])
+}
+
+// Line items are needed for SKU search, packing slips, pick lists and the
+// pack checklist. Replaced wholesale whenever the parent order is synced.
+model OrderLineItem {
+  id                String  @id @default(cuid())
+  orderId           String
+  shopifyLineItemId String
+  title             String
+  variantTitle      String?
+  sku               String?
+  quantity          Int
+  variantId         String?
+  productId         String?
+  imageUrl          String?
+  position          Int     @default(0)
+
+  order OrderIndex @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, shopifyLineItemId])
+  @@index([sku])
+}
+
+// A merchant-defined filter combination for the orders list, stored as the
+// URL query string so a view is exactly what the URL is.
+model SavedView {
+  id        String   @id @default(cuid())
+  shopId    String
+  name      String
+  query     String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, name])
+  @@index([shopId, position])
 }

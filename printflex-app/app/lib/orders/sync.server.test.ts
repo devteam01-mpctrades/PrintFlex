@@ -21,6 +21,19 @@ function snapshot(overrides: Partial<OrderSnapshot> = {}): OrderSnapshot {
     shopifyCreatedAt: new Date("2026-09-20T00:00:00Z"),
     shopifyUpdatedAt: new Date("2026-09-20T00:00:00Z"),
     cancelledAt: null,
+    lineItems: [
+      {
+        shopifyLineItemId: "gid://shopify/LineItem/1",
+        title: "Snail Essence",
+        variantTitle: null,
+        sku: "PF-002",
+        quantity: 5,
+        variantId: null,
+        productId: null,
+        imageUrl: null,
+        position: 0,
+      },
+    ],
     ...overrides,
   };
 }

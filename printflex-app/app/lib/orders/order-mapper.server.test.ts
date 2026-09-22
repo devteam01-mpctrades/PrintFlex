@@ -17,6 +17,30 @@ const node: OrderNode = {
   customer: { displayName: "Marie Dupont", email: "marie@example.com" },
   shippingAddress: { name: "M. Dupont", countryCodeV2: "FR" },
   shippingLine: { title: "Colissimo" },
+  lineItems: {
+    nodes: [
+      {
+        id: "gid://shopify/LineItem/11",
+        title: "Ginseng Cream 50ml",
+        variantTitle: "Default Title",
+        sku: " PF-001 ",
+        quantity: 2,
+        variant: { id: "gid://shopify/ProductVariant/5" },
+        product: { id: "gid://shopify/Product/7" },
+        image: { url: "https://cdn.shopify.com/img.png" },
+      },
+      {
+        id: "gid://shopify/LineItem/12",
+        title: "Gift Wrap",
+        variantTitle: null,
+        sku: "",
+        quantity: 1,
+        variant: null,
+        product: null,
+        image: null,
+      },
+    ],
+  },
 };
 
 describe("mapOrderNode", () => {
@@ -38,6 +62,30 @@ describe("mapOrderNode", () => {
       shopifyCreatedAt: new Date("2026-09-20T08:00:00Z"),
       shopifyUpdatedAt: new Date("2026-09-21T09:30:00Z"),
       cancelledAt: null,
+      lineItems: [
+        {
+          shopifyLineItemId: "gid://shopify/LineItem/11",
+          title: "Ginseng Cream 50ml",
+          variantTitle: "Default Title",
+          sku: "PF-001",
+          quantity: 2,
+          variantId: "gid://shopify/ProductVariant/5",
+          productId: "gid://shopify/Product/7",
+          imageUrl: "https://cdn.shopify.com/img.png",
+          position: 0,
+        },
+        {
+          shopifyLineItemId: "gid://shopify/LineItem/12",
+          title: "Gift Wrap",
+          variantTitle: null,
+          sku: null,
+          quantity: 1,
+          variantId: null,
+          productId: null,
+          imageUrl: null,
+          position: 1,
+        },
+      ],
     });
   });
 

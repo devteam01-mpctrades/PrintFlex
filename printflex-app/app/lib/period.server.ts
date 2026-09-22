@@ -109,3 +109,18 @@ export function daysRemaining(
   const ms = periodEnd(period, timezone).getTime() - now.getTime();
   return Math.max(0, Math.ceil(ms / 86_400_000));
 }
+
+/** UTC instant of local midnight at the start of a "YYYY-MM-DD" day in `timezone`. */
+export function zonedDayStart(day: string, timezone: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  if (!match) throw new Error(`Invalid day: ${day}`);
+  return zonedMidnightUtc(Number(match[1]), Number(match[2]), Number(match[3]), timezone);
+}
+
+/** UTC instant of local midnight at the end of a "YYYY-MM-DD" day (start of the next day). */
+export function zonedDayEnd(day: string, timezone: string): Date {
+  const start = zonedDayStart(day, timezone);
+  const next = new Date(start.getTime() + 36 * 3_600_000);
+  const p = zonedParts(next, timezone);
+  return zonedMidnightUtc(p.year, p.month, p.day, timezone);
+}
