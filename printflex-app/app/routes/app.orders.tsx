@@ -9,6 +9,7 @@ import { SavedViewsBar } from "../components/orders/SavedViewsBar";
 import { useSelection } from "../components/orders/useSelection";
 import { createDocumentJob, markOrdersPrinted, parseDocumentTypes } from "../lib/jobs/create-job.server";
 import { getQueue } from "../lib/jobs/worker.server";
+import { createPrintLink } from "../lib/render/fallback.server";
 import {
   filterQueryString,
   hasActiveFilters,
@@ -57,6 +58,8 @@ interface ActionResult {
   clearSelection?: boolean;
   /** Set when a batch was queued so the client can link to it. */
   jobId?: string;
+  /** Set when the queue was unavailable: a signed browser print link. */
+  printUrl?: string;
 }
 
 const DOCUMENT_WORDS: Record<string, string> = {
@@ -82,15 +85,29 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionRes
         shopId: shop.id,
         documentTypes,
         orderIds: orders.map((o) => o.id),
+        options: { coverSheet: form.get("coverSheet") === "on" },
       });
-      await getQueue().enqueue(job.id);
       const what = documentTypes.map((t) => DOCUMENT_WORDS[t]).join(", ");
+      const label = `BATCH-${job.id.slice(-6).toUpperCase()}`;
+      try {
+        await getQueue().enqueue(job.id);
+      } catch (error) {
+        // Printing is never blocked: hand the merchant the browser print view instead.
+        console.error(`Queue unavailable for ${label}`, error);
+        return {
+          ok: true,
+          clearSelection: true,
+          jobId: job.id,
+          printUrl: await createPrintLink(shop.id, job.id),
+          message: `The render queue is unavailable, so ${label} will print from your browser instead. Nothing is lost and no order is metered twice.`,
+        };
+      }
       return {
         ok: true,
         clearSelection: true,
         jobId: job.id,
         message:
-          `Rendering ${what} for ${orders.length} ${orders.length === 1 ? "order" : "orders"} as BATCH-${job.id.slice(-6).toUpperCase()}.` +
+          `Rendering ${what} for ${orders.length} ${orders.length === 1 ? "order" : "orders"} as ${label}.` +
           (truncated ? " The selection was capped at 1,000 orders." : ""),
       };
     }
@@ -193,6 +210,11 @@ export default function OrdersPage() {
       {fetcher.data && fetcher.state === "idle" ? (
         <s-banner tone={fetcher.data.ok ? "success" : "critical"}>
           <s-paragraph>{fetcher.data.message}</s-paragraph>
+          {fetcher.data.printUrl ? (
+            <s-button slot="secondary-actions" variant="primary" href={fetcher.data.printUrl} target="_blank">
+              Print from browser
+            </s-button>
+          ) : null}
           {fetcher.data.jobId ? (
             <s-button slot="secondary-actions" href={`/app/jobs/${fetcher.data.jobId}`}>
               Open batch

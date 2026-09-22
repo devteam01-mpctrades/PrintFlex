@@ -1,5 +1,4 @@
-import type { GraphqlClient } from "../graphql.server";
-import { runGraphql } from "../graphql.server";
+import { runGraphql, waitForBudget, type GraphqlClient, type ThrottleStatus } from "../graphql.server";
 
 /**
  * Everything a document needs about one order, fetched from Shopify at
@@ -47,6 +46,8 @@ export interface OrderDocumentData {
   createdAt: string;
   processedAt: string;
   note: string | null;
+  /** Note attributes, e.g. a gift message captured at checkout. */
+  attributes: Array<{ key: string; value: string }>;
   email: string | null;
   phone: string | null;
   customerName: string | null;
@@ -76,35 +77,74 @@ export interface Seller {
 const MONEY = `presentmentMoney { amount currencyCode }`;
 const ADDRESS = `name company address1 address2 city province zip country phone`;
 
-export const ORDER_DOCUMENT_QUERY = `#graphql
-  query PrintFlexOrderDocument($id: ID!) {
-    shop {
-      name
-      contactEmail
-      billingAddress { ${ADDRESS} }
+/** Line items per order in one query. Bigger orders are completed with a follow-up page. */
+export const LINE_ITEMS_PER_ORDER = 30;
+/** Orders per bulk query: keeps a query under ~1000 cost points. */
+export const ORDERS_PER_QUERY = 10;
+
+export const ORDER_DOCUMENT_FRAGMENT = `#graphql
+  fragment PrintFlexOrderDocumentFields on Order {
+    id
+    name
+    createdAt
+    processedAt
+    note
+    customAttributes { key value }
+    email
+    phone
+    taxesIncluded
+    displayFinancialStatus
+    displayFulfillmentStatus
+    customer { displayName }
+    billingAddress { ${ADDRESS} }
+    shippingAddress { ${ADDRESS} }
+    shippingLine { title }
+    currentSubtotalPriceSet { ${MONEY} }
+    currentTotalDiscountsSet { ${MONEY} }
+    currentShippingPriceSet { ${MONEY} }
+    currentTotalTaxSet { ${MONEY} }
+    currentTotalPriceSet { ${MONEY} }
+    taxLines { title ratePercentage priceSet { ${MONEY} } }
+    lineItems(first: ${LINE_ITEMS_PER_ORDER}) {
+      pageInfo { hasNextPage endCursor }
+      nodes { ...PrintFlexLineItemFields }
     }
+  }
+  fragment PrintFlexLineItemFields on LineItem {
+    title
+    variantTitle
+    sku
+    currentQuantity
+    originalUnitPriceSet { ${MONEY} }
+    discountedTotalSet { ${MONEY} }
+    originalTotalSet { ${MONEY} }
+    image { url(transform: { maxWidth: 200, maxHeight: 200 }) }
+  }
+`;
+
+const SHOP_FIELDS = `shop { name contactEmail billingAddress { ${ADDRESS} } }`;
+
+export const ORDER_DOCUMENT_QUERY = `#graphql
+  ${ORDER_DOCUMENT_FRAGMENT}
+  query PrintFlexOrderDocument($id: ID!) {
+    ${SHOP_FIELDS}
+    order(id: $id) { ...PrintFlexOrderDocumentFields }
+  }
+`;
+
+export const ORDERS_DOCUMENT_QUERY = `#graphql
+  ${ORDER_DOCUMENT_FRAGMENT}
+  query PrintFlexOrdersDocument($ids: [ID!]!) {
+    ${SHOP_FIELDS}
+    nodes(ids: $ids) { ...PrintFlexOrderDocumentFields }
+  }
+`;
+
+export const MORE_LINE_ITEMS_QUERY = `#graphql
+  query PrintFlexMoreLineItems($id: ID!, $after: String!) {
     order(id: $id) {
-      id
-      name
-      createdAt
-      processedAt
-      note
-      email
-      phone
-      taxesIncluded
-      displayFinancialStatus
-      displayFulfillmentStatus
-      customer { displayName }
-      billingAddress { ${ADDRESS} }
-      shippingAddress { ${ADDRESS} }
-      shippingLine { title }
-      currentSubtotalPriceSet { ${MONEY} }
-      currentTotalDiscountsSet { ${MONEY} }
-      currentShippingPriceSet { ${MONEY} }
-      currentTotalTaxSet { ${MONEY} }
-      currentTotalPriceSet { ${MONEY} }
-      taxLines { title ratePercentage priceSet { ${MONEY} } }
-      lineItems(first: 100) {
+      lineItems(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           title
           variantTitle
@@ -136,14 +176,30 @@ interface RawAddress {
   phone: string | null;
 }
 
-export interface OrderDocumentQueryData {
-  shop: { name: string; contactEmail: string | null; billingAddress: RawAddress | null };
-  order: {
+export interface RawLineItem {
+  title: string;
+  variantTitle: string | null;
+  sku: string | null;
+  currentQuantity: number;
+  originalUnitPriceSet: RawMoneyBag;
+  discountedTotalSet: RawMoneyBag;
+  originalTotalSet: RawMoneyBag;
+  image: { url: string } | null;
+}
+
+export interface RawShop {
+  name: string;
+  contactEmail: string | null;
+  billingAddress: RawAddress | null;
+}
+
+export interface RawOrder {
     id: string;
     name: string;
     createdAt: string;
     processedAt: string;
     note: string | null;
+    customAttributes?: Array<{ key: string; value: string | null }>;
     email: string | null;
     phone: string | null;
     taxesIncluded: boolean;
@@ -160,18 +216,23 @@ export interface OrderDocumentQueryData {
     currentTotalPriceSet: RawMoneyBag;
     taxLines: Array<{ title: string; ratePercentage: number | null; priceSet: RawMoneyBag }>;
     lineItems: {
-      nodes: Array<{
-        title: string;
-        variantTitle: string | null;
-        sku: string | null;
-        currentQuantity: number;
-        originalUnitPriceSet: RawMoneyBag;
-        discountedTotalSet: RawMoneyBag;
-        originalTotalSet: RawMoneyBag;
-        image: { url: string } | null;
-      }>;
+      pageInfo?: { hasNextPage: boolean; endCursor: string | null };
+      nodes: RawLineItem[];
     };
-  } | null;
+}
+
+export interface OrderDocumentQueryData {
+  shop: RawShop;
+  order: RawOrder | null;
+}
+
+interface OrdersDocumentQueryData {
+  shop: RawShop;
+  nodes: Array<RawOrder | null>;
+}
+
+interface MoreLineItemsData {
+  order: { lineItems: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: RawLineItem[] } } | null;
 }
 
 function money(bag: RawMoneyBag): Money {
@@ -185,8 +246,10 @@ function subtractMoney(a: Money, b: Money): Money {
 
 /** Pure mapping from the query result to document data. */
 export function mapOrderDocumentData(data: OrderDocumentQueryData): OrderDocumentData | null {
-  const o = data.order;
-  if (!o) return null;
+  return data.order ? mapOrder(data.order, data.shop) : null;
+}
+
+export function mapOrder(o: RawOrder, shop: RawShop): OrderDocumentData {
   const total = money(o.currentTotalPriceSet);
   return {
     id: o.id,
@@ -194,6 +257,9 @@ export function mapOrderDocumentData(data: OrderDocumentQueryData): OrderDocumen
     createdAt: o.createdAt,
     processedAt: o.processedAt,
     note: o.note,
+    attributes: (o.customAttributes ?? [])
+      .filter((a): a is { key: string; value: string } => typeof a.value === "string" && a.value.trim().length > 0)
+      .map((a) => ({ key: a.key, value: a.value })),
     email: o.email,
     phone: o.phone ?? o.shippingAddress?.phone ?? o.billingAddress?.phone ?? null,
     customerName: o.customer?.displayName ?? o.billingAddress?.name ?? o.shippingAddress?.name ?? null,
@@ -226,11 +292,26 @@ export function mapOrderDocumentData(data: OrderDocumentQueryData): OrderDocumen
     taxLines: o.taxLines.map((t) => ({ title: t.title, ratePercentage: t.ratePercentage, amount: money(t.priceSet) })),
     total,
     seller: {
-      name: data.shop.name,
-      email: data.shop.contactEmail,
-      address: data.shop.billingAddress,
+      name: shop.name,
+      email: shop.contactEmail,
+      address: shop.billingAddress,
     },
   };
+}
+
+async function completeLineItems(client: GraphqlClient, order: RawOrder): Promise<RawOrder> {
+  let pageInfo = order.lineItems.pageInfo;
+  const nodes = [...order.lineItems.nodes];
+  while (pageInfo?.hasNextPage && pageInfo.endCursor) {
+    const { data } = await runGraphql<MoreLineItemsData>(client, MORE_LINE_ITEMS_QUERY, {
+      id: order.id,
+      after: pageInfo.endCursor,
+    });
+    if (!data.order) break;
+    nodes.push(...data.order.lineItems.nodes);
+    pageInfo = data.order.lineItems.pageInfo;
+  }
+  return { ...order, lineItems: { nodes } };
 }
 
 export async function fetchOrderDocumentData(
@@ -238,5 +319,34 @@ export async function fetchOrderDocumentData(
   orderGid: string,
 ): Promise<OrderDocumentData | null> {
   const { data } = await runGraphql<OrderDocumentQueryData>(client, ORDER_DOCUMENT_QUERY, { id: orderGid });
-  return mapOrderDocumentData(data);
+  if (!data.order) return null;
+  return mapOrder(await completeLineItems(client, data.order), data.shop);
+}
+
+/** Estimated cost of one bulk query, used to pace against the API budget. */
+const BULK_QUERY_COST = ORDERS_PER_QUERY * (LINE_ITEMS_PER_ORDER + 8) + 10;
+
+/**
+ * Fetch many orders in as few queries as the cost budget allows. Orders that
+ * no longer exist are simply absent from the result.
+ */
+export async function fetchOrdersDocumentData(
+  client: GraphqlClient,
+  orderGids: readonly string[],
+  onProgress?: (fetched: number) => void,
+): Promise<Map<string, OrderDocumentData>> {
+  const result = new Map<string, OrderDocumentData>();
+  let throttle: ThrottleStatus | null = null;
+  for (let i = 0; i < orderGids.length; i += ORDERS_PER_QUERY) {
+    const chunk = orderGids.slice(i, i + ORDERS_PER_QUERY);
+    await waitForBudget(throttle, BULK_QUERY_COST);
+    const response = await runGraphql<OrdersDocumentQueryData>(client, ORDERS_DOCUMENT_QUERY, { ids: chunk });
+    throttle = response.throttle;
+    for (const raw of response.data.nodes) {
+      if (!raw) continue;
+      result.set(raw.id, mapOrder(await completeLineItems(client, raw), response.data.shop));
+    }
+    onProgress?.(Math.min(orderGids.length, i + chunk.length));
+  }
+  return result;
 }

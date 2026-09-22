@@ -2,9 +2,8 @@ import prisma from "../../db.server";
 import { DOCUMENT_TYPES, type DocumentType } from "../types";
 
 /**
- * Job creation for bulk printing. Phase 4 stub: records the job as QUEUED
- * and returns it. Rendering, the queue worker and metering arrive in
- * Phases 5 and 6; nothing here touches the meter.
+ * Job creation for bulk printing. Records the job as QUEUED; the queue
+ * (app/lib/jobs/queue.server.ts) picks it up. Nothing here touches the meter.
  */
 
 export function parseDocumentTypes(value: string): DocumentType[] {
@@ -21,6 +20,7 @@ export interface CreateJobInput {
   documentTypes: DocumentType[];
   orderIds: string[];
   name?: string;
+  options?: { coverSheet?: boolean };
 }
 
 export async function createDocumentJob(input: CreateJobInput) {
@@ -31,6 +31,7 @@ export async function createDocumentJob(input: CreateJobInput) {
       name: input.name ?? null,
       documentTypesJson: JSON.stringify(input.documentTypes),
       orderIdsJson: JSON.stringify(input.orderIds),
+      optionsJson: JSON.stringify({ coverSheet: input.options?.coverSheet === true }),
       state: "QUEUED",
       total: input.orderIds.length,
     },

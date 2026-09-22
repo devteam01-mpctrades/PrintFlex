@@ -49,6 +49,7 @@ model Shop {
   meterPeriodStart   DateTime?
   timezone           String    @default("UTC")
   pinHash            String?
+  scanSecret         String?
   settingsJson       String    @default("{}")
   invoicePrefix      String    @default("INV-")
   invoiceNextNumber  Int       @default(1)
@@ -148,19 +149,23 @@ model DocumentJob {
   name              String?
   documentTypesJson String
   orderIdsJson      String
+  optionsJson       String    @default("{}")
   state             String    @default("QUEUED")
   progress          Int       @default(0)
   total             Int       @default(0)
   error             String?
   outputPath        String?
+  pickListPath      String?
+  outputBytes       Int?
   deadlineAt        DateTime?
   startedAt         DateTime?
   finishedAt        DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  shop      Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  documents Document[]
+  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  documents  Document[]
+  scanTokens ScanToken[]
 
   @@index([shopId, state, createdAt])
 }
@@ -187,19 +192,23 @@ model Document {
   @@index([shopId, orderId, documentType, templateId, templateVersion])
 }
 
+// A scan token opens either one order or one batch on the scan page.
 model ScanToken {
   id        String    @id @default(cuid())
   shopId    String
-  orderId   String
+  orderId   String?
+  jobId     String?
   tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
   createdAt DateTime  @default(now())
 
-  shop  Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  order OrderIndex @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop  Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  order OrderIndex?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  job   DocumentJob? @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([shopId, orderId])
+  @@index([shopId, jobId])
 }
 
 model PackEvent {

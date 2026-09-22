@@ -20,6 +20,17 @@ export async function writeDocument(shopId: string, documentId: string, pdf: Buf
   return file;
 }
 
+export function jobOutputPath(shopId: string, jobId: string, part: "batch" | "picklist"): string {
+  return path.join(ROOT, "jobs", shopId, `${jobId}-${part}.pdf`);
+}
+
+export async function writeJobOutput(shopId: string, jobId: string, part: "batch" | "picklist", pdf: Buffer): Promise<string> {
+  const file = jobOutputPath(shopId, jobId, part);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, pdf);
+  return file;
+}
+
 export async function readDocument(filePath: string): Promise<Buffer | null> {
   try {
     return await fs.readFile(filePath);

@@ -19,6 +19,7 @@ export const JOB_STATES = [
   "SUCCEEDED",
   "FAILED",
   "CANCELLED",
+  "PRINTED_IN_FALLBACK",
 ] as const;
 export type JobState = (typeof JOB_STATES)[number];
 

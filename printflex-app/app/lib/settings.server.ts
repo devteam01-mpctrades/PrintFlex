@@ -11,7 +11,11 @@ export interface TagNames {
 
 export interface ShopSettings {
   tagNames: TagNames;
+  /** How long a printed QR code keeps opening its order, in days. */
+  scanTokenDays: number;
 }
+
+export const DEFAULT_SCAN_TOKEN_DAYS = 90;
 
 export const DEFAULT_TAG_NAMES: TagNames = {
   printed: "printflex-printed",
@@ -38,12 +42,14 @@ export function parseSettings(json: string | null | undefined): ShopSettings {
   const root = isRecord(raw) ? raw : {};
   const tags = isRecord(root.tagNames) ? root.tagNames : {};
 
+  const days = Number(root.scanTokenDays);
   return {
     tagNames: {
       printed: readString(tags, "printed", DEFAULT_TAG_NAMES.printed),
       packed: readString(tags, "packed", DEFAULT_TAG_NAMES.packed),
       needsReview: readString(tags, "needsReview", DEFAULT_TAG_NAMES.needsReview),
     },
+    scanTokenDays: Number.isInteger(days) && days >= 1 && days <= 3650 ? days : DEFAULT_SCAN_TOKEN_DAYS,
   };
 }
 

@@ -17,6 +17,7 @@ const STATE_BADGE: Record<JobState, { label: string; tone: "neutral" | "info" | 
   SUCCEEDED: { label: "Ready", tone: "success" },
   FAILED: { label: "Failed", tone: "critical" },
   CANCELLED: { label: "Cancelled", tone: "warning" },
+  PRINTED_IN_FALLBACK: { label: "Printed in fallback", tone: "warning" },
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {

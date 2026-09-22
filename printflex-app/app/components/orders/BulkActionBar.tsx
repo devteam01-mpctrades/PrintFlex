@@ -1,4 +1,6 @@
+import { useCallback, useRef, useState } from "react";
 import type { FetcherWithComponents } from "react-router";
+import { useNativeEvent } from "./useNativeEvent";
 import type { SelectionSpec } from "../../lib/orders/list.server";
 import type { SelectionSummary } from "./useSelection";
 
@@ -25,6 +27,16 @@ export function BulkActionBar(props: Props) {
   const { summary, spec, total, pageRowCount, allOnPageSelected, fetcher } = props;
   const busy = fetcher.state !== "idle";
   const selection = JSON.stringify(spec);
+  const [coverSheet, setCoverSheet] = useState(false);
+  const optionsRef = useRef<HTMLElementTagNameMap["s-box"]>(null);
+  useNativeEvent(
+    optionsRef,
+    "change",
+    useCallback((event: Event) => {
+      const target = event.target as (HTMLElement & { checked?: boolean }) | null;
+      if (target?.tagName.toLowerCase() === "s-checkbox") setCoverSheet(Boolean(target.checked));
+    }, []),
+  );
 
   if (summary.count === 0) return null;
 
@@ -47,7 +59,7 @@ export function BulkActionBar(props: Props) {
               disabled={busy || undefined}
               onClick={() =>
                 fetcher.submit(
-                  { intent: "print", documentTypes: action.documentTypes, selection },
+                  { intent: "print", documentTypes: action.documentTypes, selection, coverSheet: coverSheet ? "on" : "off" },
                   { method: "post" },
                 )
               }
@@ -66,6 +78,13 @@ export function BulkActionBar(props: Props) {
             Clear selection
           </s-button>
         </s-stack>
+        <s-box ref={optionsRef} paddingBlockStart="small">
+          <s-checkbox
+            value="coverSheet"
+            label="Add a cover sheet with the batch QR code"
+            checked={coverSheet || undefined}
+          ></s-checkbox>
+        </s-box>
         {offerSelectAll ? (
           <s-paragraph>
             All {pageRowCount} orders on this page are selected.{" "}
