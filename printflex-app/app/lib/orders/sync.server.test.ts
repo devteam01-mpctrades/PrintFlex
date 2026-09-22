@@ -28,6 +28,7 @@ function snapshot(overrides: Partial<OrderSnapshot> = {}): OrderSnapshot {
         title: "Snail Essence",
         variantTitle: null,
         sku: "PF-002",
+        barcode: null,
         quantity: 5,
         variantId: null,
         productId: null,

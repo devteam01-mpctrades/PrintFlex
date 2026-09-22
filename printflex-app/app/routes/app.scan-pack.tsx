@@ -2,15 +2,38 @@ import { useRef } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { useNativeEvent } from "../components/orders/useNativeEvent";
+import prisma from "../db.server";
+import { zonedDayStart } from "../lib/period.server";
 import { requireShop } from "../lib/request.server";
 import { listDevices, revokeDevice } from "../lib/scan/devices.server";
 import { hasStorePin, setStorePin } from "../lib/scan/pin.server";
+import { parseSettings, updateShopSettings, type PackSettings } from "../lib/settings.server";
+
+const PACK_TOGGLES: Array<{ key: keyof PackSettings; label: string; details: string }> = [
+  { key: "requireAllChecked", label: "Require every item to be checked", details: "Mark as packed stays disabled until every line is complete or flagged." },
+  { key: "showPhotos", label: "Show product photos on the pack screen", details: "Photos come from Shopify, so new packers still fill the right box." },
+  { key: "strictMode", label: "Strict mode: scan each product barcode", details: "Tapping is disabled; a wrong scan shows a loud mismatch." },
+  { key: "askWeight", label: "Ask for parcel weight when packing", details: "Written to the order as a metafield." },
+  { key: "allowShortPick", label: "Allow short-pick and damage reports", details: "Staff can flag a line they cannot complete. The order goes to Needs review, never to Packed." },
+];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await requireShop(request);
-  const [hasPin, devices] = await Promise.all([hasStorePin(shop.id), listDevices(shop.id)]);
+  const today = zonedDayStart(new Intl.DateTimeFormat("en-CA", { timeZone: shop.timezone }).format(new Date()), shop.timezone);
+  const [hasPin, devices, packedToday, needsReview, devicesToday] = await Promise.all([
+    hasStorePin(shop.id),
+    listDevices(shop.id),
+    prisma.packEvent.count({ where: { shopId: shop.id, outcome: "PACKED", occurredAt: { gte: today } } }),
+    prisma.orderIndex.count({ where: { shopId: shop.id, documentStatus: "NEEDS_REVIEW" } }),
+    prisma.packEvent.findMany({ where: { shopId: shop.id, occurredAt: { gte: today } }, distinct: ["deviceName"], select: { deviceName: true } }),
+  ]);
   return {
     hasPin,
+    packedToday,
+    needsReview,
+    devicesToday: devicesToday.length,
+    pack: parseSettings(shop.settingsJson).pack,
     timezone: shop.timezone,
     scanUrl: `${(process.env.SHOPIFY_APP_URL ?? "").replace(/\/$/, "")}/scan`,
     devices: devices.map((d) => ({ ...d, lastSeenAt: d.lastSeenAt.toISOString(), createdAt: d.createdAt.toISOString() })),
@@ -26,6 +49,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!result.ok) return { ok: false, message: "The PIN must be 4 to 8 digits." };
     return { ok: true, message: "PIN saved. Every device must sign in again with the new PIN." };
   }
+  if (intent === "pack") {
+    await updateShopSettings(prisma, shop.id, (current) => ({
+      ...current,
+      pack: {
+        requireAllChecked: form.get("requireAllChecked") === "on",
+        showPhotos: form.get("showPhotos") === "on",
+        strictMode: form.get("strictMode") === "on",
+        askWeight: form.get("askWeight") === "on",
+        allowShortPick: form.get("allowShortPick") === "on",
+      },
+    }));
+    return { ok: true, message: "Pack behaviour saved. Devices pick it up on their next scan." };
+  }
   if (intent === "revoke") {
     const revoked = await revokeDevice(shop.id, String(form.get("deviceId") ?? ""));
     return revoked ? { ok: true, message: "Device removed. It will be asked for the PIN next time." } : { ok: false, message: "That device was already removed." };
@@ -34,10 +70,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function ScanPackPage() {
-  const { hasPin, devices, timezone, scanUrl } = useLoaderData<typeof loader>();
+  const { hasPin, devices, timezone, scanUrl, packedToday, needsReview, devicesToday, pack } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<{ ok: boolean; message: string }>();
   const pinRef = useRef<HTMLElementTagNameMap["s-text-field"]>(null);
+  const packFormRef = useRef<HTMLFormElement>(null);
   const busy = fetcher.state !== "idle";
+  useNativeEvent(packFormRef, "change", () => {
+    if (!packFormRef.current) return;
+    const form = new FormData(packFormRef.current);
+    form.set("intent", "pack");
+    fetcher.submit(form, { method: "post" });
+  });
   const when = (iso: string) =>
     new Intl.DateTimeFormat("en-GB", { timeZone: timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
@@ -55,15 +98,28 @@ export default function ScanPackPage() {
 
       <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
         <s-section heading="Packed today">
-          <s-paragraph color="subdued">Arrives with the pack checklist.</s-paragraph>
+          <s-heading>{packedToday}</s-heading>
+          <s-paragraph color="subdued">Across {devicesToday} {devicesToday === 1 ? "device" : "devices"}</s-paragraph>
         </s-section>
         <s-section heading="Median time per parcel">
-          <s-paragraph color="subdued">Arrives with the pack checklist.</s-paragraph>
+          <s-paragraph color="subdued">Arrives with scan history.</s-paragraph>
         </s-section>
         <s-section heading="Needs review">
+          <s-heading>{needsReview}</s-heading>
           <s-paragraph color="subdued">Short-picked or damaged, flagged by staff, not discovered by a customer.</s-paragraph>
+          {needsReview > 0 ? <s-link href="/app/orders?docStatus=NEEDS_REVIEW">Open the Needs review view</s-link> : null}
         </s-section>
       </s-grid>
+
+      <s-section heading="Pack behaviour">
+        <form ref={packFormRef} onSubmit={(e) => e.preventDefault()}>
+          <s-stack gap="small">
+            {PACK_TOGGLES.map((t) => (
+              <s-switch key={t.key} name={t.key} value="on" checked={pack[t.key] || undefined} label={t.label} details={t.details}></s-switch>
+            ))}
+          </s-stack>
+        </form>
+      </s-section>
 
       <s-section heading="Staff access">
         <s-stack gap="base">

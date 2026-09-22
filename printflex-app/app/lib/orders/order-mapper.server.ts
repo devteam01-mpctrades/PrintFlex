@@ -26,6 +26,7 @@ export interface LineItemSnapshot {
   title: string;
   variantTitle: string | null;
   sku: string | null;
+  barcode: string | null;
   quantity: number;
   variantId: string | null;
   productId: string | null;
@@ -64,6 +65,7 @@ export function mapOrderNode(node: OrderNode): OrderSnapshot {
       title: item.title,
       variantTitle: blankToNull(item.variantTitle),
       sku: blankToNull(item.sku),
+      barcode: blankToNull(item.variant?.barcode),
       quantity: item.quantity,
       variantId: item.variant?.id ?? null,
       productId: item.product?.id ?? null,

@@ -284,11 +284,12 @@ model BinMap {
 }
 
 model BundleMap {
-  id           String @id @default(cuid())
-  shopId       String
-  bundleSku    String
-  componentSku String
-  quantity     Int    @default(1)
+  id             String  @id @default(cuid())
+  shopId         String
+  bundleSku      String
+  componentSku   String
+  componentTitle String?
+  quantity       Int     @default(1)
 
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
@@ -318,6 +319,7 @@ model OrderLineItem {
   title             String
   variantTitle      String?
   sku               String?
+  barcode           String?
   quantity          Int
   variantId         String?
   productId         String?

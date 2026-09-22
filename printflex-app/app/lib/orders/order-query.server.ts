@@ -42,6 +42,7 @@ export const ORDER_INDEX_FRAGMENT = `#graphql
         quantity
         variant {
           id
+          barcode
         }
         product {
           id
@@ -114,7 +115,7 @@ export interface LineItemNode {
   variantTitle: string | null;
   sku: string | null;
   quantity: number;
-  variant: { id: string } | null;
+  variant: { id: string; barcode: string | null } | null;
   product: { id: string } | null;
   image: { url: string } | null;
 }

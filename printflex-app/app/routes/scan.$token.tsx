@@ -1,11 +1,9 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useActionData, useLoaderData } from "react-router";
-import { OrderSummaryCard } from "../components/scan/OrderSummaryCard";
 import { ScanShell } from "../components/scan/ScanShell";
 import { SignInForm } from "../components/scan/SignInForm";
 import prisma from "../db.server";
 import { clientKeyFor, getDeviceSession, signInDevice } from "../lib/scan/devices.server";
-import { loadOrderSummary } from "../lib/scan/lookup.server";
 import { shopName } from "../lib/scan/scan-request.server";
 import { verifyScanToken } from "../lib/scan/tokens.server";
 import { batchLabel } from "../lib/render/render-batch.server";
@@ -40,8 +38,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       batch: job ? { label: batchLabel(job.id), total: job.total } : null,
     };
   }
-  const order = await loadOrderSummary(verified.shopId, verified.target.orderId);
-  return { kind: "order" as const, device: session.name, order };
+  // A signed-in device lands on the pack screen, the same one every other entry path uses.
+  throw redirect(`/scan/order/${verified.target.orderId}`);
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -100,23 +98,5 @@ export default function ScanTokenPage() {
       </ScanShell>
     );
   }
-  return (
-    <ScanShell title="Order" device={data.device}>
-      {data.order ? (
-        <>
-          <OrderSummaryCard order={data.order} />
-          <section className="card">
-            <p className="muted">Checking items and marking the order packed arrive in the next update.</p>
-            <a className="btn secondary" href="/scan">Scan another order</a>
-          </section>
-        </>
-      ) : (
-        <section className="card">
-          <h1>Order not found</h1>
-          <p>This order is no longer in PrintFlex. It may have been deleted in Shopify.</p>
-          <a className="btn secondary" href="/scan">Scan another order</a>
-        </section>
-      )}
-    </ScanShell>
-  );
+  return null;
 }

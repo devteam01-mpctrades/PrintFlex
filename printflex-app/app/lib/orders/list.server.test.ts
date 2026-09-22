@@ -39,7 +39,7 @@ async function seedShop() {
     snapshot(3, {
       countryCode: "DE",
       shippingMethod: "DHL Express",
-      lineItems: [{ shopifyLineItemId: "li-3", title: "Snail Essence", variantTitle: null, sku: "PF-002", quantity: 1, variantId: null, productId: null, imageUrl: null, position: 0 }],
+      lineItems: [{ shopifyLineItemId: "li-3", title: "Snail Essence", variantTitle: null, sku: "PF-002", barcode: null, quantity: 1, variantId: null, productId: null, imageUrl: null, position: 0 }],
     }),
     DEFAULT_TAG_NAMES,
   );

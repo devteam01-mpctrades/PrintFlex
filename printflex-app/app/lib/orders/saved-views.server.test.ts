@@ -9,9 +9,9 @@ beforeEach(async () => {
 afterAll(async () => prisma.$disconnect());
 
 describe("saved views", () => {
-  it("gives the Free plan the three built-ins and nothing more", async () => {
+  it("gives the Free plan the built-ins and nothing more", async () => {
     const shop = await prisma.shop.create({ data: { domain: "free.myshopify.com", plan: "FREE" } });
-    expect(await listSavedViews(shop.id)).toHaveLength(3);
+    expect(await listSavedViews(shop.id)).toHaveLength(BUILT_IN_VIEWS.length);
     expect(await canSaveView(shop.id, shop.plan)).toBe(false);
     const result = await saveView(shop.id, shop.plan, "Morning batch", "fulfillment=UNFULFILLED");
     expect(result).toEqual({ ok: false, reason: "plan" });

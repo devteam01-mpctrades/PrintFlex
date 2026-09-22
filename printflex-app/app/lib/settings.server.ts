@@ -9,11 +9,30 @@ export interface TagNames {
   needsReview: string;
 }
 
+export interface PackSettings {
+  /** Every line must be checked before Mark as packed is enabled. */
+  requireAllChecked: boolean;
+  showPhotos: boolean;
+  /** Scan each product barcode instead of tapping. */
+  strictMode: boolean;
+  askWeight: boolean;
+  allowShortPick: boolean;
+}
+
 export interface ShopSettings {
   tagNames: TagNames;
   /** How long a printed QR code keeps opening its order, in days. */
   scanTokenDays: number;
+  pack: PackSettings;
 }
+
+export const DEFAULT_PACK_SETTINGS: PackSettings = {
+  requireAllChecked: true,
+  showPhotos: true,
+  strictMode: false,
+  askWeight: false,
+  allowShortPick: true,
+};
 
 export const DEFAULT_SCAN_TOKEN_DAYS = 90;
 
@@ -43,7 +62,16 @@ export function parseSettings(json: string | null | undefined): ShopSettings {
   const tags = isRecord(root.tagNames) ? root.tagNames : {};
 
   const days = Number(root.scanTokenDays);
+  const pack = isRecord(root.pack) ? root.pack : {};
+  const bool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
   return {
+    pack: {
+      requireAllChecked: bool(pack.requireAllChecked, DEFAULT_PACK_SETTINGS.requireAllChecked),
+      showPhotos: bool(pack.showPhotos, DEFAULT_PACK_SETTINGS.showPhotos),
+      strictMode: bool(pack.strictMode, DEFAULT_PACK_SETTINGS.strictMode),
+      askWeight: bool(pack.askWeight, DEFAULT_PACK_SETTINGS.askWeight),
+      allowShortPick: bool(pack.allowShortPick, DEFAULT_PACK_SETTINGS.allowShortPick),
+    },
     tagNames: {
       printed: readString(tags, "printed", DEFAULT_TAG_NAMES.printed),
       packed: readString(tags, "packed", DEFAULT_TAG_NAMES.packed),
@@ -55,4 +83,16 @@ export function parseSettings(json: string | null | undefined): ShopSettings {
 
 export function serializeSettings(settings: ShopSettings): string {
   return JSON.stringify(settings);
+}
+
+/** Read, change and write back one shop's settings. */
+export async function updateShopSettings(
+  prismaClient: { shop: { findUniqueOrThrow: (args: { where: { id: string }; select: { settingsJson: true } }) => Promise<{ settingsJson: string }>; update: (args: { where: { id: string }; data: { settingsJson: string } }) => Promise<unknown> } },
+  shopId: string,
+  change: (current: ShopSettings) => ShopSettings,
+): Promise<ShopSettings> {
+  const shop = await prismaClient.shop.findUniqueOrThrow({ where: { id: shopId }, select: { settingsJson: true } });
+  const next = change(parseSettings(shop.settingsJson));
+  await prismaClient.shop.update({ where: { id: shopId }, data: { settingsJson: serializeSettings(next) } });
+  return next;
 }

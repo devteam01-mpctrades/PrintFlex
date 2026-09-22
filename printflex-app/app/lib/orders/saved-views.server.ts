@@ -18,6 +18,7 @@ export const BUILT_IN_VIEWS: SavedViewItem[] = [
   { id: "builtin:all", name: "All orders", query: "", builtIn: true },
   { id: "builtin:unfulfilled", name: "Unfulfilled", query: "fulfillment=UNFULFILLED", builtIn: true },
   { id: "builtin:never-printed", name: "Never printed", query: "docStatus=NEW", builtIn: true },
+  { id: "builtin:needs-review", name: "Needs review", query: "docStatus=NEEDS_REVIEW", builtIn: true },
 ];
 
 export async function listSavedViews(shopId: string): Promise<SavedViewItem[]> {
