@@ -116,6 +116,7 @@ export interface PackInput {
   shopId: string;
   orderId: string;
   deviceName: string;
+  staffLabel?: string | null;
   /** Client-generated idempotency key; a retry with the same key is a no-op. */
   clientEventId: string;
   itemCount: number;
@@ -144,6 +145,7 @@ export async function packOrder(input: PackInput): Promise<PackResult> {
       shopId: input.shopId,
       orderId: order.id,
       deviceName: input.deviceName,
+      staffLabel: input.staffLabel ?? null,
       outcome: "PACKED",
       itemCount: input.itemCount,
       parcelWeightGrams: input.weightGrams,
@@ -168,7 +170,7 @@ export async function packOrder(input: PackInput): Promise<PackResult> {
 export interface FlagLine {
   lineId: string;
   title: string;
-  outcome: Exclude<PackOutcome, "PACKED" | "WRONG_ITEM">;
+  outcome: Exclude<PackOutcome, "PACKED" | "WRONG_ITEM" | "OPENED">;
   note: string;
 }
 
@@ -176,6 +178,7 @@ export interface FlagInput {
   shopId: string;
   orderId: string;
   deviceName: string;
+  staffLabel?: string | null;
   clientEventId: string;
   lines: FlagLine[];
   client: GraphqlClient;
@@ -200,6 +203,7 @@ export async function flagOrder(input: FlagInput): Promise<PackResult> {
       shopId: input.shopId,
       orderId: order.id,
       deviceName: input.deviceName,
+      staffLabel: input.staffLabel ?? null,
       outcome: line.outcome,
       note: `${line.title}: ${OUTCOME_WORD[line.outcome]}${line.note.trim() ? ` — ${line.note.trim()}` : ""}`,
       clientEventId: index === 0 ? input.clientEventId : `${input.clientEventId}:${index}`,
@@ -217,6 +221,54 @@ export async function flagOrder(input: FlagInput): Promise<PackResult> {
   ]);
   await prisma.orderIndex.update({ where: { id: order.id }, data: { documentStatus: "NEEDS_REVIEW" } });
   return { ok: true, already: false };
+}
+
+/**
+ * A device opened the pack screen. Marks the order "in progress" for batch
+ * progress and starts the clock for time-per-parcel. One per device per
+ * order per 30 minutes so a refresh does not spam history.
+ */
+export async function recordOpened(shopId: string, orderId: string, deviceName: string, staffLabel: string | null, now: Date = new Date()): Promise<void> {
+  const order = await prisma.orderIndex.findFirst({ where: { id: orderId, shopId }, select: { id: true, documentStatus: true } });
+  if (!order || order.documentStatus === "PACKED") return;
+  const recent = await prisma.packEvent.findFirst({
+    where: { orderId, deviceName, outcome: "OPENED", occurredAt: { gte: new Date(now.getTime() - 30 * 60_000) } },
+    select: { id: true },
+  });
+  if (recent) return;
+  await prisma.packEvent.create({ data: { shopId, orderId, deviceName, staffLabel, outcome: "OPENED", occurredAt: now } });
+}
+
+export type BatchOrderState = "packed" | "needs-review" | "in-progress" | "not-started";
+
+export interface BatchProgress {
+  jobId: string;
+  label: string;
+  total: number;
+  counts: Record<BatchOrderState, number>;
+  orders: Array<{ id: string; orderName: string; customerName: string | null; itemCount: number; state: BatchOrderState }>;
+}
+
+/** Where every order in a batch stands. */
+export async function loadBatchProgress(shopId: string, jobId: string): Promise<BatchProgress | null> {
+  const job = await prisma.documentJob.findFirst({ where: { id: jobId, shopId }, select: { id: true, orderIdsJson: true } });
+  if (!job) return null;
+  const orderIds = (JSON.parse(job.orderIdsJson) as string[]) ?? [];
+  const rows = await prisma.orderIndex.findMany({
+    where: { id: { in: orderIds }, shopId },
+    select: { id: true, orderName: true, customerName: true, itemCount: true, documentStatus: true, packEvents: { where: { outcome: "OPENED" }, select: { id: true }, take: 1 } },
+  });
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const orders = orderIds.flatMap((id) => {
+    const r = byId.get(id);
+    if (!r) return [];
+    const state: BatchOrderState =
+      r.documentStatus === "PACKED" ? "packed" : r.documentStatus === "NEEDS_REVIEW" ? "needs-review" : r.packEvents.length ? "in-progress" : "not-started";
+    return [{ id: r.id, orderName: r.orderName, customerName: r.customerName, itemCount: r.itemCount, state }];
+  });
+  const counts: Record<BatchOrderState, number> = { packed: 0, "needs-review": 0, "in-progress": 0, "not-started": 0 };
+  for (const o of orders) counts[o.state] += 1;
+  return { jobId: job.id, label: `BATCH-${job.id.slice(-6).toUpperCase()}`, total: orders.length, counts, orders };
 }
 
 /** Record a wrong scan in strict mode so the history shows it. Never changes status. */

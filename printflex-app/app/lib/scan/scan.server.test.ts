@@ -27,13 +27,13 @@ describe("store PIN and devices", () => {
 
     expect(await signInDevice(s.id, "0000", "Bench 1", "ip")).toEqual({ ok: false, reason: "wrong-pin" });
     expect(await signInDevice(s.id, "4821", "   ", "ip")).toEqual({ ok: false, reason: "name" });
-    const signedIn = await signInDevice(s.id, "4821", "Bench 1 · Sila", "ip");
+    const signedIn = await signInDevice(s.id, "4821", "Bench 1", "ip", new Date(), "Sila");
     if (!signedIn.ok) throw new Error("expected sign-in");
     expect(signedIn.setCookie).toMatch(/^pf_device=/);
     expect(signedIn.setCookie).toMatch(/HttpOnly/);
 
     const session = await getDeviceSession(requestWith(signedIn.setCookie));
-    expect(session).toMatchObject({ shopId: s.id, name: "Bench 1 · Sila" });
+    expect(session).toMatchObject({ shopId: s.id, name: "Bench 1", staffLabel: "Sila" });
     expect(await listDevices(s.id)).toHaveLength(1);
 
     await setStorePin(s.id, "9999");

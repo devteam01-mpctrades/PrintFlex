@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { queue, registerServiceWorker, startSyncLoop, syncQueue } from "./offline";
 
 /**
  * Layout for scan mode. This runs outside the embedded admin on any phone,
@@ -45,6 +46,9 @@ export const SCAN_CSS = `
   .list { list-style: none; padding: 0; margin: 0; }
   .list li { padding: 12px 0; border-top: 1px solid var(--rule); }
   .list a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 18px; }
+  .pending { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: #fef3c7; color: var(--warn); }
+  .pending.offline { background: #fee2e2; color: var(--bad); }
+  .pending.synced { background: #d1fae5; color: var(--ok); }
 `;
 
 interface Props {
@@ -54,16 +58,51 @@ interface Props {
 }
 
 export function ScanShell({ title, device, children }: Props) {
+  const status = useConnectivity();
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: SCAN_CSS }} />
       <main className="wrap">
         <div className="top">
           <strong>PrintFlex scan</strong>
-          <span>{device ? `Device: ${device}` : title}</span>
+          <span className="row" style={{ gap: 8 }}>
+            {status.pending > 0 ? (
+              <button type="button" className={`pending ${status.online ? "" : "offline"}`} onClick={() => void syncQueue()} style={{ border: 0, font: "inherit", cursor: "pointer" }}>
+                {status.online ? `${status.pending} pending sync` : `Offline · ${status.pending} pending`}
+              </button>
+            ) : !status.online ? (
+              <span className="pending offline">Offline · checklist still works</span>
+            ) : null}
+            <span>{device ? `Device: ${device}` : title}</span>
+          </span>
         </div>
         {children}
       </main>
     </>
   );
+}
+
+/** Live connectivity and queue size, shared by every scan page. */
+export function useConnectivity(): { online: boolean; pending: number } {
+  const [online, setOnline] = useState(true);
+  const [pending, setPending] = useState(0);
+  useEffect(() => {
+    registerServiceWorker();
+    const update = () => {
+      setOnline(navigator.onLine);
+      setPending(queue().length);
+    };
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    window.addEventListener("pf:queue", update);
+    const stop = startSyncLoop();
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+      window.removeEventListener("pf:queue", update);
+      stop();
+    };
+  }, []);
+  return { online, pending };
 }

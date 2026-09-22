@@ -2,11 +2,9 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useActionData, useLoaderData } from "react-router";
 import { ScanShell } from "../components/scan/ScanShell";
 import { SignInForm } from "../components/scan/SignInForm";
-import prisma from "../db.server";
 import { clientKeyFor, getDeviceSession, signInDevice } from "../lib/scan/devices.server";
 import { shopName } from "../lib/scan/scan-request.server";
 import { verifyScanToken } from "../lib/scan/tokens.server";
-import { batchLabel } from "../lib/render/render-batch.server";
 
 /**
  * /scan/:token — what the printed QR opens. Verifies the token, asks for the
@@ -31,12 +29,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     return { kind: "signin" as const, shopLabel: label, error: null as string | null };
   }
   if (verified.target.kind === "batch") {
-    const job = await prisma.documentJob.findUnique({ where: { id: verified.target.jobId }, select: { id: true, total: true, state: true } });
-    return {
-      kind: "batch" as const,
-      device: session.name,
-      batch: job ? { label: batchLabel(job.id), total: job.total } : null,
-    };
+    throw redirect(`/scan/batch/${verified.target.jobId}`);
   }
   // A signed-in device lands on the pack screen, the same one every other entry path uses.
   throw redirect(`/scan/order/${verified.target.orderId}`);
@@ -51,6 +44,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     String(form.get("pin") ?? ""),
     String(form.get("deviceName") ?? ""),
     clientKeyFor(request),
+    new Date(),
+    String(form.get("staffLabel") ?? "") || null,
   );
   if (!result.ok) {
     const errors = {
@@ -83,18 +78,6 @@ export default function ScanTokenPage() {
     return (
       <ScanShell title="Sign in">
         <SignInForm shopLabel={data.shopLabel} error={data.error ?? actionError} />
-      </ScanShell>
-    );
-  }
-  if (data.kind === "batch") {
-    return (
-      <ScanShell title="Batch" device={data.device}>
-        <section className="card">
-          <h1>{data.batch?.label ?? "Batch"}</h1>
-          <p className="muted">{data.batch ? `${data.batch.total} orders in this batch.` : "This batch no longer exists."}</p>
-          <p>Batch progress on the phone arrives in a later update. Scan an order sheet to open that order.</p>
-          <a className="btn secondary" href="/scan">Scan an order</a>
-        </section>
       </ScanShell>
     );
   }

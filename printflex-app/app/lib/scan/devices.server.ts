@@ -25,6 +25,7 @@ export interface DeviceSession {
   deviceId: string;
   shopId: string;
   name: string;
+  staffLabel: string | null;
 }
 
 async function readCookie(request: Request): Promise<string | null> {
@@ -48,7 +49,7 @@ export async function getDeviceSession(request: Request, now: Date = new Date())
   if (now.getTime() - device.lastSeenAt.getTime() > 60_000) {
     await prisma.scanDevice.update({ where: { id: deviceId }, data: { lastSeenAt: now } });
   }
-  return { deviceId: device.id, shopId: device.shopId, name: device.name };
+  return { deviceId: device.id, shopId: device.shopId, name: device.name, staffLabel: device.staffLabel };
 }
 
 export type SignInResult =
@@ -62,8 +63,10 @@ export async function signInDevice(
   deviceName: string,
   clientKey: string,
   now: Date = new Date(),
+  staffLabel: string | null = null,
 ): Promise<SignInResult> {
   const name = deviceName.trim().slice(0, 40);
+  const staff = staffLabel?.trim().slice(0, 40) || null;
   if (!name) return { ok: false, reason: "name" };
   const shop = await prisma.shop.findUniqueOrThrow({ where: { id: shopId }, select: { pinHash: true, pinVersion: true } });
   if (!shop.pinHash) return { ok: false, reason: "no-pin" };
@@ -73,12 +76,12 @@ export async function signInDevice(
 
   const secret = randomBytes(24).toString("base64url");
   const device = await prisma.scanDevice.create({
-    data: { shopId, name, secretHash: hash(secret), pinVersion: shop.pinVersion, lastSeenAt: now },
+    data: { shopId, name, staffLabel: staff, secretHash: hash(secret), pinVersion: shop.pinVersion, lastSeenAt: now },
   });
   return {
     ok: true,
     setCookie: await deviceCookie.serialize(`${device.id}.${secret}`),
-    session: { deviceId: device.id, shopId, name },
+    session: { deviceId: device.id, shopId, name, staffLabel: staff },
   };
 }
 
@@ -89,7 +92,7 @@ export async function signOutCookie(): Promise<string> {
 export async function listDevices(shopId: string) {
   const shop = await prisma.shop.findUniqueOrThrow({ where: { id: shopId }, select: { pinVersion: true } });
   const devices = await prisma.scanDevice.findMany({ where: { shopId, revokedAt: null }, orderBy: { lastSeenAt: "desc" } });
-  return devices.map((d) => ({ id: d.id, name: d.name, lastSeenAt: d.lastSeenAt, createdAt: d.createdAt, stale: d.pinVersion !== shop.pinVersion }));
+  return devices.map((d) => ({ id: d.id, name: d.name, staffLabel: d.staffLabel, lastSeenAt: d.lastSeenAt, createdAt: d.createdAt, stale: d.pinVersion !== shop.pinVersion }));
 }
 
 export async function revokeDevice(shopId: string, deviceId: string, now: Date = new Date()): Promise<boolean> {

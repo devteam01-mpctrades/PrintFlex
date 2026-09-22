@@ -32,6 +32,7 @@ export const ORDER_DOCUMENT_STATUSES = [
 export type OrderDocumentStatus = (typeof ORDER_DOCUMENT_STATUSES)[number];
 
 export const PACK_OUTCOMES = [
+  "OPENED",
   "PACKED",
   "SHORT_PICK",
   "DAMAGED",

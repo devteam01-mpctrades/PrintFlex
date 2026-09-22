@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useFetcher } from "react-router";
 import type { PackLine, PackSheet } from "../../lib/pack/pack.server";
 import { CameraScanner } from "./CameraScanner";
+import { enqueue, markCachedStatus, pendingFor, postEvent, type ApiResult } from "./offline";
 
 /**
  * The pack checklist. One big row per line: photo, title, variant, SKU,
@@ -39,11 +39,7 @@ function load(orderId: string): Progress {
   return { counts: {}, flags: {}, eventId: newEventId() };
 }
 
-export interface PackActionResult {
-  ok: boolean;
-  message: string;
-  outcome?: "packed" | "flagged";
-}
+export type PackActionResult = ApiResult;
 
 interface Props {
   sheet: PackSheet;
@@ -51,8 +47,12 @@ interface Props {
 
 export function PackScreen({ sheet }: Props) {
   const { order, lines, settings } = sheet;
-  const fetcher = useFetcher<PackActionResult>();
   const [progress, setProgress] = useState<Progress>({ counts: {}, flags: {}, eventId: "" });
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<(ApiResult & { queued?: boolean }) | null>(null);
+  const [pendingQueued, setPendingQueued] = useState(false);
+  // Local view of the status: flips as soon as the event is queued or accepted.
+  const [status, setStatus] = useState(order.documentStatus);
   const [hydrated, setHydrated] = useState(false);
   const [mismatch, setMismatch] = useState<string | null>(null);
   const [problemFor, setProblemFor] = useState<string | null>(null);
@@ -64,7 +64,14 @@ export function PackScreen({ sheet }: Props) {
   useEffect(() => {
     setProgress(load(order.id));
     setHydrated(true);
+    setPendingQueued(Boolean(pendingFor(order.id)));
+    const onQueue = () => setPendingQueued(Boolean(pendingFor(order.id)));
+    window.addEventListener("pf:queue", onQueue);
+    // Tell the server this order is being worked on (best effort, offline-safe).
+    postEvent(order.id, "opened", {}).catch(() => undefined);
+    return () => window.removeEventListener("pf:queue", onQueue);
   }, [order.id]);
+  useEffect(() => setStatus(order.documentStatus), [order.documentStatus]);
   useEffect(() => {
     if (!hydrated) return;
     try {
@@ -74,9 +81,8 @@ export function PackScreen({ sheet }: Props) {
     }
   }, [progress, hydrated, order.id]);
 
-  const done = order.documentStatus === "PACKED";
-  const flaggedOrder = order.documentStatus === "NEEDS_REVIEW";
-  const busy = fetcher.state !== "idle";
+  const done = status === "PACKED";
+  const flaggedOrder = status === "NEEDS_REVIEW";
 
   const countFor = (line: PackLine) => Math.min(line.quantity, progress.counts[line.id] ?? 0);
   const complete = (line: PackLine) => countFor(line) >= line.quantity || Boolean(progress.flags[line.id]);
@@ -106,41 +112,62 @@ export function PackScreen({ sheet }: Props) {
         const known = lines.find((l) => l.barcode === value || l.sku === value);
         setMismatch(known ? `${known.title} is already complete. Scanned ${value}.` : `${value} is not in this order.`);
         if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
-        fetcher.submit({ intent: "wrongScan", scanned: value }, { method: "post" });
+        postEvent(order.id, "wrongScan", { scanned: value }).catch(() => undefined);
       }
       setScanValue("");
       scanRef.current?.focus();
     },
-    [lines, bump, fetcher], // eslint-disable-line react-hooks/exhaustive-deps
+    [lines, bump, order.id], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   useEffect(() => {
     if (settings.strictMode && !done) scanRef.current?.focus();
   }, [settings.strictMode, done]);
 
-  const pack = () => {
-    fetcher.submit(
-      { intent: "pack", clientEventId: progress.eventId, itemCount: String(checkedUnits), weightGrams: weight.trim() ? String(Math.round(Number(weight))) : "" },
-      { method: "post" },
-    );
+  /**
+   * Send an event now if the network is there; otherwise queue it and apply
+   * it locally. Either way the merchant sees the truth: "Packed" when the
+   * server confirmed, "Packed · pending sync" when it is only queued.
+   */
+  const send = async (intent: "pack" | "flag", fields: Record<string, string>, localStatus: "PACKED" | "NEEDS_REVIEW") => {
+    setBusy(true);
+    try {
+      const response = await postEvent(order.id, intent, fields);
+      if (response.ok || !/retried automatically/.test(response.message)) {
+        setResult(response);
+        if (response.ok) {
+          setStatus(localStatus);
+          markCachedStatus(order.id, localStatus);
+          try { window.localStorage.removeItem(storageKey(order.id)); } catch { /* ignore */ }
+        }
+        return;
+      }
+      // Server reached but Shopify was not: queue for retry.
+      enqueue({ id: fields.clientEventId, orderId: order.id, intent, fields });
+      setStatus(localStatus);
+      markCachedStatus(order.id, localStatus);
+      setResult({ ok: true, queued: true, message: "Saved on this device. Shopify was not reachable; it will sync automatically." });
+    } catch {
+      enqueue({ id: fields.clientEventId, orderId: order.id, intent, fields });
+      setStatus(localStatus);
+      markCachedStatus(order.id, localStatus);
+      setResult({ ok: true, queued: true, message: "No connection. Saved on this device and will sync when the signal returns. Nothing will be counted twice." });
+    } finally {
+      setBusy(false);
+    }
   };
+  const pack = () =>
+    void send("pack", { clientEventId: progress.eventId, itemCount: String(checkedUnits), weightGrams: weight.trim() ? String(Math.round(Number(weight))) : "" }, "PACKED");
   const sendForReview = () => {
     const flagged = lines.filter((l) => progress.flags[l.id]).map((l) => ({ lineId: l.id, title: l.title, ...progress.flags[l.id] }));
-    fetcher.submit({ intent: "flag", clientEventId: `${progress.eventId}:review`, lines: JSON.stringify(flagged) }, { method: "post" });
+    void send("flag", { clientEventId: `${progress.eventId}:review`, lines: JSON.stringify(flagged) }, "NEEDS_REVIEW");
   };
 
-  // After a successful pack or flag, forget local progress so a re-scan starts clean.
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.ok && fetcher.data.outcome) {
-      try {
-        window.localStorage.removeItem(storageKey(order.id));
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [fetcher.state, fetcher.data, order.id]);
-
-  const statusBadge = done ? <span className="badge ok">Packed</span> : flaggedOrder ? <span className="badge warn">Needs review</span> : null;
+  const statusBadge = done ? (
+    <span className={`badge ${pendingQueued ? "warn" : "ok"}`}>{pendingQueued ? "Packed · pending sync" : "Packed"}</span>
+  ) : flaggedOrder ? (
+    <span className="badge warn">{pendingQueued ? "Review · pending sync" : "Needs review"}</span>
+  ) : null;
 
   return (
     <>
@@ -163,13 +190,13 @@ export function PackScreen({ sheet }: Props) {
         ) : null}
       </section>
 
-      {fetcher.data && !busy ? (
-        <p className={`notice ${fetcher.data.ok ? (fetcher.data.outcome === "flagged" ? "" : "ok") : "bad"}`}>{fetcher.data.message}</p>
+      {result && !busy ? (
+        <p className={`notice ${result.ok ? (result.queued || result.outcome === "flagged" ? "" : "ok") : "bad"}`}>{result.message}</p>
       ) : null}
 
       {done ? (
         <section className="card">
-          <p>This order is already packed. Scanning it again changes nothing and counts nothing twice.</p>
+          <p>{pendingQueued ? "This order is packed on this device and waiting to sync." : "This order is already packed. Scanning it again changes nothing and counts nothing twice."}</p>
           <a className="btn secondary" href="/scan">Scan another order</a>
         </section>
       ) : (

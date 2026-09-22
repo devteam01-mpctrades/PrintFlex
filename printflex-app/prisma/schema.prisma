@@ -81,6 +81,7 @@ model ScanDevice {
   id         String    @id @default(cuid())
   shopId     String
   name       String
+  staffLabel String?
   secretHash String    @unique
   pinVersion Int
   createdAt  DateTime  @default(now())
