@@ -57,8 +57,9 @@ model Shop {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  templates    Template[]
-  savedViews   SavedView[]
+  templates      Template[]
+  savedViews     SavedView[]
+  invoiceNumbers InvoiceNumber[]
   orders       OrderIndex[]
   jobs         DocumentJob[]
   documents    Document[]
@@ -313,4 +314,23 @@ model SavedView {
 
   @@unique([shopId, name])
   @@index([shopId, position])
+}
+
+// Sequential, gapless invoice numbers. A number is bound to one order the
+// moment it is allocated, inside the same transaction as the counter
+// increment, so a failed render keeps its number and retries reuse it.
+// Two unique constraints make both "never reused" and "once per order" a
+// database guarantee.
+model InvoiceNumber {
+  id        String   @id @default(cuid())
+  shopId    String
+  orderId   String
+  number    Int
+  formatted String
+  createdAt DateTime @default(now())
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, orderId])
+  @@unique([shopId, number])
 }

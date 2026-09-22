@@ -8,6 +8,7 @@ import { OrdersTable } from "../components/orders/OrdersTable";
 import { SavedViewsBar } from "../components/orders/SavedViewsBar";
 import { useSelection } from "../components/orders/useSelection";
 import { createDocumentJob, markOrdersPrinted, parseDocumentTypes } from "../lib/jobs/create-job.server";
+import { getQueue } from "../lib/jobs/worker.server";
 import {
   filterQueryString,
   hasActiveFilters,
@@ -54,6 +55,8 @@ interface ActionResult {
   query?: string;
   /** Set by bulk actions so the client can clear its selection. */
   clearSelection?: boolean;
+  /** Set when a batch was queued so the client can link to it. */
+  jobId?: string;
 }
 
 const DOCUMENT_WORDS: Record<string, string> = {
@@ -80,14 +83,15 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionRes
         documentTypes,
         orderIds: orders.map((o) => o.id),
       });
+      await getQueue().enqueue(job.id);
       const what = documentTypes.map((t) => DOCUMENT_WORDS[t]).join(", ");
       return {
         ok: true,
         clearSelection: true,
+        jobId: job.id,
         message:
-          `Queued ${what} for ${orders.length} orders as job ${job.id.slice(-6).toUpperCase()}. ` +
-          (truncated ? "The selection was capped at 1,000 orders. " : "") +
-          "Rendering is not built yet; the job will start producing PDFs in Phase 5.",
+          `Rendering ${what} for ${orders.length} ${orders.length === 1 ? "order" : "orders"} as BATCH-${job.id.slice(-6).toUpperCase()}.` +
+          (truncated ? " The selection was capped at 1,000 orders." : ""),
       };
     }
 
@@ -189,6 +193,11 @@ export default function OrdersPage() {
       {fetcher.data && fetcher.state === "idle" ? (
         <s-banner tone={fetcher.data.ok ? "success" : "critical"}>
           <s-paragraph>{fetcher.data.message}</s-paragraph>
+          {fetcher.data.jobId ? (
+            <s-button slot="secondary-actions" href={`/app/jobs/${fetcher.data.jobId}`}>
+              Open batch
+            </s-button>
+          ) : null}
         </s-banner>
       ) : null}
 

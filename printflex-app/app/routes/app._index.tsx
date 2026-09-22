@@ -1,13 +1,50 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { authenticate } from "../shopify.server";
+import prisma from "../db.server";
+import { requireShop } from "../lib/request.server";
+import type { DocumentType, JobState } from "../lib/types";
+
+const DOC_LABEL: Record<DocumentType, string> = {
+  INVOICE: "Invoice",
+  PACKING_SLIP: "Packing slip",
+  PICK_LIST: "Pick list",
+};
+
+const STATE_BADGE: Record<JobState, { label: string; tone: "neutral" | "info" | "success" | "critical" | "warning" }> = {
+  QUEUED: { label: "Queued", tone: "neutral" },
+  RUNNING: { label: "Rendering", tone: "info" },
+  SUCCEEDED: { label: "Ready", tone: "success" },
+  FAILED: { label: "Failed", tone: "critical" },
+  CANCELLED: { label: "Cancelled", tone: "warning" },
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return null;
+  const { shop } = await requireShop(request);
+  const jobs = await prisma.documentJob.findMany({
+    where: { shopId: shop.id },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
+  return {
+    timezone: shop.timezone,
+    batches: jobs.map((job) => ({
+      id: job.id,
+      label: `BATCH-${job.id.slice(-6).toUpperCase()}`,
+      documents: (JSON.parse(job.documentTypesJson) as DocumentType[]).map((t) => DOC_LABEL[t]).join(" + "),
+      total: job.total,
+      progress: job.progress,
+      state: job.state as JobState,
+      createdAt: job.createdAt.toISOString(),
+    })),
+  };
 };
 
 export default function HomePage() {
+  const { batches, timezone } = useLoaderData<typeof loader>();
+  const when = (iso: string) =>
+    new Intl.DateTimeFormat("en-GB", { timeZone: timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+
   return (
     <s-page heading="PrintFlex">
       <s-banner tone="info" heading="Home is under construction">
@@ -58,11 +95,47 @@ export default function HomePage() {
       </s-section>
 
       <s-section heading="Recent batches">
-        <s-paragraph>
-          No batches yet. Print your first orders from the Orders screen and
-          they will appear here with their status. A batch marked &ldquo;Printed in
-          fallback&rdquo; means the render queue was busy, so it printed from the
-          browser instead. Nothing is lost and no order is metered twice.
+        {batches.length === 0 ? (
+          <s-paragraph>
+            No batches yet. Print your first orders from the Orders screen and
+            they will appear here with their status.
+          </s-paragraph>
+        ) : (
+          <s-table>
+            <s-table-header-row>
+              <s-table-header listSlot="primary">Batch</s-table-header>
+              <s-table-header>Documents</s-table-header>
+              <s-table-header format="numeric">Orders</s-table-header>
+              <s-table-header>Created</s-table-header>
+              <s-table-header listSlot="kicker">Status</s-table-header>
+            </s-table-header-row>
+            <s-table-body>
+              {batches.map((batch) => (
+                <s-table-row key={batch.id}>
+                  <s-table-cell>
+                    <s-link href={`/app/jobs/${batch.id}`}>{batch.label}</s-link>
+                  </s-table-cell>
+                  <s-table-cell>{batch.documents}</s-table-cell>
+                  <s-table-cell>
+                    <s-text fontVariantNumeric="tabular-nums">{batch.total}</s-text>
+                  </s-table-cell>
+                  <s-table-cell>{when(batch.createdAt)}</s-table-cell>
+                  <s-table-cell>
+                    <s-badge tone={STATE_BADGE[batch.state].tone}>
+                      {batch.state === "RUNNING"
+                        ? `Rendering ${Math.round((batch.progress / Math.max(1, batch.total)) * 100)}%`
+                        : STATE_BADGE[batch.state].label}
+                    </s-badge>
+                  </s-table-cell>
+                </s-table-row>
+              ))}
+            </s-table-body>
+          </s-table>
+        )}
+        <s-paragraph color="subdued">
+          A batch marked &ldquo;Printed in fallback&rdquo; means the render queue was
+          busy, so it printed from the browser instead. Nothing is lost and no
+          order is metered twice.
         </s-paragraph>
       </s-section>
     </s-page>

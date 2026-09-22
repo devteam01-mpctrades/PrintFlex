@@ -30,3 +30,4 @@ database.sqlite
 .react-router/
 /prisma/test.sqlite
 /prisma/test.sqlite-journal
+/storage/
