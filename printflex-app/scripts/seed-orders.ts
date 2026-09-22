@@ -1,7 +1,12 @@
 /**
  * Seed realistic orders on the dev store for testing PrintFlex.
  *
- *   node scripts/seed-orders.ts [--count 200] [--shop my-store.myshopify.com]
+ *   node scripts/seed-orders.ts [--count 200] [--shop my-store.myshopify.com] [--concurrency 1]
+ *
+ * Order creation has its own per-store throttle ("Too many attempts") on top
+ * of the GraphQL cost budget, so the script runs one order at a time by
+ * default and backs off when throttled. Expect a few orders per minute on a
+ * development store.
  *
  * Runs on Node 22.18+ with built-in TypeScript stripping; no extra tooling.
  * Authenticates with the offline access token the app stored in
@@ -19,13 +24,18 @@ const MIN_SKU_PRODUCTS = 30;
 interface Args {
   count: number;
   shop: string | null;
+  concurrency: number;
 }
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { count: 200, shop: null };
+  const args: Args = { count: 200, shop: null, concurrency: 1 };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--count") args.count = Number(argv[++i]);
     else if (argv[i] === "--shop") args.shop = argv[++i] ?? null;
+    else if (argv[i] === "--concurrency") args.concurrency = Number(argv[++i]);
+  }
+  if (!Number.isInteger(args.concurrency) || args.concurrency < 1) {
+    throw new Error("--concurrency must be a positive integer");
   }
   if (!Number.isInteger(args.count) || args.count < 1) {
     throw new Error("--count must be a positive integer");
@@ -447,28 +457,40 @@ async function main(): Promise<void> {
   const stats = { created: 0, failed: 0, fulfilled: 0, eur: 0, byCountry: new Map<string, number>(), maxItems: 0 };
   const failures: string[] = [];
 
-  const CONCURRENCY = 4;
+  const THROTTLED = /too many attempts/i;
+  const MAX_THROTTLE_RETRIES = 30;
+  const startedAt = Date.now();
   let next = 0;
+  async function createWithBackoff(index: number): Promise<{ meta: ReturnType<typeof buildOrder>["meta"] }> {
+    let delayMs = 5_000;
+    for (let attempt = 0; ; attempt += 1) {
+      const built = buildOrder(index + 1, variants, eurSupported);
+      const data = await client.query<OrderCreateData>(ORDER_CREATE_MUTATION, {
+        order: built.order,
+        options: built.options,
+      });
+      const errors = data.orderCreate.userErrors;
+      if (errors.length === 0) return { meta: built.meta };
+
+      const text = errors.map((e) => e.message).join("; ");
+      if (eurSupported && built.meta.currency === "EUR" && /currenc/i.test(text)) {
+        eurSupported = false;
+        console.warn(`\nEUR presentment rejected ("${text}"); falling back to USD for the rest.`);
+        continue;
+      }
+      if (THROTTLED.test(text) && attempt < MAX_THROTTLE_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs = Math.min(delayMs * 1.5, 60_000);
+        continue;
+      }
+      throw new Error(text);
+    }
+  }
   async function worker(): Promise<void> {
     while (next < args.count) {
       const index = next++;
-      const built = buildOrder(index + 1, variants, eurSupported);
       try {
-        const data = await client.query<OrderCreateData>(ORDER_CREATE_MUTATION, {
-          order: built.order,
-          options: built.options,
-        });
-        const errors = data.orderCreate.userErrors;
-        if (errors.length) {
-          const text = errors.map((e) => e.message).join("; ");
-          if (eurSupported && built.meta.currency === "EUR" && /currenc/i.test(text)) {
-            eurSupported = false;
-            console.warn(`\nEUR presentment rejected ("${text}"); falling back to USD for the rest.`);
-            next -= 1; // retry this index in USD
-            continue;
-          }
-          throw new Error(text);
-        }
+        const built = await createWithBackoff(index);
         stats.created += 1;
         if (built.meta.fulfilled) stats.fulfilled += 1;
         if (built.meta.currency === "EUR") stats.eur += 1;
@@ -478,10 +500,13 @@ async function main(): Promise<void> {
         stats.failed += 1;
         failures.push(error instanceof Error ? error.message : String(error));
       }
-      process.stdout.write(`\r  orders: ${stats.created} created, ${stats.failed} failed`);
+      const minutes = Math.max(1 / 60, (Date.now() - startedAt) / 60_000);
+      process.stdout.write(
+        `\r  orders: ${stats.created} created, ${stats.failed} failed (${(stats.created / minutes).toFixed(1)}/min)`,
+      );
     }
   }
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  await Promise.all(Array.from({ length: args.concurrency }, worker));
   process.stdout.write("\n");
 
   console.log(`Done. ${stats.created} orders created, ${stats.failed} failed.`);
