@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>PrintFlex — Bulk invoices, packing slips and scan-to-pack for Shopify</title>
+  <meta name="description" content="PrintFlex prints any batch of Shopify orders as one PDF — invoices, packing slips and a merged pick list — with a QR code and barcode on every document so your packer can scan to verify. In development. Free plan, then $4.99 a month.">
+  <meta name="theme-color" content="#E25B07">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PrintFlex — Print the whole batch. Then scan to pack.">
+  <meta property="og:description" content="Bulk invoices, packing slips and pick lists for Shopify, with QR and barcode scan-to-pack built in. One app instead of two, from free.">
+  <meta property="og:site_name" content="PrintFlex">
+  <link rel="canonical" href="https://printflex.mpctrades.com/">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="index.html" aria-label="PrintFlex home">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 16 16" focusable="false"><rect x="1" y="2.6" width="14" height="2.2" rx="1.1"/><rect x="1" y="6.9" width="14" height="2.2" rx="1.1"/><rect x="1" y="11.2" width="9" height="2.2" rx="1.1"/></svg>
+        </span>
+        <span class="brand__name">PRINTFLEX</span>
+      </a>
+      <ul class="nav__links">
+        <li><a href="index.html#how">How it works</a></li>
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#scan">Scan mode</a></li>
+        <li><a href="index.html#pricing">Pricing</a></li>
+        <li><a href="index.html#faq">FAQ</a></li>
+      </ul>
+      <a class="btn btn--primary" href="index.html#contact">Get early access <span aria-hidden="true">→</span></a>
+    </nav>
+  </header>
+  <main id="main">
+
+    <!-- ================================================================ Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero__grid">
+        <div class="hero__copy">
+          <span class="badge">In development · Early access</span>
+          <h1 id="hero-title">Print the whole batch. <span>Then scan to pack.</span></h1>
+          <p class="hero__lede">PrintFlex turns any set of Shopify orders into one combined PDF — invoices, packing slips and a single merged pick list. Every document carries a QR code and a barcode, so your packer scans the paper in their hand, ticks the items off, and marks the order packed.</p>
+          <p class="hero__strong">One app instead of two. From free, then $4.99 a month.</p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#contact">Get early access</a>
+            <a class="btn btn--ghost" href="#how">See how it works</a>
+          </div>
+          <ul class="chips">
+            <li>Up to 250 orders per batch</li>
+            <li>No app to install on the phone</li>
+            <li>Billed through Shopify</li>
+          </ul>
+        </div>
+
+        <div class="hero__visual">
+          <div class="paper-stack">
+            <div class="paper paper--behind" aria-hidden="true"></div>
+            <figure class="paper" aria-label="Illustration of a PrintFlex invoice with a QR code and barcode">
+              <div class="paper__head">
+                <div>
+                  <div class="paper__title">Invoice #KS-10236</div>
+                  <p class="paper__meta"><strong>Kool Seoul</strong> · Seoul, South Korea<br>Bill to: Yuki Tanaka, Tokyo, Japan</p>
+                </div>
+                <span class="tag">INVOICE</span>
+              </div>
+              <ul class="paper__lines">
+                <li><span>Ginseng Cream 50ml</span><span class="mono">$28.00</span></li>
+                <li><span>Snail Essence</span><span class="mono">$24.00</span></li>
+                <li><span>Sheet Mask Pack <span class="mono qty">×10</span></span><span class="mono">$32.00</span></li>
+                <li><span>Hydrating Serum</span><span class="mono">$22.00</span></li>
+                <li><span>Gift Wrap</span><span class="mono">$6.00</span></li>
+              </ul>
+              <div class="paper__total">
+                <span>TOTAL · USD</span>
+                <span>112.00</span>
+              </div>
+              <div class="paper__codes">
+                <div class="qr" data-code="KS-10236" data-ink="--paper-ink" data-paper="--paper" data-label="Illustrative QR code for order KS-10236"></div>
+                <div class="barcode">
+                  <div class="bars" data-code="KS-10236" aria-hidden="true"></div>
+                  <span class="bars__caption">*KS-10236*</span>
+                </div>
+                <p class="paper__note">The QR opens a signed link to this order's pack screen. The barcode is Code 128 of the order number, for USB laser scanners.</p>
+              </div>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= Problem -->
+    <section class="section section--alt" id="problem" aria-labelledby="problem-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">01 — The problem</span>
+          <h2 id="problem-title">Packing day costs you more than it should</h2>
+          <p class="lede">Every store above a few orders a day ends up paying twice, editing code, or checking parcels by eye.</p>
+        </div>
+
+        <div class="problem-grid">
+          <article class="pcard">
+            <span class="pcard__n">01</span>
+            <h3>The $29 wall</h3>
+            <p>The filter-and-batch-print dashboard is gated behind $29 a month, with no free tier. Small stores pay enterprise pricing for a warehouse chore.</p>
+            <dl class="pcard__cost">
+              <dt>Minimum</dt>
+              <dd>$29 / month</dd>
+            </dl>
+          </article>
+
+          <article class="pcard">
+            <span class="pcard__n">02</span>
+            <h3>Two subscriptions</h3>
+            <p>Invoice apps don't verify parcels. Scan apps don't print branded invoices. Merchants install both, learn both, and pay for both.</p>
+            <dl class="pcard__cost">
+              <dt>Second app</dt>
+              <dd>+$19.99 / month</dd>
+            </dl>
+          </article>
+
+          <article class="pcard">
+            <span class="pcard__n">03</span>
+            <h3>Code-only templates</h3>
+            <p>Moving a logo or hiding a tax line means editing Liquid. Most merchants only ever needed a handful of toggles.</p>
+            <dl class="pcard__cost">
+              <dt>To move a logo</dt>
+              <dd>Liquid + HTML</dd>
+            </dl>
+          </article>
+
+          <article class="pcard">
+            <span class="pcard__n">04</span>
+            <h3>The wrong parcel</h3>
+            <p>A missed item is a refund, a reship and a one-star review. A printed slip can't stop a tired packer at 6pm.</p>
+            <dl class="pcard__cost">
+              <dt>Per missed item</dt>
+              <dd>Refund + reship</dd>
+            </dl>
+          </article>
+        </div>
+
+        <div class="tally">
+          <span class="tally__label">What that adds up to</span>
+          <span class="tally__sum">OrderlyPrint <b>$29</b> &nbsp;+&nbsp; iPacky <b>$19.99</b></span>
+          <span class="tally__total">$48.99<span>/mo</span></span>
+        </div>
+
+        <span class="fixlabel">The fix</span>
+        <div class="fix">
+          Print the barcode <b>on the document you already print</b>. One piece of paper leaves the printer as the customer's invoice, the warehouse's picking sheet, and the scannable key to that order's pack screen — so verifying a parcel costs one scan instead of a second subscription.
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== How it works -->
+    <section class="section" id="how" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">02 — How it works</span>
+          <h2 id="how-title">Five steps, from order list to sealed box</h2>
+        </div>
+
+        <div class="how-grid" data-how>
+          <ol class="timeline" role="tablist" aria-orientation="vertical" aria-label="Steps">
+            <li class="step is-active" data-step="1">
+              <h3 class="step__title">
+                <button class="step__btn" type="button" role="tab" id="how-tab-1" aria-selected="true" aria-controls="how-panel-1">
+                  <span class="step__badge" aria-hidden="true">1</span>
+                  Filter down to today's batch
+                </button>
+              </h3>
+              <p>Sort by fulfillment status, tag, date, country or shipping method, then select what you want. Save the views you use every morning so tomorrow is one click.</p>
+              <ul class="tags" aria-label="Related features">
+                <li>Saved views</li>
+                <li>Multi-select</li>
+                <li>Print status</li>
+              </ul>
+              <div class="step__slot"></div>
+            </li>
+            <li class="step" data-step="2">
+              <h3 class="step__title">
+                <button class="step__btn" type="button" role="tab" id="how-tab-2" aria-selected="false" aria-controls="how-panel-2" tabindex="-1">
+                  <span class="step__badge" aria-hidden="true">2</span>
+                  Print the batch as one PDF
+                </button>
+              </h3>
+              <p>Up to 250 orders in a single combined file — invoices, packing slips, or both. The job runs in the background with a progress bar, then downloads and opens your printer dialog.</p>
+              <div class="step__slot"></div>
+            </li>
+            <li class="step" data-step="3">
+              <h3 class="step__title">
+                <button class="step__btn" type="button" role="tab" id="how-tab-3" aria-selected="false" aria-controls="how-panel-3" tabindex="-1">
+                  <span class="step__badge" aria-hidden="true">3</span>
+                  Walk the warehouse once
+                </button>
+              </h3>
+              <p>The pick list merges every line across the selected orders into one SKU-sorted sheet. Your picker collects all 34 orders' worth of stock in a single pass instead of thirty-four.</p>
+              <div class="step__slot"></div>
+            </li>
+            <li class="step" data-step="4">
+              <h3 class="step__title">
+                <button class="step__btn" type="button" role="tab" id="how-tab-4" aria-selected="false" aria-controls="how-panel-4" tabindex="-1">
+                  <span class="step__badge" aria-hidden="true">4</span>
+                  Scan the document to pack
+                </button>
+              </h3>
+              <p>Point a phone camera at the QR code, or fire a USB scanner at the barcode. The order opens instantly with its item checklist, quantities and shipping method.</p>
+              <div class="step__slot"></div>
+            </li>
+            <li class="step" data-step="5">
+              <h3 class="step__title">
+                <button class="step__btn" type="button" role="tab" id="how-tab-5" aria-selected="false" aria-controls="how-panel-5" tabindex="-1">
+                  <span class="step__badge" aria-hidden="true">5</span>
+                  Packed syncs back to Shopify
+                </button>
+              </h3>
+              <p>Tick the items, hit Mark as packed, and PrintFlex writes a tag and a timestamp onto the order. Anyone looking at Shopify admin sees the same truth as the person at the bench.</p>
+              <div class="step__slot"></div>
+            </li>
+          </ol>
+
+          <div class="how-visual">
+            <div class="app-mock-wrap">
+              <div class="how-panels">
+
+                <!-- Panel 1: dashboard -->
+                <figure class="app-mock how-panel is-active" id="how-panel-1" role="tabpanel" aria-labelledby="how-tab-1">
+                  <div class="app-mock__chrome">
+                    <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                    <span class="app-mock__url">admin.shopify.com/store/demo/apps/printflex</span>
+                  </div>
+                  <div class="app-mock__filters" aria-hidden="true">
+                    <span class="filter filter--active">Unfulfilled</span>
+                    <span class="filter">Tag: express</span>
+                    <span class="filter">Today</span>
+                    <span class="filter filter--ghost">+ Filter</span>
+                  </div>
+                  <div class="app-mock__bar" aria-hidden="true">
+                    <span class="app-mock__count">34 selected</span>
+                    <span class="app-mock__actions">
+                      <span class="mini-btn mini-btn--primary">Print invoices</span>
+                      <span class="mini-btn">Packing slips</span>
+                      <span class="mini-btn">Pick list</span>
+                    </span>
+                  </div>
+                  <div class="app-mock__table">
+                  <table>
+                    <thead>
+                      <tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Docs</th><th scope="col">Status</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="mono">#KS-10234</td><td>Marie Dupont · FR</td><td><span class="docs">INV+SLIP</span></td><td><span class="pill pill--good">Packed</span></td></tr>
+                      <tr><td class="mono">#KS-10235</td><td>John Smith · US</td><td><span class="docs">INV</span></td><td><span class="pill pill--accent">Printed</span></td></tr>
+                      <tr><td class="mono">#KS-10236</td><td>Yuki Tanaka · JP</td><td><span class="docs">INV+SLIP</span></td><td><span class="pill pill--good">Packed</span></td></tr>
+                      <tr><td class="mono">#KS-10237</td><td>Léa Martin · FR</td><td><span class="docs">—</span></td><td><span class="pill pill--muted">New</span></td></tr>
+                      <tr><td class="mono">#KS-10238</td><td>Emma Brown · AU</td><td><span class="docs">INV+SLIP+PICK</span></td><td><span class="pill pill--accent">Printed</span></td></tr>
+                    </tbody>
+                  </table>
+                  </div>
+                  <figcaption class="app-mock__foot">Illustration of the planned interface — not live data.</figcaption>
+                </figure>
+
+                <!-- Panel 2: print job -->
+                <figure class="app-mock how-panel" id="how-panel-2" role="tabpanel" aria-labelledby="how-tab-2" data-panel="print">
+                  <div class="app-mock__chrome">
+                    <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                    <span class="app-mock__url">admin.shopify.com/store/demo/apps/printflex/jobs</span>
+                  </div>
+                  <div class="job">
+                    <div class="job__head">
+                      <div>
+                        <div class="job__title">Printing 34 orders</div>
+                        <p class="job__sub">Invoices + packing slips · one combined PDF</p>
+                      </div>
+                      <span class="pill pill--accent" data-job-state>Rendering</span>
+                    </div>
+                    <div class="progress" role="progressbar" aria-label="Render progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-job-progress>
+                      <i class="progress__bar" data-job-bar></i>
+                    </div>
+                    <div class="job__meta">
+                      <span class="mono" data-job-count>0 / 34</span>
+                      <span>orders rendered</span>
+                      <span class="job__dot" aria-hidden="true"></span>
+                      <span class="mono">68</span>
+                      <span>pages</span>
+                    </div>
+                    <ul class="job__log" aria-label="Job log">
+                      <li data-job-line><span class="mono">#KS-10234</span> invoice + packing slip</li>
+                      <li data-job-line><span class="mono">#KS-10235</span> invoice</li>
+                      <li data-job-line><span class="mono">#KS-10236</span> invoice + packing slip</li>
+                      <li data-job-line><span class="mono">#KS-10238</span> invoice + packing slip</li>
+                    </ul>
+                    <div class="job__done" data-job-done>
+                      <span class="mini-btn mini-btn--primary">Download PDF</span>
+                      <span class="mini-btn">Open printer dialog</span>
+                    </div>
+                  </div>
+                  <figcaption class="app-mock__foot">Illustration of the planned interface — not live data.</figcaption>
+                </figure>
+
+                <!-- Panel 3: pick list -->
+                <figure class="app-mock how-panel" id="how-panel-3" role="tabpanel" aria-labelledby="how-tab-3" data-panel="pick">
+                  <div class="app-mock__chrome">
+                    <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                    <span class="app-mock__url">picklist-2026-09-22-batch-1.pdf</span>
+                  </div>
+                  <div class="doc">
+                    <div class="doc__head">
+                      <div>
+                        <div class="doc__title">Pick list · 34 orders</div>
+                        <p class="doc__meta">Batch 22 Sep · sorted by SKU · <span class="mono">5</span> SKUs · <span class="mono">70</span> units</p>
+                      </div>
+                      <span class="tag">PICK LIST</span>
+                    </div>
+                    <table class="doc__table">
+                      <thead>
+                        <tr><th scope="col">SKU</th><th scope="col">Item</th><th scope="col">Bin</th><th scope="col">Qty</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><td class="mono">GC-050</td><td>Ginseng Cream 50ml</td><td class="mono">A-03</td><td class="mono doc__qty">18</td></tr>
+                        <tr><td class="mono">GW-001</td><td>Gift Wrap</td><td class="mono">C-12</td><td class="mono doc__qty">7</td></tr>
+                        <tr><td class="mono">HS-030</td><td>Hydrating Serum</td><td class="mono">A-07</td><td class="mono doc__qty">14</td></tr>
+                        <tr><td class="mono">SE-030</td><td>Snail Essence</td><td class="mono">B-01</td><td class="mono doc__qty">22</td></tr>
+                        <tr><td class="mono">SM-010</td><td>Sheet Mask Pack ×10</td><td class="mono">B-04</td><td class="mono doc__qty">9</td></tr>
+                      </tbody>
+                      <tfoot>
+                        <tr><td colspan="3">Total units, one walk</td><td class="mono doc__qty">70</td></tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  <figcaption class="app-mock__foot">Illustration of the planned interface — not live data.</figcaption>
+                </figure>
+
+                <!-- Panel 4: scan to pack -->
+                <figure class="app-mock how-panel" id="how-panel-4" role="tabpanel" aria-labelledby="how-tab-4" data-panel="scan">
+                  <div class="app-mock__chrome">
+                    <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                    <span class="app-mock__url">…/scan/KS-10236?sig=8f3a…  ·  signed link</span>
+                  </div>
+                  <div class="pack">
+                    <div class="pack__scanned">
+                      <span class="pack__beam" aria-hidden="true"></span>
+                      <span class="pack__code mono">*KS-10236*</span>
+                      <span class="pill pill--good">Match</span>
+                    </div>
+                    <div class="pack__head">
+                      <div class="pack__order mono">#KS-10236</div>
+                      <p class="pack__meta">Yuki Tanaka · 5 items · Japan · K-Packet</p>
+                    </div>
+                    <ul class="checklist" aria-label="Items to check">
+                      <li data-pack-item><span class="box"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></span><span>Ginseng Cream 50ml</span><span class="qty" data-pack-qty>0/1</span></li>
+                      <li data-pack-item><span class="box"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></span><span>Snail Essence</span><span class="qty" data-pack-qty>0/1</span></li>
+                      <li data-pack-item><span class="box"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></span><span>Sheet Mask Pack ×10</span><span class="qty" data-pack-qty>0/1</span></li>
+                      <li data-pack-item><span class="box"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></span><span>Hydrating Serum</span><span class="qty" data-pack-qty>0/1</span></li>
+                      <li data-pack-item><span class="box"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></span><span>Gift Wrap</span><span class="qty" data-pack-qty>0/1</span></li>
+                    </ul>
+                    <span class="mini-btn mini-btn--block" data-pack-btn>5 items left to check</span>
+                  </div>
+                  <figcaption class="app-mock__foot">Illustration of the planned interface — not live data.</figcaption>
+                </figure>
+
+                <!-- Panel 5: Shopify order -->
+                <figure class="app-mock how-panel" id="how-panel-5" role="tabpanel" aria-labelledby="how-tab-5" data-panel="sync">
+                  <div class="app-mock__chrome">
+                    <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                    <span class="app-mock__url">admin.shopify.com/store/demo/orders/KS-10236</span>
+                  </div>
+                  <div class="order">
+                    <div class="order__head">
+                      <div class="order__id mono">#KS-10236</div>
+                      <div class="order__pills">
+                        <span class="pill pill--muted">Paid</span>
+                        <span class="pill pill--muted">Unfulfilled</span>
+                        <span class="pill pill--good order__packed" data-sync-pill>Packed</span>
+                      </div>
+                    </div>
+                    <div class="order__grid">
+                      <div class="order__card">
+                        <span class="kicker">Tags</span>
+                        <div class="order__tags">
+                          <span class="tagchip">express</span>
+                          <span class="tagchip tagchip--new" data-sync-tag>printflex-packed</span>
+                        </div>
+                      </div>
+                      <div class="order__card">
+                        <span class="kicker">Timeline</span>
+                        <ul class="order__timeline">
+                          <li data-sync-line><span class="mono">14:32</span><span>PrintFlex marked this order <strong>packed</strong> · device Bench 2</span></li>
+                          <li data-sync-line><span class="mono">09:14</span><span>Invoice and packing slip printed in batch 1</span></li>
+                          <li data-sync-line><span class="mono">08:51</span><span>Order placed · K-Packet · Japan</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <figcaption class="app-mock__foot">Illustration of the planned interface — not live data.</figcaption>
+                </figure>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ Features -->
+    <section class="section section--alt" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">03 — What's different</span>
+          <h2 id="features-title">Built for the twenty percent that does the daily work</h2>
+          <p class="lede">We run warehouses of our own. PrintFlex ships the features a packing bench actually touches, and skips the rest.</p>
+        </div>
+
+        <div class="grid-3">
+          <article class="card feature-card">
+            <span class="kicker">Documents</span>
+            <h3>Three that matter</h3>
+            <p>Invoice, packing slip, and a pick list that aggregates quantities by SKU across the whole batch. Refund notes and draft-order quotes follow in V2.</p>
+          </article>
+          <article class="card feature-card">
+            <span class="kicker">Templates</span>
+            <h3>No code, live preview</h3>
+            <p>Upload a logo, pick an accent colour and a font, choose A4 or Letter, and toggle what shows — prices, taxes, discounts, phone number, notes, HS codes. Free-text footer for legal mentions and bank details.</p>
+          </article>
+          <article class="card feature-card">
+            <span class="kicker">Verification</span>
+            <h3>QR and barcode on everything</h3>
+            <p>The QR holds a signed link that cannot be guessed. The barcode is Code 128 of the order number, so any hardware scanner on the bench already understands it. Both optional per template.</p>
+          </article>
+          <article class="card feature-card">
+            <span class="kicker">Safety</span>
+            <h3>Print status per order</h3>
+            <p>Every order shows never printed, printed, or packed. Reprints are deliberate, and nothing gets shipped twice because two people printed the same batch.</p>
+          </article>
+          <article class="card feature-card">
+            <span class="kicker">Reach</span>
+            <h3>Six languages, real currency</h3>
+            <p>Documents render in the language of the store or of the customer's country — English, French, German, Spanish, Japanese, Korean at launch — with presentment currency and whatever tax lines Shopify provides.</p>
+          </article>
+          <article class="card feature-card">
+            <span class="kicker">Automation</span>
+            <h3>Invoice email on autopilot</h3>
+            <p>Optionally send the branded PDF invoice to the customer when the order is created or fulfilled. Templated, brandable, and switchable off per template.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== Comparison -->
+    <section class="section" id="compare" aria-labelledby="compare-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">04 — Market comparison</span>
+          <h2 id="compare-title">Where PrintFlex sits</h2>
+          <p class="lede">The printing apps are good at printing. The scanning apps are good at scanning. Nobody sells the two as one workflow at a small-store price.</p>
+        </div>
+
+        <div class="table-wrap" role="region" aria-label="Feature comparison, scrolls horizontally" tabindex="0">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th scope="col"><span class="visually-hidden">Feature</span></th>
+                <th scope="col" class="is-us">PrintFlex</th>
+                <th scope="col">Order Printer Pro</th>
+                <th scope="col">OrderlyPrint</th>
+                <th scope="col">Scan &amp; pack apps</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Bulk print hundreds in one PDF</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="yes" aria-label="Yes">✓</span></td><td><span class="yes" aria-label="Yes">✓</span></td><td><span class="no" aria-label="No">–</span></td></tr>
+              <tr><th scope="row">Branded customer invoice</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="yes" aria-label="Yes">✓</span></td><td><span class="yes" aria-label="Yes">✓</span></td><td><span class="no" aria-label="No">–</span></td></tr>
+              <tr><th scope="row">Aggregated pick list</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="no" aria-label="No">–</span></td><td><span class="yes" aria-label="Yes">✓</span></td><td><span class="yes" aria-label="Yes">✓</span></td></tr>
+              <tr><th scope="row">Filter, tag &amp; bulk-action dashboard</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="partly" aria-label="Partly">~</span></td><td><span class="yes" aria-label="Yes">✓</span></td><td><span class="partly" aria-label="Partly">~</span></td></tr>
+              <tr><th scope="row">QR + barcode on every document</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="no" aria-label="No">–</span></td><td><span class="no" aria-label="No">–</span></td><td><span class="partly" aria-label="Partly">~</span></td></tr>
+              <tr><th scope="row">Scan to verify items at packing</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="no" aria-label="No">–</span></td><td><span class="no" aria-label="No">–</span></td><td><span class="yes" aria-label="Yes">✓</span></td></tr>
+              <tr><th scope="row">Packed status written back to Shopify</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="no" aria-label="No">–</span></td><td><span class="partly" aria-label="Partly">~</span></td><td><span class="yes" aria-label="Yes">✓</span></td></tr>
+              <tr><th scope="row">Visual template editor, no code</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="partly" aria-label="Partly">~</span></td><td><span class="partly" aria-label="Partly">~</span></td><td><span class="no" aria-label="No">–</span></td></tr>
+              <tr><th scope="row">Free plan that stays free</th><td class="is-us"><span class="yes" aria-label="Yes">✓</span></td><td><span class="yes" aria-label="Yes">✓</span></td><td><span class="no" aria-label="No">–</span></td><td><span class="yes" aria-label="Yes">✓</span></td></tr>
+              <tr><th scope="row">Entry paid price</th><td class="is-us"><span class="price">$4.99</span></td><td><span class="price">$10</span></td><td><span class="price">$29</span></td><td><span class="price">$19.99</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="footnote">Competitor plans and prices as listed on the Shopify App Store, September 2026. '~' means partly covered or available only on higher tiers. Scan &amp; pack column reflects iPacky, the leading scan-verification app; it prints picking and packing sheets but not branded customer invoices.</p>
+      </div>
+    </section>
+
+    <!-- =========================================================== Scan mode -->
+    <section class="section section--alt" id="scan" aria-labelledby="scan-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">05 — Scan mode</span>
+          <h2 id="scan-title">The part nobody else bundles</h2>
+          <p class="lede">Scan mode is an ordinary responsive web page. There is nothing to install on the phone, no Shopify login for warehouse staff, and no separate subscription.</p>
+        </div>
+
+        <div class="scan-grid">
+          <figure class="phone" aria-label="Illustration of the PrintFlex scan page on a phone">
+            <div class="phone__screen">
+              <div class="phone__cam">
+                <div class="viewfinder">
+                  <i aria-hidden="true"></i>
+                  <b class="beam" aria-hidden="true"></b>
+                  <div class="qr" data-code="KS-10236" data-ink="--dark-ink" data-paper="transparent" data-label="Illustrative QR code seen through the camera viewfinder"></div>
+                </div>
+                <span class="phone__cap">POINT AT THE QR OR BARCODE</span>
+              </div>
+              <div class="phone__body">
+                <div class="phone__order">#KS-10236</div>
+                <p class="phone__meta">Yuki Tanaka · 5 items · Japan · K-Packet</p>
+                <ul class="checklist" aria-label="Items to check">
+                  <li class="is-checked"><span class="box"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></span><span>Ginseng Cream 50ml</span><span class="qty">1/1</span></li>
+                  <li class="is-checked"><span class="box"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></span><span>Snail Essence</span><span class="qty">1/1</span></li>
+                  <li class="is-checked"><span class="box"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 3 3 5-6"/></svg></span><span>Sheet Mask Pack ×10</span><span class="qty">1/1</span></li>
+                  <li><span class="box"></span><span>Hydrating Serum</span><span class="qty">0/1</span></li>
+                  <li><span class="box"></span><span>Gift Wrap</span><span class="qty">0/1</span></li>
+                </ul>
+                <button class="btn btn--primary btn--block" type="button" disabled aria-disabled="true" tabindex="-1">2 items left to check</button>
+              </div>
+            </div>
+          </figure>
+
+          <div class="scan-right">
+            <ol class="steps-strip">
+              <li><span class="num">01</span>Print the batch</li>
+              <li><span class="num">02</span>Scan the document</li>
+              <li><span class="num">03</span>Check the items off</li>
+              <li><span class="num">04</span>Tag syncs to Shopify</li>
+            </ol>
+
+            <div class="grid-2">
+              <article class="card scan-card">
+                <h3>Works with whatever is on the bench</h3>
+                <p>A phone camera reads the QR through the browser's own barcode support. A $30 USB laser scanner types the order number straight into the page like a keyboard. If the camera struggles on an old handset, the scanner still works — the camera is the bonus, not the requirement.</p>
+              </article>
+              <article class="card scan-card">
+                <h3>Staff get access, not accounts</h3>
+                <p>The scan page opens from a signed link and a store PIN. Warehouse staff never need a Shopify account, and every scan is logged against the device name so you can see who packed what.</p>
+              </article>
+            </div>
+
+            <ul class="stats">
+              <li class="stat">
+                <span class="stat__label">Batch size</span>
+                <span class="stat__value">250</span>
+                <span class="stat__desc">orders in one combined PDF</span>
+              </li>
+              <li class="stat">
+                <span class="stat__label">Render target</span>
+                <span class="stat__value">&lt;60s</span>
+                <span class="stat__desc">for a 100-order batch</span>
+              </li>
+              <li class="stat">
+                <span class="stat__label">Permissions</span>
+                <span class="stat__value">2</span>
+                <span class="stat__desc">read orders, write order tags</span>
+              </li>
+            </ul>
+            <p class="disclaimer">Batch size and render target are V1 engineering targets, not measured results — we will publish the real numbers at launch.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= Pricing -->
+    <section class="section" id="pricing" aria-labelledby="pricing-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">06 — Pricing</span>
+          <h2 id="pricing-title">Priced for the store, not the enterprise</h2>
+          <p class="lede">You are metered on orders that had at least one document generated in the calendar month — the same simple counter this category already uses, at a fraction of the price.</p>
+        </div>
+
+        <div class="toggle" data-pricing-toggle role="group" aria-label="Billing period">
+          <button type="button" data-period="m" aria-pressed="true">Monthly</button>
+          <button type="button" data-period="a" aria-pressed="false">Annual — 2 months free</button>
+        </div>
+
+        <div class="plans">
+          <article class="plan">
+            <h3 class="plan__name">Free</h3>
+            <div class="plan__price">
+              <span class="plan__amount" data-m="$0" data-a="$0">$0</span>
+              <span class="plan__period" data-m="forever" data-a="forever">forever</span>
+            </div>
+            <span class="plan__meter">50 orders / month</span>
+            <p class="plan__desc">The whole workflow, including scan mode. Enough for a store shipping a couple of parcels a day.</p>
+            <ul class="plan__list">
+              <li>All three document types</li>
+              <li>Bulk print and combined PDF</li>
+              <li>QR, barcode and scan mode</li>
+              <li>One template</li>
+              <li>Community support</li>
+            </ul>
+            <a class="btn btn--ghost btn--block" href="#contact">Get early access</a>
+            <p class="plan__fine">No payment collected here. Free stays $0.</p>
+          </article>
+
+          <article class="plan plan--featured">
+            <span class="plan__badge">MOST POPULAR</span>
+            <h3 class="plan__name">Premium</h3>
+            <div class="plan__price">
+              <span class="plan__amount" data-m="$4.99" data-a="$49.90">$4.99</span>
+              <span class="plan__period" data-m="/month" data-a="/year">/month</span>
+            </div>
+            <span class="plan__meter">500 orders / month</span>
+            <p class="plan__desc">The everyday plan. Roughly what one wrong parcel costs you, for a whole month of not sending one.</p>
+            <ul class="plan__list">
+              <li>Everything in Free</li>
+              <li>Unlimited templates</li>
+              <li>Automatic invoice email</li>
+              <li>Saved dashboard views</li>
+              <li>Email support</li>
+            </ul>
+            <a class="btn btn--primary btn--block" href="#contact">Get early access</a>
+            <p class="plan__fine">Subscribing happens inside Shopify, via Shopify Billing.</p>
+          </article>
+
+          <article class="plan">
+            <h3 class="plan__name">Unlimited</h3>
+            <div class="plan__price">
+              <span class="plan__amount" data-m="$9.99" data-a="$99.90">$9.99</span>
+              <span class="plan__period" data-m="/month" data-a="/year">/month</span>
+            </div>
+            <span class="plan__meter">Unlimited orders</span>
+            <p class="plan__desc">For high-volume benches and seasonal peaks, where an order cap is the last thing you want to think about.</p>
+            <ul class="plan__list">
+              <li>Everything in Premium</li>
+              <li>Priority support</li>
+              <li>Refund and credit documents</li>
+              <li>Per-market template variants</li>
+              <li>All future pro features</li>
+            </ul>
+            <a class="btn btn--ghost btn--block" href="#contact">Get early access</a>
+            <p class="plan__fine">Subscribing happens inside Shopify, via Shopify Billing.</p>
+          </article>
+        </div>
+
+        <div class="billing-note">
+          <p><strong>Billed through Shopify.</strong> Every paid plan is charged exclusively through Shopify's own Billing API and approved on Shopify's native charge screen when you install the app. This site never collects payment details or arranges pricing directly.</p>
+          <ul class="chips">
+            <li>Cancel any time</li>
+            <li>Change plan instantly</li>
+            <li>Annual saves two months</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= FAQ -->
+    <section class="section section--alt" id="faq" aria-labelledby="faq-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">07 — FAQ</span>
+          <h2 id="faq-title">Questions merchants actually ask</h2>
+        </div>
+
+        <div class="faq-filters" data-faq-filters role="group" aria-label="Filter questions by topic">
+          <button type="button" class="chip-btn" data-cat="all" aria-pressed="true">All</button>
+          <button type="button" class="chip-btn" data-cat="how" aria-pressed="false">How it works</button>
+          <button type="button" class="chip-btn" data-cat="hardware" aria-pressed="false">Hardware</button>
+          <button type="button" class="chip-btn" data-cat="data" aria-pressed="false">Data &amp; safety</button>
+          <button type="button" class="chip-btn" data-cat="billing" aria-pressed="false">Billing</button>
+        </div>
+
+        <div class="faq-list" data-faq-list>
+          <details class="faq" data-cat="billing">
+            <summary>What counts toward my monthly order limit?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">Billing</span>
+              <p>An order counts once, in the calendar month you first generate a document for it — invoice, packing slip or pick list. Reprinting that order later in the same month is free, and orders you never print never count. The counter resets on the first of each month.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="hardware">
+            <summary>Do I need to buy a barcode scanner?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">Hardware</span>
+              <p>No. Any phone with a camera and a modern browser reads the QR code straight from the page, with nothing to install. If you already have a USB laser scanner on the bench, that works too, because we also print a Code 128 barcode of the order number that any hardware scanner understands.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="how">
+            <summary>What exactly is a pick list?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">How it works</span>
+              <p>A pick list takes every line item across the orders you selected, merges the quantities and sorts them by SKU, so you get one sheet for one walk through the warehouse. Instead of visiting the same shelf thirty times for thirty orders, your picker collects the whole batch's stock in a single pass.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="how">
+            <summary>Can my invoices look like my brand?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">How it works</span>
+              <p>Yes. Upload your logo, choose an accent colour and a font, pick A4 or Letter, and toggle the fields you want shown, such as prices, taxes, discounts, phone number and HS codes. You see a live preview rendered against one of your real orders, so what you approve is what prints.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="how">
+            <summary>What languages and currencies are supported?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">How it works</span>
+              <p>English, French, German, Spanish, Japanese and Korean at launch, chosen per document from the store's language or the customer's country. Amounts print in the presentment currency the customer paid in, with the tax lines exactly as Shopify records them. The translation files are plain text, so the community can extend them.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="data">
+            <summary>How does PrintFlex stop double shipping?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">Data &amp; safety</span>
+              <p>Every order in the dashboard shows one of three states: never printed, printed, or packed. The state is written the moment a document is generated, so a second person opening the same batch sees it is already printed before they hit the button. Marking an order packed is a deliberate step on the scan page, not a side effect.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="data">
+            <summary>What data can PrintFlex see?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">Data &amp; safety</span>
+              <p>Only the order data needed to print a document: customer name, shipping and billing address, line items, quantities and totals. The app asks Shopify for permission to read orders and to write a tag on them, and nothing more. PrintFlex never sees payment or card data.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="data">
+            <summary>What happens to the PDFs you generate?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">Data &amp; safety</span>
+              <p>Generated PDFs are cached so a reprint is instant, then deleted automatically after 30 days. If you need a document after that, it is regenerated on demand from the order. When Shopify sends a redaction request for a customer or a store, we delete the cached documents as well as the database rows.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="how">
+            <summary>Do warehouse staff need a Shopify account?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">How it works</span>
+              <p>No. The QR code opens a signed link to that order's pack screen, and staff unlock it with a store PIN you set. Nobody on the bench needs a Shopify login, and every scan is logged against the device name so you can see who packed what.</p>
+            </div>
+          </details>
+
+          <details class="faq" data-cat="billing">
+            <summary>Is PrintFlex on the Shopify App Store yet?</summary>
+            <div class="faq__body">
+              <span class="faq__cat">Billing</span>
+              <p>Not yet. PrintFlex is in active development and we are onboarding early-access stores directly, which is what the form below is for. Once the app is installed, any paid plan is billed through Shopify's Billing API and approved on Shopify's own charge screen; this website never collects payment.</p>
+            </div>
+          </details>
+
+          <p class="faq-empty" data-faq-empty hidden>No questions in this topic yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= Contact -->
+    <section class="section" id="contact" aria-labelledby="contact-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Get in touch</span>
+          <h2 id="contact-title">Want it on your bench first?</h2>
+          <p class="lede">Tell us roughly how many orders you ship a week and how you pack them today. We reply to everything, and we will say so plainly if PrintFlex is not the right fit for your store.</p>
+        </div>
+
+        <div class="contact-grid">
+          <div class="contact-left">
+            <ul class="chips">
+              <li>Early access is free while we build</li>
+              <li>No card, no commitment, no sales call</li>
+              <li>We usually reply within one business day</li>
+            </ul>
+            <div class="contact-panel">
+              <span class="kicker">Email us directly</span>
+              <a href="mailto:team@mpctrades.com">team@mpctrades.com</a>
+            </div>
+          </div>
+
+          <form class="form" data-contact-form data-endpoint="/api/contact" method="post" action="/api/contact">
+            <!-- Anti-spam honeypot: real people never see it, bots fill it in. -->
+            <div class="visually-hidden" aria-hidden="true">
+              <label for="f-company">Leave this field empty</label>
+              <input type="text" id="f-company" name="company" tabindex="-1" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="f-name">Name</label>
+              <input id="f-name" name="name" type="text" autocomplete="name" placeholder="Your name" required>
+            </div>
+            <div class="field">
+              <label for="f-email">Email</label>
+              <input id="f-email" name="email" type="email" autocomplete="email" placeholder="you@yourstore.com" required>
+            </div>
+            <div class="field">
+              <label for="f-store">Store URL</label>
+              <input id="f-store" name="store" type="text" inputmode="url" autocomplete="url" placeholder="yourstore.myshopify.com" required>
+            </div>
+            <div class="field">
+              <label for="f-volume">Orders per week</label>
+              <select id="f-volume" name="volume">
+                <option value="">Choose a range</option>
+                <option>Under 50</option>
+                <option>50–200</option>
+                <option>200–1,000</option>
+                <option>Over 1,000</option>
+              </select>
+            </div>
+            <div class="field field--full">
+              <label for="f-how">How do you pack today?</label>
+              <textarea id="f-how" name="how" rows="5" placeholder="Which apps you use now, what breaks, what you'd want first." required></textarea>
+            </div>
+            <div class="form__foot">
+              <div>
+                <button class="btn btn--primary" type="submit" data-form-submit>Send message <span aria-hidden="true">→</span></button>
+              </div>
+              <p class="form__status" data-form-status role="status" aria-live="polite"></p>
+              <p class="form__note">Goes straight to team@mpctrades.com. We reply within one business day, and we never share your details.</p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="index.html" aria-label="PrintFlex home">
+            <span class="brand__mark" aria-hidden="true">
+              <svg viewBox="0 0 16 16" focusable="false"><rect x="1" y="2.6" width="14" height="2.2" rx="1.1"/><rect x="1" y="6.9" width="14" height="2.2" rx="1.1"/><rect x="1" y="11.2" width="9" height="2.2" rx="1.1"/></svg>
+            </span>
+            <span class="brand__name">PRINTFLEX</span>
+          </a>
+          <p>Bulk invoices, packing slips and pick lists for Shopify — with QR and barcode scan-to-pack built in. Made by MPC Trades in Phnom Penh.</p>
+          <span class="footer-status">In development · early access</span>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <span class="footer-col__title">Product</span>
+            <ul>
+              <li><a href="index.html#how">How it works</a></li>
+              <li><a href="index.html#features">Features</a></li>
+              <li><a href="index.html#scan">Scan mode</a></li>
+              <li><a href="index.html#pricing">Pricing</a></li>
+              <li><a href="index.html#faq">FAQ</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <span class="footer-col__title">Legal</span>
+            <ul>
+              <li><a href="privacy.html">Privacy</a></li>
+              <li><a href="terms.html">Terms</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <span class="footer-col__title">Company</span>
+            <ul>
+              <li><a href="support.html">Support</a></li>
+              <li><a href="index.html#contact">Contact</a></li>
+              <li><a href="mailto:team@mpctrades.com">team@mpctrades.com</a></li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 MPC Trades · PrintFlex is a working title</span>
+        <a href="mailto:team@mpctrades.com">team@mpctrades.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

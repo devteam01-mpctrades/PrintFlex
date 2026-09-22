@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Privacy Policy — PrintFlex</title>
+  <meta name="description" content="How the PrintFlex Shopify app processes order data to print invoices, packing slips and pick lists, what it keeps and for how long, and how to make a data request. Draft pending legal review.">
+  <meta name="theme-color" content="#E25B07">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PrintFlex Privacy Policy">
+  <meta property="og:description" content="How the PrintFlex Shopify app processes order data to print invoices, packing slips and pick lists, what it keeps and for how long, and how to make a data request. Draft pending legal review.">
+  <meta property="og:site_name" content="PrintFlex">
+  <link rel="canonical" href="https://printflex.mpctrades.com/privacy.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="index.html" aria-label="PrintFlex home">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 16 16" focusable="false"><rect x="1" y="2.6" width="14" height="2.2" rx="1.1"/><rect x="1" y="6.9" width="14" height="2.2" rx="1.1"/><rect x="1" y="11.2" width="9" height="2.2" rx="1.1"/></svg>
+        </span>
+        <span class="brand__name">PRINTFLEX</span>
+      </a>
+      <ul class="nav__links">
+        <li><a href="index.html#how">How it works</a></li>
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#scan">Scan mode</a></li>
+        <li><a href="index.html#pricing">Pricing</a></li>
+        <li><a href="index.html#faq">FAQ</a></li>
+      </ul>
+      <a class="btn btn--primary" href="index.html#contact">Get early access <span aria-hidden="true">→</span></a>
+    </nav>
+  </header>
+  <main id="main" class="page">
+    <div class="container">
+      <article class="prose">
+        <p class="draft-banner">Draft — pending legal review before App Store submission.</p>
+        <span class="eyebrow">Legal</span>
+        <h1>Privacy Policy</h1>
+        <p class="updated">Last updated: 21 September 2026</p>
+
+        <p>This policy explains what data the PrintFlex Shopify app ("PrintFlex", "the app") processes, why, and for how long. PrintFlex is made by MPC Trades, Phnom Penh, Cambodia ("we", "us").</p>
+        <!-- TODO: replace "MPC Trades" with the registered legal entity name once confirmed by counsel. Do not invent a registration number or postal address. -->
+
+        <h2>Who is responsible for the data</h2>
+        <p>When you install PrintFlex on your Shopify store, <strong>you, the merchant, are the data controller</strong> for your customers' order data. <strong>PrintFlex acts as a data processor</strong>: we process that data only on your instruction, which you give by installing the app, choosing which orders to print, and configuring templates and automatic emails. This website (printflex.mpctrades.com) itself sets no cookies and runs no analytics.</p>
+
+        <h2>What data the app processes</h2>
+        <p>To render the documents you ask for, the app reads the following from each order you select:</p>
+        <ul>
+          <li>Order number, date, tags, fulfillment and financial status, shipping method, order notes.</li>
+          <li>Customer name, email address and phone number where present on the order.</li>
+          <li>Shipping and billing addresses.</li>
+          <li>Line items: product titles, variants, SKUs, quantities, prices, discounts, taxes and totals, in the order's presentment currency.</li>
+          <li>Store settings needed for the header: store name, address, logo you upload, and the template preferences you set in the app.</li>
+        </ul>
+        <p>We use this data <strong>solely to render the invoices, packing slips and pick lists you request</strong>, to show print and packed status in the dashboard, and, if you switch it on, to email the PDF invoice to your customer. We do not sell it, share it with advertisers, or use it to build profiles.</p>
+        <p><strong>PrintFlex never sees payment card data.</strong> Shopify does not expose card numbers to apps, and the app does not request access to payment details of any kind.</p>
+
+        <h2>Shopify permissions requested</h2>
+        <p>The app asks Shopify for two access scopes:</p>
+        <table>
+          <thead><tr><th scope="col">Scope</th><th scope="col">Why</th></tr></thead>
+          <tbody>
+            <tr><td><code>read_orders</code></td><td>To list your orders in the dashboard and read the fields above when printing.</td></tr>
+            <tr><td><code>write_orders</code> (used only to add and remove an order tag)</td><td>To write the "packed" tag and timestamp when an order is marked packed from the scan page, so Shopify admin shows the same status as the bench.</td></tr>
+          </tbody>
+        </table>
+        <p>We do not request access to products, inventory, customers outside of orders, discounts, payments or any other part of your store.</p>
+
+        <h2>Scan mode and warehouse staff</h2>
+        <p>Every QR code we print contains a signed link to one order's pack screen. Opening it requires the store PIN you set. Warehouse staff do not create accounts and we do not collect their personal details; each scan is logged with the device name the staff member enters, the order number and a timestamp, so that you can see who packed what. Those logs belong to your store and are deleted with it.</p>
+
+        <h2>How long we keep data</h2>
+        <ul>
+          <li><strong>Generated PDFs</strong> are cached so that reprints are instant, and <strong>automatically deleted 30 days</strong> after they were generated. After that a document is regenerated on demand from the order data in Shopify.</li>
+          <li><strong>Order metadata</strong> (order number, print status, packed status, scan log) is kept while the app is installed so the dashboard can show history.</li>
+          <li><strong>Template settings and your logo</strong> are kept while the app is installed.</li>
+          <li>Everything above is deleted when you uninstall the app, on the schedule described under "Shopify data requests" below.</li>
+        </ul>
+
+        <h2>Shopify data requests (GDPR webhooks)</h2>
+        <p>PrintFlex subscribes to Shopify's three mandatory privacy webhooks and handles them as follows:</p>
+        <ul>
+          <li><code>customers/data_request</code> — we compile every document and log entry we hold that references the customer's orders and return it to you, the merchant, so you can pass it on. We respond within 30 days.</li>
+          <li><code>customers/redact</code> — we delete the cached PDFs for that customer's orders, the scan log entries for those orders, and any stored order metadata containing their details. Deleting the cached documents, not only the database rows, is part of this step.</li>
+          <li><code>shop/redact</code> — sent by Shopify 48 hours after uninstall. We delete all data for the store: cached PDFs, order metadata, scan logs, template settings, the uploaded logo and the store's PIN.</li>
+        </ul>
+        <p>You can also email us at any time to ask for deletion sooner.</p>
+
+        <h2>Where the data is stored</h2>
+        <p>The app runs on a virtual private server. <!-- TODO: state the actual hosting provider and region (for example "Hetzner, Falkenstein, Germany" or "DigitalOcean, Singapore") once the production host is chosen. --> Generated PDFs and order metadata are stored on that server and are not replicated to other regions. Connections between your browser, Shopify and the app are encrypted with TLS.</p>
+
+        <h2>Sub-processors</h2>
+        <p>We use a small number of third parties to run the service:</p>
+        <ul>
+          <li><strong>Hosting</strong> — the VPS provider named above stores the app, its database and the cached PDFs.</li>
+          <li><strong>Transactional email</strong> — when you enable the automatic invoice email, the PDF and the customer's email address are passed to an email delivery service to send the message. <!-- TODO: name the transactional email provider (for example Postmark, Resend or Amazon SES) once chosen. --> If the feature is off, no customer data reaches this provider.</li>
+          <li><strong>Shopify</strong> — the platform your store runs on, which is the source of all order data and processes all billing.</li>
+        </ul>
+        <p>We do not use analytics, advertising or session-recording services inside the app.</p>
+
+        <h2>Billing data</h2>
+        <p>All charges for paid plans are made through Shopify's Billing API and appear on your Shopify invoice. We receive from Shopify only the plan you are on and whether the charge is active. We never receive or store payment details.</p>
+
+        <h2>Security</h2>
+        <p>Access to the app's servers is restricted to the MPC Trades team, over encrypted connections with key-based authentication. Signed links in QR codes cannot be guessed or altered without the store's secret. We will notify you without undue delay if we become aware of a breach affecting your data.</p>
+
+        <h2>Changes to this policy</h2>
+        <p>If we change what data we process or how, we will update this page, change the date at the top, and tell merchants with the app installed through the app's dashboard before the change takes effect.</p>
+
+        <h2>Contact</h2>
+        <p>For any question, data request or complaint about how PrintFlex handles data, email <a href="mailto:team@mpctrades.com">team@mpctrades.com</a>. We aim to reply within one business day and to resolve data requests within 30 days.</p>
+        <!-- TODO: legal review to confirm whether a named data protection contact or EU representative is required for the target markets. Do not invent a DPO. -->
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="index.html" aria-label="PrintFlex home">
+            <span class="brand__mark" aria-hidden="true">
+              <svg viewBox="0 0 16 16" focusable="false"><rect x="1" y="2.6" width="14" height="2.2" rx="1.1"/><rect x="1" y="6.9" width="14" height="2.2" rx="1.1"/><rect x="1" y="11.2" width="9" height="2.2" rx="1.1"/></svg>
+            </span>
+            <span class="brand__name">PRINTFLEX</span>
+          </a>
+          <p>Bulk invoices, packing slips and pick lists for Shopify — with QR and barcode scan-to-pack built in. Made by MPC Trades in Phnom Penh.</p>
+          <span class="footer-status">In development · early access</span>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <span class="footer-col__title">Product</span>
+            <ul>
+              <li><a href="index.html#how">How it works</a></li>
+              <li><a href="index.html#features">Features</a></li>
+              <li><a href="index.html#scan">Scan mode</a></li>
+              <li><a href="index.html#pricing">Pricing</a></li>
+              <li><a href="index.html#faq">FAQ</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <span class="footer-col__title">Legal</span>
+            <ul>
+              <li><a href="privacy.html">Privacy</a></li>
+              <li><a href="terms.html">Terms</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <span class="footer-col__title">Company</span>
+            <ul>
+              <li><a href="support.html">Support</a></li>
+              <li><a href="index.html#contact">Contact</a></li>
+              <li><a href="mailto:team@mpctrades.com">team@mpctrades.com</a></li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 MPC Trades · PrintFlex is a working title</span>
+        <a href="mailto:team@mpctrades.com">team@mpctrades.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>
