@@ -1,8 +1,9 @@
 import { redirect, Form, useLoaderData } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { login } from "../../shopify.server";
 import styles from "./styles.module.css";
 
-export const loader = async ({ request }) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
   if (url.searchParams.get("shop")) {
@@ -13,14 +14,14 @@ export const loader = async ({ request }) => {
 };
 
 export default function App() {
-  const { showForm } = useLoaderData();
+  const { showForm } = useLoaderData<typeof loader>();
 
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>PrintFlex</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Bulk invoices, packing slips and pick lists as one PDF, with a QR code and barcode on every page so your warehouse can scan, check and pack.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -34,20 +35,6 @@ export default function App() {
             </button>
           </Form>
         )}
-        <ul className={styles.list}>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-        </ul>
       </div>
     </div>
   );
