@@ -130,3 +130,53 @@ export async function getUsage(shopId: string, now: Date = new Date()): Promise<
     atLimit: limit !== null && used >= limit,
   };
 }
+
+export interface CapacityCheck {
+  allowed: boolean;
+  /** Orders in the request not yet metered this period. */
+  newUnits: number;
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  /** Fraction of the limit used after this request, 0..∞. */
+  afterRatio: number;
+  behaviour: string;
+  periodEndsAt: Date;
+}
+
+/**
+ * Would generating documents for these orders exceed the plan? Reprints
+ * within the period cost nothing, so only orders without a MeterEntry this
+ * period count. Both limit behaviours stop at the cap: the difference is
+ * only what the merchant is told. Nothing here ever changes the plan.
+ */
+export async function checkCapacity(shopId: string, shopifyOrderIds: readonly string[], now: Date = new Date()): Promise<CapacityCheck> {
+  const shop = await prisma.shop.findUniqueOrThrow({ where: { id: shopId }, select: { limitBehaviour: true } });
+  const usage = await getUsage(shopId, now);
+  const distinct = [...new Set(shopifyOrderIds)];
+  const already = distinct.length
+    ? await prisma.meterEntry.findMany({ where: { shopId, period: usage.period, orderId: { in: distinct } }, select: { orderId: true } })
+    : [];
+  const newUnits = distinct.length - already.length;
+  const limit = usage.limit;
+  const afterRatio = limit === null ? 0 : (usage.used + newUnits) / limit;
+  return {
+    allowed: limit === null || usage.used + newUnits <= limit,
+    newUnits,
+    used: usage.used,
+    limit,
+    remaining: usage.remaining,
+    afterRatio,
+    behaviour: shop.limitBehaviour,
+    periodEndsAt: usage.periodEndsAt,
+  };
+}
+
+/** The sentence shown when generation is refused, per limit behaviour. */
+export function capacityMessage(check: CapacityCheck, timezone: string): string {
+  const reset = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, day: "numeric", month: "long" }).format(check.periodEndsAt);
+  const base = `This would use ${check.newUnits} new metered ${check.newUnits === 1 ? "order" : "orders"}, and ${check.remaining ?? 0} of ${check.limit} remain this period.`;
+  return check.behaviour === "PROMPT_UPGRADE"
+    ? `${base} Upgrade on Plans & billing to keep printing, or wait for the period to reset on ${reset}. PrintFlex never upgrades your plan by itself.`
+    : `${base} Document generation is paused until the period resets on ${reset}. Nothing is charged and your plan is unchanged. You can upgrade any time on Plans & billing.`;
+}

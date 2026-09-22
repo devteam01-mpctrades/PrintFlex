@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import prisma from "../../db.server";
 import type { GraphqlClient } from "../graphql.server";
+import { capacityMessage, checkCapacity } from "../meter.server";
 import { getScanSecret } from "../scan/tokens.server";
 import { wrapDocument } from "./batch-html.server";
 import { buildBatch, finalizeBatch } from "./render-batch.server";
@@ -83,6 +84,8 @@ export async function renderFallbackForJob(jobId: string, deps: FallbackDeps): P
   if (built.rendered.length === 0) {
     throw new Error("None of the orders in this batch exist in Shopify any more, so there is nothing to print.");
   }
+  const capacity = await checkCapacity(built.shop.id, built.rendered.map((r) => r.order.shopifyOrderId), built.now);
+  if (!capacity.allowed) throw new Error(capacityMessage(capacity, built.shop.timezone));
   await finalizeBatch(built, deps.client);
   const job = await prisma.documentJob.findUniqueOrThrow({ where: { id: jobId }, select: { state: true } });
   if (job.state !== "SUCCEEDED") {

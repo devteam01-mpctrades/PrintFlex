@@ -346,6 +346,20 @@ export default function TemplateStudio() {
               </s-section>
             ) : null}
 
+            {template.type === "INVOICE" ? (
+              <s-section heading="Automatic invoice email">
+                <s-stack gap="small">
+                  {bool("email.enabled", s.email.enabled, "Email the invoice automatically", "Premium and Unlimited. Sent once per order for the chosen moment, with the PDF attached.")}
+                  <s-select name="email.trigger" label="Send when" value={s.email.trigger}>
+                    <s-option value="creation">The order is created</s-option>
+                    <s-option value="payment">The order is paid</s-option>
+                    <s-option value="fulfillment">The order is fulfilled</s-option>
+                  </s-select>
+                  <s-paragraph color="subdued">Every send is logged on the Home screen, where you can resend manually.</s-paragraph>
+                </s-stack>
+              </s-section>
+            ) : null}
+
             <s-section heading="Footer">
               <s-text-area name="footerText" label="Free text" rows={4} value={s.footerText} placeholder="Legal mentions, return policy, bank details, tax numbers"></s-text-area>
             </s-section>

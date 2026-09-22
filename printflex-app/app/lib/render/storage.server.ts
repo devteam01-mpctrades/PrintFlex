@@ -9,6 +9,10 @@ import path from "node:path";
 
 const ROOT = path.resolve(process.env.PRINTFLEX_STORAGE_DIR ?? "storage");
 
+export function storageRoot(): string {
+  return ROOT;
+}
+
 export function documentPath(shopId: string, documentId: string): string {
   return path.join(ROOT, "documents", shopId, `${documentId}.pdf`);
 }

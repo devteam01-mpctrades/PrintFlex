@@ -24,6 +24,8 @@ export interface ShopSettings {
   /** How long a printed QR code keeps opening its order, in days. */
   scanTokenDays: number;
   pack: PackSettings;
+  /** Master switch for automatic invoice emails; off after uninstall. */
+  emailsEnabled: boolean;
 }
 
 export const DEFAULT_PACK_SETTINGS: PackSettings = {
@@ -65,6 +67,7 @@ export function parseSettings(json: string | null | undefined): ShopSettings {
   const pack = isRecord(root.pack) ? root.pack : {};
   const bool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
   return {
+    emailsEnabled: bool(root.emailsEnabled, true),
     pack: {
       requireAllChecked: bool(pack.requireAllChecked, DEFAULT_PACK_SETTINGS.requireAllChecked),
       showPhotos: bool(pack.showPhotos, DEFAULT_PACK_SETTINGS.showPhotos),

@@ -6,6 +6,8 @@ import {
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
+import { BILLING_CONFIG } from "./lib/billing/plans-config.server";
+import { handleReinstall } from "./lib/lifecycle.server";
 import { backfillOrders } from "./lib/orders/sync.server";
 import { syncShopFromShopify } from "./lib/shops.server";
 
@@ -18,12 +20,14 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
+  billing: BILLING_CONFIG,
   future: {
     expiringOfflineAccessTokens: true,
   },
   hooks: {
     afterAuth: async ({ session, admin }) => {
       const shop = await syncShopFromShopify(admin, session.shop);
+      if (shop.uninstalledAt) await handleReinstall(shop.id);
       const synced = await prisma.orderIndex.count({ where: { shopId: shop.id } });
       if (synced === 0) {
         // First install: backfill in the background so auth completes fast.

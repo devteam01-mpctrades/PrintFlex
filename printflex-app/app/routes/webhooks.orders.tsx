@@ -1,7 +1,10 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
+import { evaluateInvoiceEmail } from "../lib/email/invoice-email.server";
 import { syncOrderById } from "../lib/orders/sync.server";
+import { puppeteerRenderer } from "../lib/render/pdf.server";
 import { ensureShop } from "../lib/shops.server";
+import prisma from "../db.server";
 
 /**
  * orders/create, orders/updated, orders/fulfilled, orders/cancelled.
@@ -29,6 +32,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const shopRow = await ensureShop(shop);
   const outcome = await syncOrderById(admin, shopRow.id, orderGid);
   console.log(`${topic} for ${shop}: ${orderGid} ${outcome}`);
+
+  if (outcome === "created" || outcome === "updated") {
+    // Automatic invoice email, if a template asks for it on this trigger. Never blocks the webhook.
+    const order = await prisma.orderIndex.findUnique({ where: { shopId_shopifyOrderId: { shopId: shopRow.id, shopifyOrderId: orderGid } }, select: { id: true } });
+    if (order) {
+      void evaluateInvoiceEmail(shopRow.id, order.id, topic, { client: admin, pdf: puppeteerRenderer })
+        .then((status) => status && console.log(`Invoice email for ${orderGid}: ${status}`))
+        .catch((error: unknown) => console.error(`Invoice email for ${orderGid} failed`, error));
+    }
+  }
 
   return new Response();
 };

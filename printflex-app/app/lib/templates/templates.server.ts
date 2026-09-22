@@ -32,7 +32,11 @@ export interface TemplateFields {
   paymentStatus: boolean;
 }
 
+export type EmailTrigger = "creation" | "payment" | "fulfillment";
+
 export interface TemplateSettings {
+  /** Automatic invoice email (INVOICE templates only). */
+  email: { enabled: boolean; trigger: EmailTrigger };
   accentColor: string;
   headingFont: string;
   bodyFont: string;
@@ -75,6 +79,7 @@ export const FIELD_LABELS: Record<keyof TemplateFields, string> = {
 };
 
 export const DEFAULT_TEMPLATE_SETTINGS: TemplateSettings = {
+  email: { enabled: false, trigger: "payment" },
   accentColor: "#1f2937",
   headingFont: "Inter",
   bodyFont: "Inter",
@@ -148,7 +153,12 @@ export function parseTemplateSettings(json: string): TemplateSettings {
   const parsedFields = Object.fromEntries(
     (Object.keys(d.fields) as Array<keyof TemplateFields>).map((key) => [key, bool(fields[key], d.fields[key])]),
   ) as unknown as TemplateFields;
+  const email = isRecord(root.email) ? root.email : {};
   return {
+    email: {
+      enabled: bool(email.enabled, d.email.enabled),
+      trigger: email.trigger === "creation" || email.trigger === "fulfillment" ? email.trigger : "payment",
+    },
     accentColor: str(root.accentColor, d.accentColor),
     headingFont: str(root.headingFont, d.headingFont),
     bodyFont: str(root.bodyFont, d.bodyFont),

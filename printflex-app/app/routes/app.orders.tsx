@@ -10,6 +10,7 @@ import { useSelection } from "../components/orders/useSelection";
 import { createDocumentJob, markOrdersPrinted, parseDocumentTypes } from "../lib/jobs/create-job.server";
 import { getQueue } from "../lib/jobs/worker.server";
 import { createPrintLink } from "../lib/render/fallback.server";
+import { capacityMessage, checkCapacity } from "../lib/meter.server";
 import {
   filterQueryString,
   hasActiveFilters,
@@ -80,6 +81,10 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionRes
       const { orders, truncated } = await resolveSelection(shop.id, spec, shop.timezone);
       if (orders.length === 0) {
         return { ok: false, message: "Nothing to print: the selection resolved to no orders." };
+      }
+      const capacity = await checkCapacity(shop.id, orders.map((o) => o.shopifyOrderId));
+      if (!capacity.allowed) {
+        return { ok: false, message: capacityMessage(capacity, shop.timezone) };
       }
       const job = await createDocumentJob({
         shopId: shop.id,

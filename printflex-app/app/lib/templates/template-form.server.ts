@@ -39,7 +39,12 @@ export function settingsFromForm(form: FormData, current: TemplateSettings): Tem
   const logoAction = text(form, "logoAction", "keep");
   const logoData = form.get("logoDataUrl");
 
+  const trigger = text(form, "email.trigger", current.email.trigger);
   return {
+    email: {
+      enabled: form.has("email.enabled.present") ? on(form, "email.enabled") : current.email.enabled,
+      trigger: trigger === "creation" || trigger === "fulfillment" ? trigger : "payment",
+    },
     accentColor: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(accent) ? accent.toLowerCase() : current.accentColor,
     headingFont: font("headingFont", current.headingFont),
     bodyFont: font("bodyFont", current.bodyFont),

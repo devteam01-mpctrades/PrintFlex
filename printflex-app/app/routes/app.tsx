@@ -2,20 +2,51 @@ import { Outlet, useLoaderData, useRouteError } from "react-router";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { authenticate } from "../shopify.server";
+import { getUsage } from "../lib/meter.server";
+import { requireShop } from "../lib/request.server";
+import { startRetentionScheduler } from "../lib/retention.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { shop } = await requireShop(request);
+  startRetentionScheduler();
+  const usage = await getUsage(shop.id);
 
-  // eslint-disable-next-line no-undef
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    usage: {
+      used: usage.used,
+      limit: usage.limit,
+      daysRemaining: usage.daysRemaining,
+      planName: usage.plan.name,
+      promptUpgrade: shop.limitBehaviour === "PROMPT_UPGRADE",
+    },
+  };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const { apiKey, usage } = useLoaderData<typeof loader>();
+  const ratio = usage.limit ? usage.used / usage.limit : 0;
+  const tone = ratio >= 1 ? "critical" : ratio >= 0.9 ? "warning" : "info";
 
   return (
     <AppProvider embedded apiKey={apiKey}>
+      {usage.limit !== null ? (
+        <s-box padding="small" background="subdued">
+          <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
+            <s-text fontVariantNumeric="tabular-nums">
+              {usage.planName}: {usage.used} of {usage.limit} metered orders · {usage.daysRemaining} {usage.daysRemaining === 1 ? "day" : "days"} left
+            </s-text>
+            {ratio >= 0.9 ? (
+              <s-badge tone={tone}>
+                {ratio >= 1
+                  ? usage.promptUpgrade ? "At the limit · upgrade to keep printing" : "At the limit · paused until the period resets"
+                  : usage.promptUpgrade ? "90% used · consider upgrading" : "90% used"}
+              </s-badge>
+            ) : null}
+            <s-link href="/app/billing">Plans &amp; billing</s-link>
+          </s-stack>
+        </s-box>
+      ) : null}
       <s-app-nav>
         <s-link href="/app">Home</s-link>
         <s-link href="/app/orders">Orders</s-link>

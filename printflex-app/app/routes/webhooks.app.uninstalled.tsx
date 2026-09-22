@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { handleUninstall } from "../lib/lifecycle.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, session, topic } = await authenticate.webhook(request);
@@ -12,6 +13,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (session) {
     await db.session.deleteMany({ where: { shop } });
   }
+  // Shopify has already cancelled the subscription. Mirror Free, stop jobs and emails, start the retention clock.
+  await handleUninstall(shop);
 
   return new Response();
 };
