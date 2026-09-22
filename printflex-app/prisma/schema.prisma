@@ -32,3 +32,246 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+// ---------------------------------------------------------------------------
+// PrintFlex
+//
+// SQLite is the dev database, so enums and Json columns are stored as String.
+// The allowed values for each String "enum" live in app/lib/types.ts and the
+// JSON columns are suffixed Json and parsed in app/lib.
+// ---------------------------------------------------------------------------
+
+model Shop {
+  id                 String    @id @default(cuid())
+  domain             String    @unique
+  plan               String    @default("FREE")
+  limitBehaviour     String    @default("HARD_CAP")
+  meterPeriodStart   DateTime?
+  timezone           String    @default("UTC")
+  pinHash            String?
+  settingsJson       String    @default("{}")
+  invoicePrefix      String    @default("INV-")
+  invoiceNextNumber  Int       @default(1)
+  installedAt        DateTime  @default(now())
+  uninstalledAt      DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  templates    Template[]
+  orders       OrderIndex[]
+  jobs         DocumentJob[]
+  documents    Document[]
+  scanTokens   ScanToken[]
+  packEvents   PackEvent[]
+  meterEntries MeterEntry[]
+  bins         BinMap[]
+  bundles      BundleMap[]
+  auditEntries AuditEntry[]
+}
+
+model Template {
+  id                 String   @id @default(cuid())
+  shopId             String
+  documentType       String
+  name               String
+  settingsJson       String   @default("{}")
+  assignmentRuleJson String   @default("{}")
+  version            Int      @default(1)
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  shop      Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  versions  TemplateVersion[]
+  documents Document[]
+
+  @@index([shopId, documentType, active])
+}
+
+model TemplateVersion {
+  id                 String   @id @default(cuid())
+  templateId         String
+  version            Int
+  settingsJson       String
+  assignmentRuleJson String
+  createdAt          DateTime @default(now())
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+}
+
+model OrderIndex {
+  id                String    @id @default(cuid())
+  shopId            String
+  shopifyOrderId    String
+  orderName         String
+  customerName      String?
+  customerEmail     String?
+  countryCode       String?
+  itemCount         Int       @default(0)
+  totalAmount       Decimal   @default(0)
+  currency          String    @default("USD")
+  fulfillmentStatus String    @default("UNFULFILLED")
+  financialStatus   String?
+  shippingMethod    String?
+  tagsJson          String    @default("[]")
+  documentStatus    String    @default("NEW")
+  lastPrintedAt     DateTime?
+  lastPackedAt      DateTime?
+  shopifyCreatedAt  DateTime
+  shopifyUpdatedAt  DateTime
+  cancelledAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  documents  Document[]
+  scanTokens ScanToken[]
+  packEvents PackEvent[]
+
+  @@unique([shopId, shopifyOrderId])
+  @@index([shopId, orderName])
+  @@index([shopId, fulfillmentStatus])
+  @@index([shopId, documentStatus])
+  @@index([shopId, countryCode])
+  @@index([shopId, shippingMethod])
+  @@index([shopId, shopifyCreatedAt])
+}
+
+model DocumentJob {
+  id                String    @id @default(cuid())
+  shopId            String
+  name              String?
+  documentTypesJson String
+  orderIdsJson      String
+  state             String    @default("QUEUED")
+  progress          Int       @default(0)
+  total             Int       @default(0)
+  error             String?
+  outputPath        String?
+  deadlineAt        DateTime?
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  shop      Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@index([shopId, state, createdAt])
+}
+
+model Document {
+  id              String   @id @default(cuid())
+  shopId          String
+  jobId           String?
+  orderId         String
+  documentType    String
+  templateId      String
+  templateVersion Int
+  invoiceNumber   String?
+  filePath        String?
+  byteSize        Int?
+  renderedAt      DateTime @default(now())
+
+  shop     Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  job      DocumentJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  order    OrderIndex   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  template Template     @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, invoiceNumber])
+  @@index([shopId, orderId, documentType, templateId, templateVersion])
+}
+
+model ScanToken {
+  id        String    @id @default(cuid())
+  shopId    String
+  orderId   String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  shop  Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  order OrderIndex @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, orderId])
+}
+
+model PackEvent {
+  id                String   @id @default(cuid())
+  shopId            String
+  orderId           String
+  deviceName        String
+  staffLabel        String?
+  outcome           String
+  note              String?
+  itemCount         Int?
+  parcelWeightGrams Int?
+  clientEventId     String?  @unique
+  occurredAt        DateTime
+  createdAt         DateTime @default(now())
+
+  shop  Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  order OrderIndex @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, occurredAt])
+  @@index([shopId, orderId])
+}
+
+// One row per distinct Shopify order that had a document generated in a
+// calendar month (period, in the shop's timezone). The unique constraint IS
+// the meter: a second insert for the same order in the same period fails and
+// is ignored. orderId is the Shopify order id, not a foreign key, so the
+// count survives an OrderIndex re-sync.
+model MeterEntry {
+  id        String   @id @default(cuid())
+  shopId    String
+  period    String
+  orderId   String
+  createdAt DateTime @default(now())
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, period, orderId])
+  @@index([shopId, period])
+}
+
+model BinMap {
+  id       String  @id @default(cuid())
+  shopId   String
+  sku      String
+  bin      String
+  sequence Int?
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, sku])
+}
+
+model BundleMap {
+  id           String @id @default(cuid())
+  shopId       String
+  bundleSku    String
+  componentSku String
+  quantity     Int    @default(1)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, bundleSku, componentSku])
+}
+
+model AuditEntry {
+  id          String   @id @default(cuid())
+  shopId      String
+  actor       String
+  action      String
+  subject     String?
+  detailsJson String   @default("{}")
+  createdAt   DateTime @default(now())
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, createdAt])
+}
