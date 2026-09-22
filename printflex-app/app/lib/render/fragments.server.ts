@@ -54,9 +54,25 @@ export function codesHtml(codes: Codes | undefined, settings: TemplateSettings):
   const parts: string[] = [];
   if (settings.codes.qr && codes.qr) parts.push(`<div class="code qr">${codes.qr}</div>`);
   if (settings.codes.barcode && codes.barcode) {
-    parts.push(`<div class="code barcode">${codes.barcode.svg}<div class="value">${escapeHtml(codes.barcode.value)}</div></div>`);
+    const value = settings.fields.barcodeValue ? `<div class="value">${escapeHtml(codes.barcode.value)}</div>` : "";
+    parts.push(`<div class="code barcode">${codes.barcode.svg}${value}</div>`);
   }
   return parts.join("");
+}
+
+function grams(value: number | null): string {
+  if (value === null) return "";
+  return value >= 1000 ? `${(value / 1000).toFixed(2)} kg` : `${value} g`;
+}
+
+/** Optional customs/logistics columns shared by invoice and packing slip. */
+function extraColumns(settings: TemplateSettings, items: OrderDocumentData["lineItems"]) {
+  const f = settings.fields;
+  const cols: Array<{ head: string; cell: (li: OrderDocumentData["lineItems"][number]) => string }> = [];
+  if (f.hsCode && items.some((li) => li.hsCode)) cols.push({ head: "HS code", cell: (li) => `<td class="mono">${escapeHtml(li.hsCode ?? "")}</td>` });
+  if (f.countryOfOrigin && items.some((li) => li.countryOfOrigin)) cols.push({ head: "Origin", cell: (li) => `<td class="mono">${escapeHtml(li.countryOfOrigin ?? "")}</td>` });
+  if (f.weight && items.some((li) => li.weightGrams !== null)) cols.push({ head: "Weight", cell: (li) => `<td class="num">${li.weightGrams === null ? "" : grams(li.weightGrams * li.quantity)}</td>` });
+  return cols;
 }
 
 function brandHtml(order: OrderDocumentData, settings: TemplateSettings, title: string): string {
@@ -98,11 +114,13 @@ export function renderInvoiceFragment(input: InvoiceFragmentInput): string {
   const shipToLines = order.shippingAddress && order.billingAddress ? addressLines(order.shippingAddress, order.customerName) : [];
 
   const showDiscountCol = f.lineDiscounts && order.lineItems.some((li) => Number(li.lineDiscount.amount) > 0);
+  const extras = extraColumns(settings, order.lineItems);
   const rows = order.lineItems
     .map(
       (li) => `<tr>
         <td class="item">${variantLabel(li.title, li.variantTitle)}</td>
         ${f.sku ? `<td class="mono">${escapeHtml(li.sku ?? "")}</td>` : ""}
+        ${extras.map((c) => c.cell(li)).join("")}
         <td class="num">${li.quantity}</td>
         ${f.unitPrices ? `<td class="num">${money(li.unitPrice)}</td>` : ""}
         ${showDiscountCol ? `<td class="num">${Number(li.lineDiscount.amount) > 0 ? `−${money(li.lineDiscount)}` : ""}</td>` : ""}
@@ -148,7 +166,7 @@ export function renderInvoiceFragment(input: InvoiceFragmentInput): string {
   </div>
   <table class="lines">
     <thead><tr>
-      <th>Item</th>${f.sku ? "<th>SKU</th>" : ""}<th class="num">Qty</th>
+      <th>Item</th>${f.sku ? "<th>SKU</th>" : ""}${extras.map((c) => `<th>${c.head}</th>`).join("")}<th class="num">Qty</th>
       ${f.unitPrices ? '<th class="num">Unit price</th>' : ""}${showDiscountCol ? '<th class="num">Discount</th>' : ""}<th class="num">Amount</th>
     </tr></thead>
     <tbody>${rows}</tbody>
@@ -179,9 +197,10 @@ export function renderPackingSlipFragment(input: PackingSlipFragmentInput): stri
   const shipLines = addressLines(order.shippingAddress ?? order.billingAddress, order.customerName);
   if (f.customerPhone && order.phone) shipLines.push(order.phone);
   if (f.customerEmail && order.email) shipLines.push(order.email);
-  const anyBin = order.lineItems.some((li) => li.sku && bins.has(li.sku));
+  const anyBin = f.binLocation && order.lineItems.some((li) => li.sku && bins.has(li.sku));
   const gift = f.giftMessage ? giftMessage(order) : null;
   const totalUnits = order.lineItems.reduce((n, li) => n + li.quantity, 0);
+  const extras = extraColumns(settings, order.lineItems);
 
   const rows = order.lineItems
     .map(
@@ -190,6 +209,7 @@ export function renderPackingSlipFragment(input: PackingSlipFragmentInput): stri
         <td class="qty">${li.quantity}</td>
         <td class="item">${variantLabel(li.title, li.variantTitle)}</td>
         ${f.sku ? `<td class="mono">${escapeHtml(li.sku ?? "")}</td>` : ""}
+        ${extras.map((c) => c.cell(li)).join("")}
         ${anyBin ? `<td class="bin">${escapeHtml((li.sku && bins.get(li.sku)) ?? "")}</td>` : ""}
       </tr>`,
     )
@@ -219,7 +239,7 @@ export function renderPackingSlipFragment(input: PackingSlipFragmentInput): stri
   ${gift ? `<div class="callout"><h3>Gift message</h3><div>${escapeMultiline(gift)}</div></div>` : ""}
   ${f.orderNotes && order.note ? `<div class="callout"><h3>Order notes</h3><div>${escapeMultiline(order.note)}</div></div>` : ""}
   <table class="lines">
-    <thead><tr><th></th><th class="qty">Qty</th><th>Item</th>${f.sku ? "<th>SKU</th>" : ""}${anyBin ? "<th>Bin</th>" : ""}</tr></thead>
+    <thead><tr><th></th><th class="qty">Qty</th><th>Item</th>${f.sku ? "<th>SKU</th>" : ""}${extras.map((c) => `<th>${c.head}</th>`).join("")}${anyBin ? "<th>Bin</th>" : ""}</tr></thead>
     <tbody>${rows}</tbody>
   </table>
   <footer><div>${escapeMultiline(settings.footerText)}</div><div class="codes">${inFooter}</div></footer>

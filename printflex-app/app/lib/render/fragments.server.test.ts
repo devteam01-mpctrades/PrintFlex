@@ -12,7 +12,7 @@ function order(id: string, items: Array<[sku: string | null, title: string, qty:
     shippingAddress: { name: "C", company: null, address1: "1 St", address2: null, city: "Town", province: null, zip: "1", country: "US", phone: null },
     shippingMethod: "Standard", subtotal: m("0"), totalDiscounts: m("0"), shipping: m("0"), totalTax: m("0"), taxLines: [], total: m("0"),
     seller: { name: "Shop", email: null, address: null },
-    lineItems: items.map(([sku, title, qty]) => ({ title, variantTitle: null, sku, quantity: qty, unitPrice: m("1"), lineDiscount: m("0"), lineTotal: m("1"), imageUrl: null })),
+    lineItems: items.map(([sku, title, qty]) => ({ title, variantTitle: null, sku, quantity: qty, unitPrice: m("1"), lineDiscount: m("0"), lineTotal: m("1"), imageUrl: null, hsCode: null, countryOfOrigin: null, weightGrams: null })),
   };
 }
 

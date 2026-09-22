@@ -38,6 +38,10 @@ export interface DocumentLineItem {
   lineDiscount: Money;
   lineTotal: Money;
   imageUrl: string | null;
+  hsCode: string | null;
+  countryOfOrigin: string | null;
+  /** Unit weight in grams, when Shopify knows it. */
+  weightGrams: number | null;
 }
 
 export interface OrderDocumentData {
@@ -119,6 +123,13 @@ export const ORDER_DOCUMENT_FRAGMENT = `#graphql
     discountedTotalSet { ${MONEY} }
     originalTotalSet { ${MONEY} }
     image { url(transform: { maxWidth: 200, maxHeight: 200 }) }
+    variant {
+      inventoryItem {
+        harmonizedSystemCode
+        countryCodeOfOrigin
+        measurement { weight { value unit } }
+      }
+    }
   }
 `;
 
@@ -154,6 +165,13 @@ export const MORE_LINE_ITEMS_QUERY = `#graphql
           discountedTotalSet { ${MONEY} }
           originalTotalSet { ${MONEY} }
           image { url(transform: { maxWidth: 200, maxHeight: 200 }) }
+          variant {
+            inventoryItem {
+              harmonizedSystemCode
+              countryCodeOfOrigin
+              measurement { weight { value unit } }
+            }
+          }
         }
       }
     }
@@ -185,6 +203,21 @@ export interface RawLineItem {
   discountedTotalSet: RawMoneyBag;
   originalTotalSet: RawMoneyBag;
   image: { url: string } | null;
+  variant?: {
+    inventoryItem: {
+      harmonizedSystemCode: string | null;
+      countryCodeOfOrigin: string | null;
+      measurement: { weight: { value: number; unit: string } | null } | null;
+    } | null;
+  } | null;
+}
+
+const GRAMS: Record<string, number> = { GRAMS: 1, KILOGRAMS: 1000, OUNCES: 28.3495, POUNDS: 453.592 };
+
+function toGrams(weight: { value: number; unit: string } | null | undefined): number | null {
+  if (!weight) return null;
+  const factor = GRAMS[weight.unit];
+  return factor ? Math.round(weight.value * factor) : null;
 }
 
 export interface RawShop {
@@ -283,6 +316,9 @@ export function mapOrder(o: RawOrder, shop: RawShop): OrderDocumentData {
           lineDiscount: subtractMoney(money(li.originalTotalSet), lineTotal),
           lineTotal,
           imageUrl: li.image?.url ?? null,
+          hsCode: li.variant?.inventoryItem?.harmonizedSystemCode ?? null,
+          countryOfOrigin: li.variant?.inventoryItem?.countryCodeOfOrigin ?? null,
+          weightGrams: toGrams(li.variant?.inventoryItem?.measurement?.weight),
         };
       }),
     subtotal: money(o.currentSubtotalPriceSet),

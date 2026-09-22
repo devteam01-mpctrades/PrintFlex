@@ -8,7 +8,7 @@ import { parseTemplateSettings } from "../templates/templates.server";
 import type { DocumentType } from "../types";
 import { wrapDocument } from "./batch-html.server";
 import { fetchOrderDocumentData } from "./order-document-data.server";
-import { buildOrderFragment, loadBins, resolveTemplates } from "./order-fragments.server";
+import { buildOrderFragment, loadBins, orderContext, templatePicker } from "./order-fragments.server";
 import type { PdfRenderer } from "./pdf.server";
 import { readDocument, writeDocument } from "./storage.server";
 
@@ -58,17 +58,15 @@ export async function renderDocumentForOrder(
 ): Promise<RenderOutcome> {
   assertSingleType(documentType);
   const now = deps.now?.() ?? new Date();
-  const [shop, order, templates] = await Promise.all([
+  const [shop, order] = await Promise.all([
     prisma.shop.findUniqueOrThrow({ where: { id: shopId }, select: { id: true, timezone: true, settingsJson: true } }),
     prisma.orderIndex.findUniqueOrThrow({
       where: { id: orderId },
-      select: { id: true, shopId: true, shopifyOrderId: true, orderName: true, documentStatus: true },
+      select: { id: true, shopId: true, shopifyOrderId: true, orderName: true, documentStatus: true, countryCode: true, tagsJson: true },
     }),
-    resolveTemplates(shopId, [documentType]),
   ]);
   if (order.shopId !== shopId) throw new Error("Order does not belong to this shop");
-  const resolved = templates.get(documentType);
-  if (!resolved) throw new Error("Template missing");
+  const resolved = await templatePicker(shopId)(documentType, orderContext(order));
 
   const cached = await prisma.document.findFirst({
     where: { shopId, orderId, documentType, templateId: resolved.template.id, templateVersion: resolved.template.version },

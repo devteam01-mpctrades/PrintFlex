@@ -6,7 +6,7 @@ import { wrapDocument } from "./batch-html.server";
 import { qrSvg } from "./codes.server";
 import { aggregatePickList, renderCoverFragment, renderPickListFragment } from "./fragments.server";
 import { fetchOrdersDocumentData, type OrderDocumentData } from "./order-document-data.server";
-import { buildOrderFragment, loadBins, resolveTemplates } from "./order-fragments.server";
+import { buildOrderFragment, loadBins, orderContext, templatePicker, type ResolvedTemplate } from "./order-fragments.server";
 import type { PdfRenderer } from "./pdf.server";
 import { afterGeneration, createDocumentRow } from "./render-order.server";
 import { writeJobOutput } from "./storage.server";
@@ -53,6 +53,8 @@ interface OrderRef {
   shopifyOrderId: string;
   orderName: string;
   documentStatus: string;
+  countryCode: string | null;
+  tagsJson: string;
 }
 
 export interface BuiltBatch {
@@ -64,10 +66,9 @@ export interface BuiltBatch {
   fragments: string[];
   paperSize: "A4" | "LETTER";
   pickListFragment: string | null;
-  /** Orders rendered, in output order, with the invoice number each received. */
-  rendered: Array<{ order: OrderRef; invoiceNumber: string | null }>;
+  /** Orders rendered, in output order, with the invoice number and templates each received. */
+  rendered: Array<{ order: OrderRef; invoiceNumber: string | null; templates: Map<DocumentType, ResolvedTemplate> }>;
   missing: OrderRef[];
-  templates: Awaited<ReturnType<typeof resolveTemplates>>;
   now: Date;
 }
 
@@ -87,12 +88,13 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
 
   const rows = await prisma.orderIndex.findMany({
     where: { id: { in: orderIds }, shopId: job.shopId },
-    select: { id: true, shopifyOrderId: true, orderName: true, documentStatus: true },
+    select: { id: true, shopifyOrderId: true, orderName: true, documentStatus: true, countryCode: true, tagsJson: true },
   });
   const byId = new Map(rows.map((r) => [r.id, r]));
   const ordered = orderIds.flatMap((id) => (byId.has(id) ? [byId.get(id) as OrderRef] : []));
 
-  const [templates, bins] = await Promise.all([resolveTemplates(job.shopId, types), loadBins(job.shopId)]);
+  const pick = templatePicker(job.shopId);
+  const bins = await loadBins(job.shopId);
   const data = await fetchOrdersDocumentData(
     deps.client,
     ordered.map((o) => o.shopifyOrderId),
@@ -112,9 +114,10 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
       continue;
     }
     let invoiceNumber: string | null = null;
+    const used = new Map<DocumentType, ResolvedTemplate>();
     for (const type of perOrderTypes) {
-      const resolved = templates.get(type);
-      if (!resolved) continue;
+      const resolved = await pick(type, orderContext(order));
+      used.set(type, resolved);
       const fragment = await buildOrderFragment({
         shopId: job.shopId, orderId: order.id, data: orderData, documentType: type, resolved,
         timezone: job.shop.timezone, bins, now,
@@ -122,18 +125,18 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
       fragments.push(fragment.html);
       invoiceNumber = fragment.invoiceNumber ?? invoiceNumber;
     }
-    rendered.push({ order, invoiceNumber });
+    rendered.push({ order, invoiceNumber, templates: used });
     renderedData.push(orderData);
   }
 
   const label = batchLabel(jobId);
-  const firstSettings = templates.get(types[0])?.settings ?? [...templates.values()][0]?.settings;
-  const paperSize = firstSettings?.paperSize ?? "A4";
+  const firstSettings = (await pick(types[0])).settings;
+  const paperSize = firstSettings.paperSize;
 
   let pickListFragment: string | null = null;
   if (types.includes("PICK_LIST") && renderedData.length > 0) {
-    const resolved = templates.get("PICK_LIST");
-    if (resolved) {
+    const resolved = await pick("PICK_LIST");
+    {
       pickListFragment = renderPickListFragment({
         lines: aggregatePickList(renderedData, bins),
         orderCount: renderedData.length,
@@ -147,7 +150,7 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
     }
   }
 
-  if (options.coverSheet && renderedData.length > 0 && firstSettings) {
+  if (options.coverSheet && renderedData.length > 0) {
     const { token } = await mintScanToken(job.shopId, { kind: "batch", jobId }, now);
     fragments.unshift(
       renderCoverFragment({
@@ -163,15 +166,15 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
     );
   }
 
-  return { jobId, shop: job.shop, label, documentTypes: types, options, fragments, paperSize, pickListFragment, rendered, missing, templates, now };
+  return { jobId, shop: job.shop, label, documentTypes: types, options, fragments, paperSize, pickListFragment, rendered, missing, now };
 }
 
 /** Rows, meter, tags, status. Idempotent for the same job. */
 export async function finalizeBatch(built: BuiltBatch, client: GraphqlClient): Promise<void> {
   const perOrderTypes = built.documentTypes.filter((t) => t !== "PICK_LIST");
-  for (const { order, invoiceNumber } of built.rendered) {
+  for (const { order, invoiceNumber, templates } of built.rendered) {
     for (const type of perOrderTypes) {
-      const resolved = built.templates.get(type);
+      const resolved = templates.get(type);
       if (!resolved) continue;
       const exists = await prisma.document.findFirst({
         where: { shopId: built.shop.id, orderId: order.id, documentType: type, templateId: resolved.template.id, templateVersion: resolved.template.version },

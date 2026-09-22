@@ -4,6 +4,7 @@ import type { GraphqlClient } from "../graphql.server";
 import type { OrderDocumentQueryData } from "./order-document-data.server";
 import type { PdfRenderer } from "./pdf.server";
 import { renderDocumentForOrder } from "./render-order.server";
+import { DEFAULT_TEMPLATE_SETTINGS, saveTemplate } from "../templates/templates.server";
 import { readDocument } from "./storage.server";
 
 const money = (amount: string, currencyCode = "USD") => ({ presentmentMoney: { amount, currencyCode } });
@@ -124,6 +125,28 @@ describe("renderDocumentForOrder", () => {
     expect(f.renders()).toBe(2);
     // The number lives on the newest document only, so the per-shop unique constraint holds.
     expect((await prisma.document.findUniqueOrThrow({ where: { id: first.document.id } })).invoiceNumber).toBeNull();
+  });
+
+  it("invalidates the cache for the edited template only", async () => {
+    const { shop, order } = await seed();
+    const f = fakes();
+    const invoice = await renderDocumentForOrder(shop.id, order.id, "INVOICE", f);
+    const slip = await renderDocumentForOrder(shop.id, order.id, "PACKING_SLIP", f);
+    expect(f.renders()).toBe(2);
+
+    const slipTemplate = await prisma.template.findFirstOrThrow({ where: { shopId: shop.id, documentType: "PACKING_SLIP" } });
+    await saveTemplate(shop.id, slipTemplate.id, {
+      settings: { ...DEFAULT_TEMPLATE_SETTINGS, footerText: "Edited" },
+      rule: { countries: [], tags: [] },
+    });
+
+    const invoiceAgain = await renderDocumentForOrder(shop.id, order.id, "INVOICE", f);
+    const slipAgain = await renderDocumentForOrder(shop.id, order.id, "PACKING_SLIP", f);
+    expect(invoiceAgain.cached).toBe(true);
+    expect(invoiceAgain.document.id).toBe(invoice.document.id);
+    expect(slipAgain.cached).toBe(false);
+    expect(slipAgain.document.id).not.toBe(slip.document.id);
+    expect(f.renders()).toBe(3);
   });
 
   it("meters nothing and stores nothing when the render fails", async () => {
