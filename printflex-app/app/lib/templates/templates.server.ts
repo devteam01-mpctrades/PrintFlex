@@ -13,9 +13,11 @@ import type { DocumentType } from "../types";
  */
 
 export * from "./template-constants";
+import { EMPTY_RULE, orderByPrecedence, parseAssignmentRule, pickTemplate, type AssignmentRule, type OrderContext } from "./rules";
 import {
   DEFAULT_NAMES,
   DEFAULT_TEMPLATE_SETTINGS,
+  MAX_LOGO_BYTES,
   type TemplateFields,
   type TemplateSettings,
 } from "./template-constants";
@@ -24,7 +26,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const MAX_LOGO_BYTES = 400 * 1024;
 const LOGO_DATA_URL = /^data:image\/(png|jpeg|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
 
 export function isValidLogo(value: unknown): value is string {
@@ -73,72 +74,23 @@ export function parseTemplateSettings(json: string): TemplateSettings {
 
 // ------------------------------------------------------------ Assignment
 
-/**
- * A rule matches an order when every listed condition holds. An empty rule
- * matches all orders. Precedence when several templates of one type match:
- *   1. a rule with a tag condition beats one without,
- *   2. then a rule with a country condition beats one without,
- *   3. then more conditions beat fewer,
- *   4. then the older template wins.
- * So "Tag b2b + ships to DE" beats "Tag b2b", which beats "Ships to DE",
- * which beats "All orders".
- */
-export interface AssignmentRule {
-  countries: string[];
-  tags: string[];
-}
-
-export const EMPTY_RULE: AssignmentRule = { countries: [], tags: [] };
-
-export function parseAssignmentRule(json: string): AssignmentRule {
-  try {
-    const raw: unknown = JSON.parse(json);
-    if (!isRecord(raw)) return EMPTY_RULE;
-    const list = (v: unknown) =>
-      Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").map((x) => x.trim()).filter(Boolean) : [];
-    return { countries: list(raw.countries).map((c) => c.toUpperCase()), tags: list(raw.tags) };
-  } catch {
-    return EMPTY_RULE;
-  }
-}
-
-export interface OrderContext {
-  countryCode: string | null;
-  tags: readonly string[];
-}
-
-export function ruleMatches(rule: AssignmentRule, order: OrderContext): boolean {
-  if (rule.countries.length && !(order.countryCode && rule.countries.includes(order.countryCode.toUpperCase()))) return false;
-  if (rule.tags.length) {
-    const have = new Set(order.tags.map((t) => t.toLowerCase()));
-    if (!rule.tags.some((t) => have.has(t.toLowerCase()))) return false;
-  }
-  return true;
-}
-
-/** Higher sorts first. */
-export function ruleSpecificity(rule: AssignmentRule): number {
-  return (rule.tags.length ? 100 : 0) + (rule.countries.length ? 10 : 0) + rule.tags.length + rule.countries.length;
-}
-
-export function describeRule(rule: AssignmentRule): string {
-  const parts: string[] = [];
-  if (rule.tags.length) parts.push(`Tag: ${rule.tags.join(" or ")}`);
-  if (rule.countries.length) parts.push(`Ships to ${rule.countries.join(", ")}`);
-  return parts.length ? parts.join(" · ") : "All orders";
-}
-
-/** Templates of a type in precedence order: the first matching one is used. */
-export function orderByPrecedence<T extends { assignmentRuleJson: string; createdAt: Date }>(templates: T[]): T[] {
-  return [...templates].sort((a, b) => {
-    const diff = ruleSpecificity(parseAssignmentRule(b.assignmentRuleJson)) - ruleSpecificity(parseAssignmentRule(a.assignmentRuleJson));
-    return diff !== 0 ? diff : a.createdAt.getTime() - b.createdAt.getTime();
-  });
-}
-
-export function pickTemplate<T extends { assignmentRuleJson: string; createdAt: Date }>(templates: T[], order: OrderContext): T | null {
-  return orderByPrecedence(templates).find((t) => ruleMatches(parseAssignmentRule(t.assignmentRuleJson), order)) ?? null;
-}
+export {
+  EMPTY_RULE,
+  comparePrecedence,
+  describeRank,
+  describeRule,
+  orderByPrecedence,
+  parseAssignmentRule,
+  pickTemplate,
+  previewRank,
+  ruleKey,
+  ruleMatches,
+  ruleSpecificity,
+  type AssignmentRule,
+  type OrderContext,
+  type RankPreview,
+  type RankedTemplate,
+} from "./rules";
 
 // ------------------------------------------------------------------ CRUD
 

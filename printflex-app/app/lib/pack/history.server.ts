@@ -15,6 +15,8 @@ export interface HistoryRow {
   occurredAt: Date;
   orderId: string;
   orderName: string;
+  /** Numeric part of the Shopify order GID, for links into the Shopify admin. */
+  shopifyOrderNumber: string;
   deviceName: string;
   staffLabel: string | null;
   outcome: PackOutcome;
@@ -39,13 +41,14 @@ export async function listHistory(shopId: string, options: { limit?: number; inc
     where: { shopId, occurredAt: { gte: since }, ...(options.includeOpened ? {} : { outcome: { not: "OPENED" } }) },
     orderBy: { occurredAt: "desc" },
     take: options.limit ?? 500,
-    include: { order: { select: { orderName: true } } },
+    include: { order: { select: { orderName: true, shopifyOrderId: true } } },
   });
   return rows.map((r) => ({
     id: r.id,
     occurredAt: r.occurredAt,
     orderId: r.orderId,
     orderName: r.order.orderName,
+    shopifyOrderNumber: r.order.shopifyOrderId.split("/").pop() ?? "",
     deviceName: r.deviceName,
     staffLabel: r.staffLabel,
     outcome: r.outcome as PackOutcome,

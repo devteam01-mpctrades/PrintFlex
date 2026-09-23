@@ -39,7 +39,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   return {
     job: {
       id: job.id,
-      label: batchLabel(job.id),
+      label: batchLabel(job),
       state: job.state as JobState,
       progress: job.progress,
       total: job.total,

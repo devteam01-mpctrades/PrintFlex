@@ -31,3 +31,4 @@ database.sqlite
 /prisma/test.sqlite
 /prisma/test.sqlite-journal
 /storage/
+scripts/.seed-scan-pack.json

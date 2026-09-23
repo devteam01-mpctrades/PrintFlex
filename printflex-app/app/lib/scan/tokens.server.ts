@@ -49,7 +49,8 @@ export async function rotateScanSecret(shopId: string): Promise<void> {
   await audit(shopId, "merchant", "scan.secret_rotated");
 }
 
-export type ScanTarget = { kind: "order"; orderId: string } | { kind: "batch"; jobId: string };
+/** What a token opens: one order, one batch, or the hub itself (device enrolment). */
+export type ScanTarget = { kind: "order"; orderId: string } | { kind: "batch"; jobId: string } | { kind: "hub" };
 
 export interface MintedToken {
   token: string;
@@ -60,6 +61,7 @@ export async function mintScanToken(
   shopId: string,
   target: ScanTarget,
   now: Date = new Date(),
+  options: { expiresInMs?: number } = {},
 ): Promise<MintedToken> {
   const [secret, shop] = await Promise.all([
     getScanSecret(shopId),
@@ -68,7 +70,7 @@ export async function mintScanToken(
   const days = parseSettings(shop.settingsJson).scanTokenDays;
   const payload = b64url(randomBytes(RANDOM_BYTES));
   const token = `${payload}.${sign(secret, payload)}`;
-  const expiresAt = new Date(now.getTime() + days * 86_400_000);
+  const expiresAt = new Date(now.getTime() + (options.expiresInMs ?? days * 86_400_000));
   await prisma.scanToken.create({
     data: {
       shopId,
@@ -115,8 +117,48 @@ export async function verifyScanToken(token: string, now: Date = new Date()): Pr
 
   const target: ScanTarget = row.orderId
     ? { kind: "order", orderId: row.orderId }
-    : { kind: "batch", jobId: row.jobId as string };
+    : row.jobId
+      ? { kind: "batch", jobId: row.jobId }
+      : { kind: "hub" };
   return { ok: true, shopId: row.shopId, target, expiresAt: row.expiresAt };
+}
+
+/** How long an enrolment QR shown on the Scan & pack page stays valid. */
+export const ENROL_TOKEN_MS = 24 * 3600 * 1000;
+
+/** A token that lets a new phone sign in and land on the scan hub. */
+export async function mintEnrolToken(shopId: string, now: Date = new Date()): Promise<MintedToken> {
+  return mintScanToken(shopId, { kind: "hub" }, now, { expiresInMs: ENROL_TOKEN_MS });
+}
+
+// ------------------------------------------------------------ preview tokens
+//
+// The "What the packer sees" pane loads the real scan page in an iframe. It
+// needs no device session and must never write, so it uses a separate,
+// stateless token: "pv.<shopId>.<expiry>.<sig>", signed with the shop secret.
+
+export const PREVIEW_TOKEN_MS = 15 * 60_000;
+
+export async function mintPreviewToken(shopId: string, now: Date = new Date()): Promise<string> {
+  const secret = await getScanSecret(shopId);
+  const exp = String(now.getTime() + PREVIEW_TOKEN_MS);
+  return `pv.${shopId}.${exp}.${sign(secret, `preview:${shopId}:${exp}`)}`;
+}
+
+export type PreviewVerifyResult = { ok: true; shopId: string } | { ok: false; reason: "unknown" | "bad-signature" | "expired" };
+
+export async function verifyPreviewToken(token: string, now: Date = new Date()): Promise<PreviewVerifyResult> {
+  const parts = token.split(".");
+  if (parts.length !== 4 || parts[0] !== "pv") return { ok: false, reason: "unknown" };
+  const [, shopId, exp, sig] = parts;
+  const shop = await prisma.shop.findUnique({ where: { id: shopId }, select: { scanSecret: true } });
+  if (!shop?.scanSecret) return { ok: false, reason: "unknown" };
+  const expected = sign(shop.scanSecret, `preview:${shopId}:${exp}`);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, reason: "bad-signature" };
+  if (Number(exp) <= now.getTime()) return { ok: false, reason: "expired" };
+  return { ok: true, shopId };
 }
 
 export async function revokeOrderTokens(shopId: string, orderId: string, now: Date = new Date()): Promise<number> {
@@ -128,8 +170,12 @@ export async function revokeOrderTokens(shopId: string, orderId: string, now: Da
   return result.count;
 }
 
+/** The app's configured public origin. Every scan-mode URL is built from it, never hardcoded. */
+export function appBaseUrl(): string {
+  return (process.env.SHOPIFY_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
 /** Absolute URL the QR encodes. */
 export function scanUrl(token: string): string {
-  const base = (process.env.SHOPIFY_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  return `${base}/scan/${token}`;
+  return `${appBaseUrl()}/scan/${token}`;
 }

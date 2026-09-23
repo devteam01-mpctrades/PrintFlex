@@ -21,6 +21,18 @@ interface Progress {
   eventId: string;
 }
 
+/** Avatar colours for items without a photo, chosen from the title so the same product always looks the same. */
+const AVATAR_COLOURS = ["#b8480a", "#2f6b3a", "#5b4b9a", "#2f5fa8", "#a03060", "#0f766e", "#7c5a12"];
+function avatarColour(title: string): string {
+  let hash = 0;
+  for (const ch of title) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return AVATAR_COLOURS[hash % AVATAR_COLOURS.length];
+}
+function initials(title: string): string {
+  const words = title.split(/\s+/).filter(Boolean);
+  return (words.length >= 2 ? words[0][0] + words[1][0] : title.slice(0, 2)).toUpperCase();
+}
+
 function storageKey(orderId: string): string {
   return `pf:pack:${orderId}`;
 }
@@ -43,9 +55,11 @@ export type PackActionResult = ApiResult;
 
 interface Props {
   sheet: PackSheet;
+  /** The merchant's "What the packer sees" pane: nothing is sent or stored. */
+  preview?: boolean;
 }
 
-export function PackScreen({ sheet }: Props) {
+export function PackScreen({ sheet, preview = false }: Props) {
   const { order, lines, settings } = sheet;
   const [progress, setProgress] = useState<Progress>({ counts: {}, flags: {}, eventId: "" });
   const [busy, setBusy] = useState(false);
@@ -56,6 +70,12 @@ export function PackScreen({ sheet }: Props) {
   const [hydrated, setHydrated] = useState(false);
   const [mismatch, setMismatch] = useState<string | null>(null);
   const [problemFor, setProblemFor] = useState<string | null>(null);
+  // "Can't complete this order?" opens one flow for the whole order; the line is chosen inside it.
+  const [exception, setException] = useState(false);
+  /** The merchant's preview shows a short list so the pack button stays in view. */
+  const PREVIEW_LINES = 5;
+  const visibleLines = preview ? lines.slice(0, PREVIEW_LINES) : lines;
+  const hiddenLines = lines.length - visibleLines.length;
   const [weight, setWeight] = useState("");
   const [camera, setCamera] = useState(false);
   const scanRef = useRef<HTMLInputElement>(null);
@@ -68,9 +88,9 @@ export function PackScreen({ sheet }: Props) {
     const onQueue = () => setPendingQueued(Boolean(pendingFor(order.id)));
     window.addEventListener("pf:queue", onQueue);
     // Tell the server this order is being worked on (best effort, offline-safe).
-    postEvent(order.id, "opened", {}).catch(() => undefined);
+    if (!preview) postEvent(order.id, "opened", {}).catch(() => undefined);
     return () => window.removeEventListener("pf:queue", onQueue);
-  }, [order.id]);
+  }, [order.id, preview]);
   useEffect(() => setStatus(order.documentStatus), [order.documentStatus]);
   useEffect(() => {
     if (!hydrated) return;
@@ -112,7 +132,7 @@ export function PackScreen({ sheet }: Props) {
         const known = lines.find((l) => l.barcode === value || l.sku === value);
         setMismatch(known ? `${known.title} is already complete. Scanned ${value}.` : `${value} is not in this order.`);
         if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
-        postEvent(order.id, "wrongScan", { scanned: value }).catch(() => undefined);
+        if (!preview) postEvent(order.id, "wrongScan", { scanned: value }).catch(() => undefined);
       }
       setScanValue("");
       scanRef.current?.focus();
@@ -130,6 +150,10 @@ export function PackScreen({ sheet }: Props) {
    * server confirmed, "Packed · pending sync" when it is only queued.
    */
   const send = async (intent: "pack" | "flag", fields: Record<string, string>, localStatus: "PACKED" | "NEEDS_REVIEW") => {
+    if (preview) {
+      setResult({ ok: true, message: `Preview only. On a real device this would mark the order ${localStatus === "PACKED" ? "packed" : "for review"} and tag it in Shopify.` });
+      return;
+    }
     setBusy(true);
     try {
       const response = await postEvent(order.id, intent, fields);
@@ -197,7 +221,7 @@ export function PackScreen({ sheet }: Props) {
       {done ? (
         <section className="card">
           <p>{pendingQueued ? "This order is packed on this device and waiting to sync." : "This order is already packed. Scanning it again changes nothing and counts nothing twice."}</p>
-          <a className="btn secondary" href="/scan">Scan another order</a>
+          {preview ? null : <a className="btn secondary" href="/scan">Scan another order</a>}
         </section>
       ) : (
         <>
@@ -232,7 +256,7 @@ export function PackScreen({ sheet }: Props) {
 
           <section className="card" style={{ padding: 0 }}>
             <ul className="list" style={{ padding: "0 6px" }}>
-              {lines.map((line) => {
+              {visibleLines.map((line) => {
                 const count = countFor(line);
                 const flag = progress.flags[line.id];
                 const isDone = count >= line.quantity;
@@ -252,55 +276,82 @@ export function PackScreen({ sheet }: Props) {
                         line.imageUrl ? (
                           <img src={line.imageUrl} alt="" width={56} height={56} style={{ borderRadius: 8, objectFit: "cover", flex: "0 0 auto", background: "#eee" }} />
                         ) : (
-                          <div style={{ width: 56, height: 56, borderRadius: 8, background: "#e5e7eb", flex: "0 0 auto", display: "grid", placeItems: "center", fontWeight: 700, color: "#6b7280" }}>
-                            {line.title.slice(0, 2).toUpperCase()}
-                          </div>
+                          <div className="avatar" style={{ background: avatarColour(line.title) }}>{initials(line.title)}</div>
                         )
                       ) : null}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 17, lineHeight: 1.25 }}>{line.title}</div>
-                        <div className="muted" style={{ fontSize: 14 }}>
-                          {[line.variantTitle, line.sku, line.partOf ? `part of ${line.partOf}` : null].filter(Boolean).join(" · ")}
-                        </div>
+                        <div className="title" style={{ fontWeight: 600, fontSize: 17, lineHeight: 1.25 }}>{line.title}</div>
+                        {preview ? null : (
+                          <div className="muted" style={{ fontSize: 14 }}>
+                            {[line.variantTitle, line.sku, line.partOf ? `part of ${line.partOf}` : null].filter(Boolean).join(" · ")}
+                          </div>
+                        )}
                         {flag ? <div style={{ fontSize: 14, color: "#b45309", fontWeight: 600 }}>{PROBLEM_LABEL[flag.outcome]}{flag.note ? ` — ${flag.note}` : ""}</div> : null}
                       </div>
                       <div style={{ flex: "0 0 auto", textAlign: "center", minWidth: 64 }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDone ? "#047857" : "#111827" }}>
+                        <div className="count" style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDone ? "#047857" : "#111827" }}>
                           {isDone ? "✓" : `${count}/${line.quantity}`}
                         </div>
                         {isDone && line.quantity > 1 ? <div className="hint" style={{ marginTop: 0 }}>{line.quantity}/{line.quantity}</div> : null}
                       </div>
                     </div>
-                    <div className="row" style={{ padding: "0 10px 10px", gap: 8 }}>
-                      {!settings.strictMode && count > 0 ? (
-                        <button className="btn ghost" type="button" style={{ marginTop: 0, flex: "0 0 auto" }} onClick={() => bump(line, -1)}>−1</button>
-                      ) : null}
-                      {settings.allowShortPick && !flag ? (
-                        <button className="btn ghost" type="button" style={{ marginTop: 0 }} onClick={() => setProblemFor(line.id)}>Can’t complete this line</button>
-                      ) : null}
-                      {flag ? (
-                        <button className="btn ghost" type="button" style={{ marginTop: 0 }} onClick={() => setProgress((p) => { const flags = { ...p.flags }; delete flags[line.id]; return { ...p, flags }; })}>Clear problem</button>
-                      ) : null}
-                    </div>
-                    {problemFor === line.id ? (
-                      <ProblemForm
-                        onCancel={() => setProblemFor(null)}
-                        onSave={(outcome, note) => {
-                          setProgress((p) => ({ ...p, flags: { ...p.flags, [line.id]: { outcome, note } } }));
-                          setProblemFor(null);
-                        }}
-                      />
+                    {(!settings.strictMode && count > 0) || flag ? (
+                      <div className="row" style={{ padding: "0 10px 10px", gap: 8 }}>
+                        {!settings.strictMode && count > 0 ? (
+                          <button className="btn ghost" type="button" style={{ marginTop: 0, flex: "0 0 auto" }} onClick={() => bump(line, -1)}>−1</button>
+                        ) : null}
+                        {flag ? (
+                          <button className="btn ghost" type="button" style={{ marginTop: 0 }} onClick={() => setProgress((p) => { const flags = { ...p.flags }; delete flags[line.id]; return { ...p, flags }; })}>Clear problem</button>
+                        ) : null}
+                      </div>
                     ) : null}
                   </li>
                 );
               })}
+              {hiddenLines > 0 ? (
+                <li style={{ padding: "12px 10px" }}>
+                  <span className="muted">+{hiddenLines} more {hiddenLines === 1 ? "item" : "items"}</span>
+                </li>
+              ) : null}
             </ul>
           </section>
 
+          {exception && settings.allowShortPick ? (
+            <section className="card">
+              <h2>Can’t complete this order</h2>
+              <p className="hint">Pick the line with the problem, say what happened, then send the order for review. It will be flagged for the store instead of shipped short.</p>
+              {problemFor ? (
+                <>
+                  <p style={{ fontWeight: 600 }}>{lines.find((l) => l.id === problemFor)?.title}</p>
+                  <ProblemForm
+                    onCancel={() => setProblemFor(null)}
+                    onSave={(outcome, note) => {
+                      setProgress((p) => ({ ...p, flags: { ...p.flags, [problemFor]: { outcome, note } } }));
+                      setProblemFor(null);
+                      setException(false);
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  {lines.filter((l) => !progress.flags[l.id]).map((line) => (
+                    <button key={line.id} className="btn secondary" type="button" onClick={() => setProblemFor(line.id)}>
+                      {line.title}
+                    </button>
+                  ))}
+                  <button className="btn ghost" type="button" onClick={() => setException(false)}>Never mind</button>
+                </>
+              )}
+            </section>
+          ) : null}
+
           <section className="card">
-            <p className="muted">
-              {checkedUnits} of {totalUnits} units checked{anyFlag ? ` · ${Object.keys(progress.flags).length} line${Object.keys(progress.flags).length === 1 ? "" : "s"} flagged` : ""}
-            </p>
+            {/* The button already says how many are left while checking is required; say it once. */}
+            {anyFlag || !settings.requireAllChecked || allDone ? (
+              <p className="muted">
+                {checkedUnits} of {totalUnits} units checked{anyFlag ? ` · ${Object.keys(progress.flags).length} line${Object.keys(progress.flags).length === 1 ? "" : "s"} flagged` : ""}
+              </p>
+            ) : null}
             {settings.askWeight && !anyFlag ? (
               <>
                 <label htmlFor="weight">Parcel weight (grams)</label>
@@ -316,7 +367,10 @@ export function PackScreen({ sheet }: Props) {
                 {busy ? "Saving…" : settings.requireAllChecked && !allDone ? `${totalUnits - checkedUnits} left to check` : "Mark as packed"}
               </button>
             )}
-            <a className="btn ghost" href="/scan">Scan another order</a>
+            {settings.allowShortPick && !anyFlag && !exception ? (
+              <button className="btn ghost" type="button" onClick={() => setException(true)}>Can’t complete this order?</button>
+            ) : null}
+            {preview ? null : <a className="btn ghost" href="/scan">Scan another order</a>}
           </section>
         </>
       )}

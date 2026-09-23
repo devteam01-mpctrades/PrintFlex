@@ -16,7 +16,6 @@ function orderData(orderGid: string): OrderDocumentQueryData {
       id: orderGid, name: "#KS-10236", createdAt: "2026-09-21T02:00:00Z", processedAt: "2026-09-21T02:00:00Z",
       note: null, email: "yuki@example.com", phone: null, taxesIncluded: false,
       displayFinancialStatus: "PAID", displayFulfillmentStatus: "UNFULFILLED",
-      customer: { displayName: "Yuki Tanaka" },
       billingAddress: { name: "Yuki Tanaka", company: null, address1: "1-1 Shibuya", address2: null, city: "Tokyo", province: null, zip: "150-0001", country: "Japan", phone: null },
       shippingAddress: null, shippingLine: { title: "K-Packet" },
       currentSubtotalPriceSet: money("112.00"), currentTotalDiscountsSet: money("0.00"), currentShippingPriceSet: money("9.90"),

@@ -18,7 +18,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Length": String(pdf.byteLength),
-      "Content-Disposition": `attachment; filename="${batchLabel(job.id)}${part === "picklist" ? "-picklist" : ""}.pdf"`,
+      "Content-Disposition": `attachment; filename="${batchLabel(job)}${part === "picklist" ? "-picklist" : ""}.pdf"`,
       "Cache-Control": "private, no-store",
     },
   });

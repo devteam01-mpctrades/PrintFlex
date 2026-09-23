@@ -14,7 +14,7 @@ const node: OrderNode = {
   email: "order@example.com",
   currentSubtotalLineItemsQuantity: 3,
   currentTotalPriceSet: { presentmentMoney: { amount: "64.90", currencyCode: "EUR" } },
-  customer: { displayName: "Marie Dupont", email: "marie@example.com" },
+  billingAddress: { name: "Marie Dupont" },
   shippingAddress: { name: "M. Dupont", city: "Paris", countryCodeV2: "FR" },
   shippingLine: { title: "Colissimo" },
   lineItems: {
@@ -49,8 +49,8 @@ describe("mapOrderNode", () => {
     expect(snapshot).toEqual({
       shopifyOrderId: "gid://shopify/Order/1",
       orderName: "#KS-10234",
-      customerName: "Marie Dupont",
-      customerEmail: "marie@example.com",
+      customerName: "M. Dupont",
+      customerEmail: "order@example.com",
       countryCode: "FR",
       shippingCity: "Paris",
       itemCount: 3,
@@ -92,10 +92,13 @@ describe("mapOrderNode", () => {
     });
   });
 
-  it("falls back to the shipping name and order email for guest checkouts", () => {
-    const guest = mapOrderNode({ ...node, customer: null, shippingLine: null });
-    expect(guest.customerName).toBe("M. Dupont");
-    expect(guest.customerEmail).toBe("order@example.com");
-    expect(guest.shippingMethod).toBeNull();
+  it("falls back to the billing name when there is no shipping address, and never needs Order.customer", () => {
+    const pickup = mapOrderNode({ ...node, shippingAddress: null, shippingLine: null });
+    expect(pickup.customerName).toBe("Marie Dupont");
+    expect(pickup.countryCode).toBeNull();
+    expect(pickup.shippingMethod).toBeNull();
+    const anonymous = mapOrderNode({ ...node, shippingAddress: null, billingAddress: null, email: "  " });
+    expect(anonymous.customerName).toBeNull();
+    expect(anonymous.customerEmail).toBeNull();
   });
 });

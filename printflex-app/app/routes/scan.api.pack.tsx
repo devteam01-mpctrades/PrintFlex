@@ -28,7 +28,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ ok: true, message: "" });
   }
   if (intent === "wrongScan") {
-    await recordWrongScan(session.shopId, orderId, session.name, String(form.get("scanned") ?? ""));
+    await recordWrongScan(session.shopId, orderId, session.name, String(form.get("scanned") ?? ""), new Date(), session.staffLabel);
     return json({ ok: true, message: "" });
   }
 

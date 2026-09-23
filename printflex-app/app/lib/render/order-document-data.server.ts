@@ -99,7 +99,6 @@ export const ORDER_DOCUMENT_FRAGMENT = `#graphql
     taxesIncluded
     displayFinancialStatus
     displayFulfillmentStatus
-    customer { displayName }
     billingAddress { ${ADDRESS} }
     shippingAddress { ${ADDRESS} }
     shippingLine { title }
@@ -238,7 +237,6 @@ export interface RawOrder {
     taxesIncluded: boolean;
     displayFinancialStatus: string | null;
     displayFulfillmentStatus: string;
-    customer: { displayName: string } | null;
     billingAddress: RawAddress | null;
     shippingAddress: RawAddress | null;
     shippingLine: { title: string } | null;
@@ -295,7 +293,7 @@ export function mapOrder(o: RawOrder, shop: RawShop): OrderDocumentData {
       .map((a) => ({ key: a.key, value: a.value })),
     email: o.email,
     phone: o.phone ?? o.shippingAddress?.phone ?? o.billingAddress?.phone ?? null,
-    customerName: o.customer?.displayName ?? o.billingAddress?.name ?? o.shippingAddress?.name ?? null,
+    customerName: o.billingAddress?.name ?? o.shippingAddress?.name ?? null,
     financialStatus: o.displayFinancialStatus,
     fulfillmentStatus: o.displayFulfillmentStatus,
     taxesIncluded: o.taxesIncluded,

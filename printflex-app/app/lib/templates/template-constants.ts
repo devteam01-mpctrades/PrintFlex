@@ -107,6 +107,51 @@ export const FIELDS_BY_TYPE: Record<DocumentType, Array<keyof TemplateFields>> =
   PICK_LIST: ["binLocation", "weight"],
 };
 
+/** Logos are stored inline as data URLs, so the cap keeps template rows small. */
+export const MAX_LOGO_BYTES = 400 * 1024;
+export const MAX_LOGO_LABEL = "400 KB";
+
+/** Accent swatches offered in the editor; any hex value is also accepted. */
+export const ACCENT_SWATCHES: ReadonlyArray<{ hex: string; name: string }> = [
+  { hex: "#e25b07", name: "Orange" },
+  { hex: "#1f2937", name: "Charcoal" },
+  { hex: "#0c5132", name: "Forest" },
+  { hex: "#1d4ed8", name: "Blue" },
+  { hex: "#7e22ce", name: "Plum" },
+  { hex: "#b91c1c", name: "Red" },
+];
+
+/** A toggle in the editor's "Show on this document" list and the setting it drives. */
+export type DocumentToggle =
+  | { kind: "field"; key: keyof TemplateFields; label: string }
+  | { kind: "code"; key: "qr" | "barcode"; label: string };
+
+const FIELD_TOGGLE = (key: keyof TemplateFields): DocumentToggle => ({ kind: "field", key, label: FIELD_LABELS[key] });
+
+/**
+ * The toggles shown per document type, in display order. Each one drives a
+ * real branch in the render fragments; nothing here is decorative.
+ */
+export const TOGGLES_BY_TYPE: Record<DocumentType, DocumentToggle[]> = {
+  INVOICE: [
+    FIELD_TOGGLE("unitPrices"),
+    FIELD_TOGGLE("taxBreakdown"),
+    FIELD_TOGGLE("sku"),
+    { kind: "code", key: "qr", label: "QR code" },
+    { kind: "code", key: "barcode", label: "Barcode" },
+    FIELD_TOGGLE("customerPhone"),
+    FIELD_TOGGLE("hsCode"),
+  ],
+  PACKING_SLIP: [
+    FIELD_TOGGLE("sku"),
+    { kind: "code", key: "qr", label: "QR code" },
+    { kind: "code", key: "barcode", label: "Barcode" },
+    FIELD_TOGGLE("binLocation"),
+    FIELD_TOGGLE("customerPhone"),
+  ],
+  PICK_LIST: [FIELD_TOGGLE("binLocation"), FIELD_TOGGLE("weight")],
+};
+
 export const DEFAULT_NAMES: Record<DocumentType, string> = {
   INVOICE: "Invoice — Default",
   PACKING_SLIP: "Packing slip",

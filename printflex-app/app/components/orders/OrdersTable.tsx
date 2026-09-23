@@ -1,8 +1,10 @@
 import { useCallback, useRef } from "react";
 import { useNavigate } from "react-router";
 import type { OrderRow } from "../../lib/orders/list.server";
+import { PAGE_SIZE } from "../../lib/orders/constants";
 import type { DocumentType, OrderDocumentStatus } from "../../lib/types";
 import { useNativeEvent } from "./useNativeEvent";
+import { Cell, HeaderCell } from "../TableCells";
 
 interface Props {
   rows: OrderRow[];
@@ -25,24 +27,35 @@ const STATUS_LABEL: Record<OrderDocumentStatus, string> = {
   NEEDS_REVIEW: "Needs review",
 };
 
-const STATUS_TONE: Record<OrderDocumentStatus, "neutral" | "info" | "success" | "warning"> = {
+/** New is quiet, Printed draws attention, Packed is done, Needs review is a problem. */
+const STATUS_TONE: Record<OrderDocumentStatus, "neutral" | "info" | "success" | "critical"> = {
   NEW: "neutral",
   PRINTED: "info",
   PACKED: "success",
-  NEEDS_REVIEW: "warning",
+  NEEDS_REVIEW: "critical",
 };
 
+const DOC_ORDER: DocumentType[] = ["INVOICE", "PACKING_SLIP", "PICK_LIST"];
 const DOC_LABEL: Record<DocumentType, string> = {
   INVOICE: "INV",
   PACKING_SLIP: "SLIP",
   PICK_LIST: "PICK",
 };
 
+/** "INV+SLIP+PICK" in a fixed order, so the same set always reads the same. */
+export function documentsLabel(documents: DocumentType[]): string {
+  return DOC_ORDER.filter((d) => documents.includes(d)).map((d) => DOC_LABEL[d]).join("+");
+}
+
 interface CheckboxElement extends HTMLElement {
   value: string;
   checked: boolean;
 }
 
+/**
+ * The orders table. Expects at least one row; the route renders the empty
+ * states. Pagination and selection events come from the Polaris elements.
+ */
 export function OrdersTable(props: Props) {
   const { rows, page, pageCount, total, queryString, isSelected, allOnPageSelected, pageSelectedCount } = props;
   const navigate = useNavigate();
@@ -89,21 +102,11 @@ export function OrdersTable(props: Props) {
     ),
   );
 
-  if (rows.length === 0) {
-    return (
-      <s-section>
-        <s-paragraph>
-          No orders match these filters. Clear a filter or run a sync if you expected orders here.
-        </s-paragraph>
-      </s-section>
-    );
-  }
-
-  const first = (page - 1) * 50 + 1;
+  const first = (page - 1) * PAGE_SIZE + 1;
   const last = first + rows.length - 1;
 
   return (
-    <s-section padding="none">
+    <>
       <s-table
         ref={tableRef}
         paginate
@@ -119,12 +122,12 @@ export function OrdersTable(props: Props) {
               indeterminate={(!allOnPageSelected && pageSelectedCount > 0) || undefined}
             ></s-checkbox>
           </s-table-header>
-          <s-table-header listSlot="primary">Order</s-table-header>
-          <s-table-header listSlot="secondary">Customer</s-table-header>
-          <s-table-header format="numeric">Items</s-table-header>
-          <s-table-header format="currency">Total</s-table-header>
-          <s-table-header listSlot="inline">Documents</s-table-header>
-          <s-table-header listSlot="kicker">Status</s-table-header>
+          <HeaderCell width="sm" listSlot="primary">Order</HeaderCell>
+          <HeaderCell width="md" listSlot="secondary">Customer</HeaderCell>
+          <HeaderCell width="xs" align="end" format="numeric">Items</HeaderCell>
+          <HeaderCell width="md" align="end" format="currency">Total</HeaderCell>
+          <HeaderCell width="xs" listSlot="inline">Documents</HeaderCell>
+          <HeaderCell listSlot="kicker">Status</HeaderCell>
         </s-table-header-row>
         <s-table-body>
           {rows.map((row) => {
@@ -139,45 +142,43 @@ export function OrdersTable(props: Props) {
                     checked={selected || undefined}
                   ></s-checkbox>
                 </s-table-cell>
-                <s-table-cell>
-                  <s-text type="strong" fontVariantNumeric="tabular-nums" tone={highlighted ? "info" : "auto"}>
-                    {row.orderName}
-                  </s-text>
-                </s-table-cell>
-                <s-table-cell>
+                <Cell width="sm">
+                  <s-link href={`shopify://admin/orders/${row.shopifyOrderNumber}`} tone={highlighted ? "auto" : "neutral"}>
+                    <s-text type="strong" fontVariantNumeric="tabular-nums">{row.orderName}</s-text>
+                  </s-link>
+                </Cell>
+                <Cell width="md">
                   {row.customerName ?? "Guest"}
                   {row.countryCode ? ` · ${row.countryCode}` : ""}
-                </s-table-cell>
-                <s-table-cell>
+                </Cell>
+                <Cell width="xs" align="end">
                   <s-text fontVariantNumeric="tabular-nums">{row.itemCount}</s-text>
-                </s-table-cell>
-                <s-table-cell>
+                </Cell>
+                <Cell width="md" align="end">
                   <s-text fontVariantNumeric="tabular-nums">
                     {row.totalAmount} {row.currency}
                   </s-text>
-                </s-table-cell>
-                <s-table-cell>
+                </Cell>
+                <Cell width="xs">
                   {row.documents.length === 0 ? (
                     <s-text color="subdued">—</s-text>
                   ) : (
-                    <s-text fontVariantNumeric="tabular-nums">
-                      {row.documents.map((d) => DOC_LABEL[d]).join(" + ")}
-                    </s-text>
+                    <s-text color="subdued" fontVariantNumeric="tabular-nums">{documentsLabel(row.documents)}</s-text>
                   )}
-                </s-table-cell>
-                <s-table-cell>
+                </Cell>
+                <Cell>
                   <s-badge tone={STATUS_TONE[row.documentStatus]}>{STATUS_LABEL[row.documentStatus]}</s-badge>
-                </s-table-cell>
+                </Cell>
               </s-table-row>
             );
           })}
         </s-table-body>
       </s-table>
-      <s-box padding="base">
-        <s-paragraph color="subdued" fontVariantNumeric="tabular-nums">
-          Showing {first}–{last} of {total}
-        </s-paragraph>
+      <s-box paddingInline="base" paddingBlock="small">
+        <s-text color="subdued" fontVariantNumeric="tabular-nums">
+          Showing {first}–{last} of {total} · select-all matches the filter, not just this page
+        </s-text>
       </s-box>
-    </s-section>
+    </>
   );
 }

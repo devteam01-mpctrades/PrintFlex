@@ -28,6 +28,15 @@ export async function qrSvg(url: string, size: CodeSize): Promise<string> {
   });
 }
 
+/** A QR for on-screen use (enrolment panel), sized in CSS pixels. */
+export async function qrSvgPx(url: string, px: number): Promise<string> {
+  const svg = await QRCode.toString(url, { type: "svg", errorCorrectionLevel: "M", margin: 1 });
+  return svg.replace(/<svg([^>]*)>/, (_, attrs: string) => {
+    const cleaned = attrs.replace(/\s(width|height)="[^"]*"/g, "");
+    return `<svg${cleaned} width="${px}" height="${px}" role="img" aria-label="QR code to enrol this phone">`;
+  });
+}
+
 /** Code 128 module (narrowest bar) width in mm. 0.33 mm is the handheld-scanner sweet spot. */
 export const BARCODE_MODULE_MM: Record<CodeSize, number> = { small: 0.25, medium: 0.33, large: 0.4 };
 

@@ -23,11 +23,19 @@ export interface CreateJobInput {
   options?: { coverSheet?: boolean };
 }
 
+/**
+ * Create a job with the next batch number. The counter increment and the
+ * job insert share one transaction, so concurrent prints get consecutive
+ * numbers and a failed insert rolls the counter back: no gaps, no reuse.
+ */
 export async function createDocumentJob(input: CreateJobInput) {
   if (input.orderIds.length === 0) throw new Error("A job needs at least one order");
-  return prisma.documentJob.create({
+  return prisma.$transaction(async (tx) => {
+    const shop = await tx.shop.update({ where: { id: input.shopId }, data: { batchNextNumber: { increment: 1 } }, select: { batchNextNumber: true } });
+    return tx.documentJob.create({
     data: {
       shopId: input.shopId,
+      number: shop.batchNextNumber - 1,
       name: input.name ?? null,
       documentTypesJson: JSON.stringify(input.documentTypes),
       orderIdsJson: JSON.stringify(input.orderIds),
@@ -35,6 +43,7 @@ export async function createDocumentJob(input: CreateJobInput) {
       state: "QUEUED",
       total: input.orderIds.length,
     },
+    });
   });
 }
 

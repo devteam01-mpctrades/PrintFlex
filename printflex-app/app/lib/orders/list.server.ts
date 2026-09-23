@@ -8,8 +8,9 @@ import { ORDER_DOCUMENT_STATUSES, type DocumentType, type OrderDocumentStatus } 
  * lives in the URL so a view is exactly its query string.
  */
 
-export const PAGE_SIZE = 50;
-export const MAX_BULK_ORDERS = 1000;
+import { MAX_BULK_ORDERS, PAGE_SIZE } from "./constants";
+
+export { MAX_BULK_ORDERS, PAGE_SIZE };
 
 export interface OrderFilters {
   q: string;
@@ -106,6 +107,8 @@ export function buildWhere(
 
 export interface OrderRow {
   id: string;
+  /** Numeric part of the Shopify order GID, for links into the Shopify admin. */
+  shopifyOrderNumber: string;
   orderName: string;
   customerName: string | null;
   countryCode: string | null;
@@ -154,6 +157,7 @@ export async function listOrders(
     take: PAGE_SIZE,
     select: {
       id: true,
+      shopifyOrderId: true,
       orderName: true,
       customerName: true,
       countryCode: true,
@@ -179,6 +183,7 @@ export async function listOrders(
   return {
     rows: orders.map((o) => ({
       id: o.id,
+      shopifyOrderNumber: o.shopifyOrderId.split("/").pop() ?? "",
       orderName: o.orderName,
       customerName: o.customerName,
       countryCode: o.countryCode,

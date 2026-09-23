@@ -5,6 +5,9 @@ import { runGraphql, waitForBudget } from "../graphql.server";
 import { parseSettings, type TagNames } from "../settings.server";
 import type { OrderDocumentStatus } from "../types";
 import { mapOrderNode, type OrderSnapshot } from "./order-mapper.server";
+import { ORDERS_WINDOW_DAYS, type SyncRunView, type SyncTrigger } from "./sync-status";
+
+export { ORDERS_WINDOW_DAYS, describeSyncRun, type SyncRunView, type SyncStatus, type SyncTrigger } from "./sync-status";
 import {
   ORDER_BY_ID_QUERY,
   ORDER_ID_BY_NAME_QUERY,
@@ -178,6 +181,12 @@ const PAGE_SIZE = 20;
 /** Conservative estimate of one page's cost (20 orders × up to 50 line items). */
 const ESTIMATED_PAGE_COST = 700;
 
+export interface BackfillOptions {
+  updatedSince?: Date;
+  /** Called after every page so a caller can persist progress. */
+  onPage?: (summary: BackfillSummary) => Promise<void> | void;
+}
+
 /**
  * Walk every order Shopify will return (the last 60 days without the
  * read_all_orders scope), oldest update first, pacing requests against the
@@ -186,7 +195,7 @@ const ESTIMATED_PAGE_COST = 700;
 export async function backfillOrders(
   client: GraphqlClient,
   shopId: string,
-  options: { updatedSince?: Date } = {},
+  options: BackfillOptions = {},
 ): Promise<BackfillSummary> {
   const tagNames = await tagNamesForShop(shopId);
   const summary: BackfillSummary = { pages: 0, seen: 0, created: 0, updated: 0, stale: 0 };
@@ -216,7 +225,97 @@ export async function backfillOrders(
     after = result.data.orders.pageInfo.hasNextPage
       ? result.data.orders.pageInfo.endCursor
       : null;
+    if (options.onPage) await options.onPage({ ...summary });
   } while (after);
 
   return summary;
+}
+
+interface OrderCountsData {
+  all: { count: number; precision: string };
+  recent: { count: number; precision: string };
+}
+
+const ORDER_COUNTS_QUERY = `#graphql
+  query PrintFlexOrderCounts($recent: String!) {
+    all: ordersCount(limit: 10000) { count precision }
+    recent: ordersCount(limit: 10000, query: $recent) { count precision }
+  }
+`;
+
+/**
+ * How many orders the store holds in total and how many fall inside the
+ * 60-day window read_orders can see. The difference is what a sync will
+ * silently miss, so it is reported rather than hidden.
+ */
+export async function countOrdersAroundWindow(
+  client: GraphqlClient,
+  now: Date = new Date(),
+): Promise<{ total: number; beyondWindow: number }> {
+  const cutoff = new Date(now.getTime() - ORDERS_WINDOW_DAYS * 86_400_000).toISOString();
+  const { data } = await runGraphql<OrderCountsData>(client, ORDER_COUNTS_QUERY, { recent: `created_at:>='${cutoff}'` });
+  return { total: data.all.count, beyondWindow: Math.max(0, data.all.count - data.recent.count) };
+}
+
+function toView(run: {
+  id: string; trigger: string; status: string; seen: number; created: number; updated: number; stale: number;
+  shopifyTotal: number | null; beyondWindow: number | null; error: string | null; startedAt: Date; finishedAt: Date | null;
+}): SyncRunView {
+  return {
+    id: run.id,
+    trigger: run.trigger === "install" ? "install" : "manual",
+    status: run.status === "SUCCEEDED" ? "SUCCEEDED" : run.status === "FAILED" ? "FAILED" : "RUNNING",
+    seen: run.seen,
+    created: run.created,
+    updated: run.updated,
+    stale: run.stale,
+    shopifyTotal: run.shopifyTotal,
+    beyondWindow: run.beyondWindow,
+    error: run.error,
+    startedAt: run.startedAt.toISOString(),
+    finishedAt: run.finishedAt?.toISOString() ?? null,
+  };
+}
+
+/** A run that has reported nothing for this long is treated as dead, so a new one may start. */
+const STALE_RUN_MS = 10 * 60_000;
+
+/** The most recent sync run for the shop, if any. */
+export async function latestSyncRun(shopId: string): Promise<SyncRunView | null> {
+  const run = await prisma.syncRun.findFirst({ where: { shopId }, orderBy: { startedAt: "desc" } });
+  return run ? toView(run) : null;
+}
+
+/**
+ * Start a full backfill in the background and return its run row at once.
+ * Progress lands in SyncRun after every page. Returns the running row
+ * unchanged when one is already in flight, so two clicks never overlap.
+ */
+export async function startBackfill(
+  client: GraphqlClient,
+  shopId: string,
+  trigger: SyncTrigger,
+): Promise<{ run: SyncRunView; started: boolean }> {
+  const inFlight = await prisma.syncRun.findFirst({
+    where: { shopId, status: "RUNNING", startedAt: { gte: new Date(Date.now() - STALE_RUN_MS) } },
+    orderBy: { startedAt: "desc" },
+  });
+  if (inFlight) return { run: toView(inFlight), started: false };
+
+  const run = await prisma.syncRun.create({ data: { shopId, trigger } });
+  void (async () => {
+    try {
+      const counts = await countOrdersAroundWindow(client);
+      await prisma.syncRun.update({ where: { id: run.id }, data: { shopifyTotal: counts.total, beyondWindow: counts.beyondWindow } });
+      const summary = await backfillOrders(client, shopId, {
+        onPage: (progress) => prisma.syncRun.update({ where: { id: run.id }, data: { ...progress } }).then(() => undefined),
+      });
+      await prisma.syncRun.update({ where: { id: run.id }, data: { ...summary, status: "SUCCEEDED", finishedAt: new Date() } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Order sync ${run.id} failed for shop ${shopId}: ${message}`);
+      await prisma.syncRun.update({ where: { id: run.id }, data: { status: "FAILED", error: message.slice(0, 1000), finishedAt: new Date() } });
+    }
+  })();
+  return { run: toView(run), started: true };
 }

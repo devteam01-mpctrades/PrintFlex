@@ -8,7 +8,7 @@ import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prism
 import prisma from "./db.server";
 import { BILLING_CONFIG } from "./lib/billing/plans-config.server";
 import { handleReinstall } from "./lib/lifecycle.server";
-import { backfillOrders } from "./lib/orders/sync.server";
+import { startBackfill } from "./lib/orders/sync.server";
 import { syncShopFromShopify } from "./lib/shops.server";
 
 const shopify = shopifyApp({
@@ -31,13 +31,9 @@ const shopify = shopifyApp({
       const synced = await prisma.orderIndex.count({ where: { shopId: shop.id } });
       if (synced === 0) {
         // First install: backfill in the background so auth completes fast.
-        void backfillOrders(admin, shop.id)
-          .then((summary) =>
-            console.log(`Initial order backfill for ${session.shop}:`, summary),
-          )
-          .catch((error: unknown) =>
-            console.error(`Initial order backfill failed for ${session.shop}`, error),
-          );
+        // Progress and failures are recorded in SyncRun, not just logged.
+        const { run, started } = await startBackfill(admin, shop.id, "install");
+        console.log(`Initial order sync for ${session.shop}: ${started ? "started" : "already running"} (${run.id})`);
       }
     },
   },

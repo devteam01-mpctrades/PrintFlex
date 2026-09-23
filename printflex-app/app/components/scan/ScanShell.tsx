@@ -50,16 +50,71 @@ export const SCAN_CSS = `
   .pending { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: #fef3c7; color: var(--warn); }
   .pending.offline { background: #fee2e2; color: var(--bad); }
   .pending.synced { background: #d1fae5; color: var(--ok); }
+
+  /* Item avatars when Shopify has no product photo: initials on a colour derived from the title. */
+  .avatar { width: 56px; height: 56px; border-radius: 8px; flex: 0 0 auto; display: grid; place-items: center; font-weight: 700; font-size: 15px; color: #fff; letter-spacing: .02em; }
+
+  /* Preview mode (the merchant's phone frame in the admin): the scanner header stands in for the camera. */
+  .preview .wrap { padding: 0 14px 14px; }
+  .scanhead { background: #161616; color: #b8b8b8; padding: 22px 16px 14px; margin: 0 -14px 14px; text-align: center; }
+  .scanhead .vf { position: relative; width: 104px; height: 104px; margin: 0 auto 12px; display: grid; place-items: center; }
+  .scanhead .vf::before, .scanhead .vf::after, .scanhead .vf i::before, .scanhead .vf i::after { content: ""; position: absolute; width: 22px; height: 22px; border: 3px solid var(--brand, #e25b07); }
+  .scanhead .vf::before { top: 0; left: 0; border-right: 0; border-bottom: 0; border-radius: 6px 0 0 0; }
+  .scanhead .vf::after { top: 0; right: 0; border-left: 0; border-bottom: 0; border-radius: 0 6px 0 0; }
+  .scanhead .vf i::before { bottom: 0; left: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 6px; }
+  .scanhead .vf i::after { bottom: 0; right: 0; border-left: 0; border-top: 0; border-radius: 0 0 6px 0; }
+  .scanhead .vf svg { width: 64px; height: 64px; }
+  .scanhead .cap { font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+  .preview .card { padding: 14px; border-radius: 12px; margin-bottom: 10px; }
+  .preview .big { font-size: 22px; }
+  .preview .muted { font-size: 14px; }
+  .preview .list li > div { min-height: 52px !important; padding: 8px 6px !important; gap: 10px !important; }
+  .preview .list img, .preview .avatar { width: 38px; height: 38px; font-size: 12px; }
+  .preview .list .title { font-size: 15px !important; }
+  .preview .list .count { font-size: 15px !important; font-weight: 600 !important; min-width: 40px !important; color: var(--muted) !important; }
+  .preview .btn { min-height: 46px; font-size: 15px; padding: 12px; border-radius: 10px; }
+  .preview .btn:disabled { background: #d9d9d9; color: #6b6b6b; opacity: 1; }
 `;
+
+const SCAN_HEAD = (
+  <div className="scanhead" aria-hidden="true">
+    <div className="vf">
+      <i />
+      <svg viewBox="0 0 64 64" fill="#fff" role="img" aria-label="QR code">
+        <rect x="4" y="4" width="20" height="20" rx="2" /><rect x="9" y="9" width="10" height="10" fill="#161616" /><rect x="12" y="12" width="4" height="4" />
+        <rect x="40" y="4" width="20" height="20" rx="2" /><rect x="45" y="9" width="10" height="10" fill="#161616" /><rect x="48" y="12" width="4" height="4" />
+        <rect x="4" y="40" width="20" height="20" rx="2" /><rect x="9" y="45" width="10" height="10" fill="#161616" /><rect x="12" y="48" width="4" height="4" />
+        <rect x="30" y="4" width="4" height="4" /><rect x="30" y="12" width="4" height="8" /><rect x="4" y="30" width="8" height="4" /><rect x="16" y="30" width="4" height="4" />
+        <rect x="24" y="24" width="4" height="4" /><rect x="30" y="28" width="8" height="4" /><rect x="40" y="30" width="4" height="8" /><rect x="48" y="30" width="12" height="4" />
+        <rect x="30" y="40" width="4" height="8" /><rect x="38" y="40" width="8" height="4" /><rect x="50" y="40" width="4" height="4" /><rect x="58" y="40" width="2" height="8" />
+        <rect x="30" y="52" width="8" height="4" /><rect x="42" y="48" width="4" height="12" /><rect x="50" y="50" width="10" height="4" /><rect x="50" y="56" width="4" height="4" />
+      </svg>
+    </div>
+    <div className="cap">Point at the QR or barcode</div>
+  </div>
+);
 
 interface Props {
   title: string;
   device?: string | null;
   children: ReactNode;
+  /** Embedded in the admin as a preview: no service worker, no sync loop. */
+  preview?: boolean;
 }
 
-export function ScanShell({ title, device, children }: Props) {
-  const status = useConnectivity();
+export function ScanShell({ title, device, children, preview = false }: Props) {
+  const status = useConnectivity(preview);
+  if (preview) {
+    return (
+      <div className="preview">
+        <style dangerouslySetInnerHTML={{ __html: `${SCAN_CSS} html, body { overflow: hidden; }` }} />
+        <main className="wrap">
+          {SCAN_HEAD}
+          {children}
+        </main>
+      </div>
+    );
+  }
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: SCAN_CSS }} />
@@ -84,10 +139,11 @@ export function ScanShell({ title, device, children }: Props) {
 }
 
 /** Live connectivity and queue size, shared by every scan page. */
-export function useConnectivity(): { online: boolean; pending: number } {
+export function useConnectivity(disabled = false): { online: boolean; pending: number } {
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
   useEffect(() => {
+    if (disabled) return;
     registerServiceWorker();
     const update = () => {
       setOnline(navigator.onLine);
@@ -104,6 +160,6 @@ export function useConnectivity(): { online: boolean; pending: number } {
       window.removeEventListener("pf:queue", update);
       stop();
     };
-  }, []);
+  }, [disabled]);
   return { online, pending };
 }

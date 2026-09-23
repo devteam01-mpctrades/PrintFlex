@@ -45,9 +45,8 @@ export function mapOrderNode(node: OrderNode): OrderSnapshot {
   return {
     shopifyOrderId: node.id,
     orderName: node.name,
-    customerName:
-      blankToNull(node.customer?.displayName) ?? blankToNull(node.shippingAddress?.name),
-    customerEmail: blankToNull(node.customer?.email) ?? blankToNull(node.email),
+    customerName: blankToNull(node.shippingAddress?.name) ?? blankToNull(node.billingAddress?.name),
+    customerEmail: blankToNull(node.email),
     countryCode: blankToNull(node.shippingAddress?.countryCodeV2),
     shippingCity: blankToNull(node.shippingAddress?.city),
     itemCount: node.currentSubtotalLineItemsQuantity,

@@ -5,6 +5,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { RouteError } from "../components/RouteError";
 import prisma from "../db.server";
 import { listSendLog, sendInvoiceEmail } from "../lib/email/invoice-email.server";
+import { batchLabel } from "../lib/jobs/batch-label";
 import { createDocumentJob } from "../lib/jobs/create-job.server";
 import { getQueue } from "../lib/jobs/worker.server";
 import { capacityMessage, checkCapacity, getUsage } from "../lib/meter.server";
@@ -110,7 +111,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     documentSet: settings.defaults.documentSet,
     batches: jobs.map((job) => ({
       id: job.id,
-      label: `BATCH-${job.id.slice(-6).toUpperCase()}`,
+      label: batchLabel(job),
       documents: describeDocuments(JSON.parse(job.documentTypesJson) as DocumentType[]),
       total: job.total,
       progress: job.progress,
@@ -142,7 +143,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!capacity.allowed) return { ok: false, message: capacityMessage(capacity, shop.timezone) };
     const job = await createDocumentJob({ shopId: shop.id, documentTypes: settings.defaults.documentSet, orderIds: orders.map((o) => o.id), options: { coverSheet: true } });
     await getQueue().enqueue(job.id);
-    return { ok: true, message: `Rendering ${orders.length} unfulfilled orders as BATCH-${job.id.slice(-6).toUpperCase()}.`, jobId: job.id };
+    return { ok: true, message: `Rendering ${orders.length} unfulfilled orders as ${batchLabel(job)}.`, jobId: job.id };
   }
   if (intent !== "resend") return { ok: false, message: "Unknown action." };
   const status = await sendInvoiceEmail({ shopId: shop.id, orderId: String(form.get("orderId") ?? ""), trigger: "manual", manual: true }, { client: admin, pdf: puppeteerRenderer });

@@ -16,7 +16,7 @@ function orderData(id: string): OrderDocumentQueryData {
     shop: { name: "Kool Seoul", contactEmail: null, billingAddress: null },
     order: {
       id, name: "#KS-1", createdAt: "2026-09-21T00:00:00Z", processedAt: "2026-09-21T00:00:00Z", note: null, customAttributes: [], email: "yuki@example.com", phone: null,
-      taxesIncluded: false, displayFinancialStatus: "PAID", displayFulfillmentStatus: "UNFULFILLED", customer: { displayName: "Yuki" }, billingAddress: null, shippingAddress: null, shippingLine: null,
+      taxesIncluded: false, displayFinancialStatus: "PAID", displayFulfillmentStatus: "UNFULFILLED", billingAddress: { name: "Yuki", company: null, address1: null, address2: null, city: null, province: null, zip: null, country: null, phone: null }, shippingAddress: null, shippingLine: null,
       currentSubtotalPriceSet: money("10"), currentTotalDiscountsSet: money("0"), currentShippingPriceSet: money("0"), currentTotalTaxSet: money("0"), currentTotalPriceSet: money("10"), taxLines: [],
       lineItems: { nodes: [{ title: "Cream", variantTitle: null, sku: "PF-1", currentQuantity: 1, originalUnitPriceSet: money("10"), discountedTotalSet: money("10"), originalTotalSet: money("10"), image: null }] },
     },

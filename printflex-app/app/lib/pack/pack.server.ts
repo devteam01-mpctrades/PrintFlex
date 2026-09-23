@@ -4,6 +4,7 @@ import { setOrderMetafields } from "../orders/metafields.server";
 import { addOrderTags } from "../orders/tags.server";
 import { parseSettings, type PackSettings } from "../settings.server";
 import type { PackOutcome } from "../types";
+import { batchLabel } from "../jobs/batch-label";
 
 /**
  * Packing. The checklist is built from the synced line items, expanded
@@ -251,7 +252,7 @@ export interface BatchProgress {
 
 /** Where every order in a batch stands. */
 export async function loadBatchProgress(shopId: string, jobId: string): Promise<BatchProgress | null> {
-  const job = await prisma.documentJob.findFirst({ where: { id: jobId, shopId }, select: { id: true, orderIdsJson: true } });
+  const job = await prisma.documentJob.findFirst({ where: { id: jobId, shopId }, select: { id: true, number: true, orderIdsJson: true } });
   if (!job) return null;
   const orderIds = (JSON.parse(job.orderIdsJson) as string[]) ?? [];
   const rows = await prisma.orderIndex.findMany({
@@ -268,12 +269,12 @@ export async function loadBatchProgress(shopId: string, jobId: string): Promise<
   });
   const counts: Record<BatchOrderState, number> = { packed: 0, "needs-review": 0, "in-progress": 0, "not-started": 0 };
   for (const o of orders) counts[o.state] += 1;
-  return { jobId: job.id, label: `BATCH-${job.id.slice(-6).toUpperCase()}`, total: orders.length, counts, orders };
+  return { jobId: job.id, label: batchLabel(job), total: orders.length, counts, orders };
 }
 
 /** Record a wrong scan in strict mode so the history shows it. Never changes status. */
-export async function recordWrongScan(shopId: string, orderId: string, deviceName: string, scanned: string, now: Date = new Date()): Promise<void> {
+export async function recordWrongScan(shopId: string, orderId: string, deviceName: string, scanned: string, now: Date = new Date(), staffLabel: string | null = null): Promise<void> {
   await prisma.packEvent.create({
-    data: { shopId, orderId, deviceName, outcome: "WRONG_ITEM", note: `Scanned ${scanned.slice(0, 60)}`, occurredAt: now },
+    data: { shopId, orderId, deviceName, staffLabel, outcome: "WRONG_ITEM", note: `Scanned ${scanned.slice(0, 60)}`, occurredAt: now },
   });
 }

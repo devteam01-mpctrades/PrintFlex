@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
+import prisma from "../db.server";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData, useRevalidator } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { RouteError } from "../components/RouteError";
 import { BulkActionBar } from "../components/orders/BulkActionBar";
@@ -8,6 +9,7 @@ import { FiltersBar } from "../components/orders/FiltersBar";
 import { OrdersTable } from "../components/orders/OrdersTable";
 import { SavedViewsBar } from "../components/orders/SavedViewsBar";
 import { useSelection } from "../components/orders/useSelection";
+import { batchLabel } from "../lib/jobs/batch-label";
 import { createDocumentJob, markOrdersPrinted, parseDocumentTypes } from "../lib/jobs/create-job.server";
 import { getQueue } from "../lib/jobs/worker.server";
 import { createPrintLink } from "../lib/render/fallback.server";
@@ -22,7 +24,8 @@ import {
   resolveSelection,
 } from "../lib/orders/list.server";
 import { canSaveView, deleteView, listSavedViews, saveView } from "../lib/orders/saved-views.server";
-import { backfillOrders } from "../lib/orders/sync.server";
+import { describeSyncRun } from "../lib/orders/sync-status";
+import { latestSyncRun, startBackfill } from "../lib/orders/sync.server";
 import { getPlan } from "../lib/plans.server";
 import { requireShop } from "../lib/request.server";
 
@@ -31,15 +34,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const filters = parseFilters(url.searchParams);
 
-  const [list, facets, views, canSave] = await Promise.all([
+  const [list, facets, views, canSave, sync, indexed] = await Promise.all([
     listOrders(shop.id, filters, shop.timezone),
     loadFacets(shop.id),
     listSavedViews(shop.id),
     canSaveView(shop.id, shop.plan),
+    latestSyncRun(shop.id),
+    prisma.orderIndex.count({ where: { shopId: shop.id } }),
   ]);
 
   return {
     shopId: shop.id,
+    sync,
+    /** Rows in OrderIndex regardless of filters: zero means nothing was ever synced. */
+    indexed,
     planName: getPlan(shop.plan).name,
     filters,
     queryString: filterQueryString(filters),
@@ -62,6 +70,8 @@ interface ActionResult {
   jobId?: string;
   /** Set when the queue was unavailable: a signed browser print link. */
   printUrl?: string;
+  /** Set by backfill: progress and the result come from the loader, not this message. */
+  syncStarted?: boolean;
 }
 
 const DOCUMENT_WORDS: Record<string, string> = {
@@ -94,7 +104,7 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionRes
         options: { coverSheet: form.get("coverSheet") === "on" },
       });
       const what = documentTypes.map((t) => DOCUMENT_WORDS[t]).join(", ");
-      const label = `BATCH-${job.id.slice(-6).toUpperCase()}`;
+      const label = batchLabel(job);
       try {
         await getQueue().enqueue(job.id);
       } catch (error) {
@@ -156,11 +166,9 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionRes
     }
 
     case "backfill": {
-      const summary = await backfillOrders(admin, shop.id);
-      return {
-        ok: true,
-        message: `Synced ${summary.seen} orders: ${summary.created} new, ${summary.updated} updated, ${summary.stale} already current.`,
-      };
+      // Runs in the background; the loader's `sync` field carries progress and the result.
+      const { started } = await startBackfill(admin, shop.id, "manual");
+      return { ok: true, message: started ? "Sync started." : "A sync is already running.", syncStarted: true };
     }
 
     default:
@@ -201,23 +209,78 @@ export default function OrdersPage() {
   }, [list.jumpToId, list.rows, selection]);
 
   const jumpedRow = list.jumpToId ? list.rows.find((r) => r.id === list.jumpToId) : undefined;
-  const syncing = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "backfill";
+
+  // While a sync runs, re-read the loader every 1.5 s so progress and new rows appear.
+  const revalidator = useRevalidator();
+  const syncRunning = data.sync?.status === "RUNNING";
+  useEffect(() => {
+    if (!syncRunning) return;
+    const timer = setInterval(() => {
+      if (revalidator.state === "idle") void revalidator.revalidate();
+    }, 1500);
+    return () => clearInterval(timer);
+  }, [syncRunning, revalidator]);
+  const syncing = syncRunning || (fetcher.state !== "idle" && fetcher.formData?.get("intent") === "backfill");
+  // Show the finished sync's result until the merchant does something else.
+  const showSyncResult = data.sync && data.sync.status !== "RUNNING" && fetcher.data?.syncStarted === true;
+
+  const activeView = data.views.find((v) => v.query === queryString);
+  const noOrdersSynced = data.indexed === 0;
+  const canPrint = fetcher.state === "idle";
+
+  // Three distinct empty states: nothing synced, filters exclude everything, or a view that is legitimately empty.
+  let emptyState: { heading: string; text: string; action?: "sync" | "clear" } | null = null;
+  if (list.rows.length === 0) {
+    if (noOrdersSynced) {
+      emptyState = {
+        heading: "No orders synced yet",
+        text: syncRunning
+          ? "PrintFlex is reading your orders from Shopify now. They appear here as they arrive."
+          : "PrintFlex keeps its own index of your orders so printing and scanning stay fast. Run a sync to bring them in; after that, new orders arrive on their own.",
+        action: syncRunning ? undefined : "sync",
+      };
+    } else if (activeView) {
+      const byView: Record<string, [string, string]> = {
+        "builtin:all": ["No orders yet", "Orders appear here as your store receives them."],
+        "builtin:unfulfilled": ["Nothing left to fulfil", "Every order has been fulfilled. New orders show up here as they come in."],
+        "builtin:never-printed": ["Everything has been printed", "Every order has at least one document. New orders appear here until they are printed."],
+        "builtin:needs-review": ["Nothing needs review", "No order was flagged during packing. That is the state you want."],
+      };
+      const [heading, text] = byView[activeView.id] ?? [`Nothing in "${activeView.name}" right now`, "Orders that match this view's filters will appear here."];
+      emptyState = { heading, text };
+    } else {
+      emptyState = { heading: "No orders match these filters", text: "Try widening the date range or removing a filter.", action: "clear" };
+    }
+  }
 
   return (
     <s-page heading="Orders">
       <s-button
         slot="secondary-actions"
         disabled={syncing || undefined}
+        loading={syncing || undefined}
         onClick={() => fetcher.submit({ intent: "backfill" }, { method: "post" })}
       >
         {syncing ? "Syncing…" : "Sync from Shopify"}
       </s-button>
 
-      {fetcher.data && fetcher.state === "idle" ? (
+      {syncRunning && data.sync ? (
+        <s-banner tone="info" heading="Syncing orders from Shopify">
+          <s-paragraph>{describeSyncRun(data.sync)} Orders appear below as they arrive.</s-paragraph>
+          {data.sync.shopifyTotal ? <s-progress value={Math.min(data.sync.seen, data.sync.shopifyTotal)} max={data.sync.shopifyTotal} accessibilityLabel="Orders synced"></s-progress> : <s-progress accessibilityLabel="Orders synced"></s-progress>}
+        </s-banner>
+      ) : null}
+      {showSyncResult && data.sync ? (
+        <s-banner tone={data.sync.status === "SUCCEEDED" ? (data.sync.beyondWindow ? "warning" : "success") : "critical"} heading={data.sync.status === "SUCCEEDED" ? "Sync finished" : "Sync failed"}>
+          <s-paragraph>{describeSyncRun(data.sync)}</s-paragraph>
+        </s-banner>
+      ) : null}
+
+      {fetcher.data && fetcher.state === "idle" && !fetcher.data.syncStarted ? (
         <s-banner tone={fetcher.data.ok ? "success" : "critical"}>
           <s-paragraph>{fetcher.data.message}</s-paragraph>
           {fetcher.data.printUrl ? (
-            <s-button slot="secondary-actions" variant="primary" href={fetcher.data.printUrl} target="_blank">
+            <s-button slot="secondary-actions" href={fetcher.data.printUrl} target="_blank">
               Print from browser
             </s-button>
           ) : null}
@@ -232,49 +295,84 @@ export default function OrdersPage() {
       {jumpedRow ? (
         <s-banner tone="info">
           <s-paragraph>
-            Jumped to {jumpedRow.orderName} for {jumpedRow.customerName ?? "a guest"}. It is selected
-            below.
+            Jumped to {jumpedRow.orderName} for {jumpedRow.customerName ?? "a guest"}. It is selected below.
           </s-paragraph>
         </s-banner>
       ) : null}
 
-      <SavedViewsBar
-        views={data.views}
-        activeQuery={queryString}
-        hasFilters={data.hasFilters}
-        canSave={data.canSave}
-        planName={data.planName}
-      />
+      {selection.summary.printedCount > 0 ? (
+        <s-banner
+          tone="warning"
+          heading={`${selection.summary.printedCount} of these ${selection.summary.printedCount === 1 ? "was" : "were"} printed already`}
+        >
+          <s-paragraph>Printing again is fine, but it is how parcels get shipped twice.</s-paragraph>
+          <s-button slot="secondary-actions" onClick={selection.excludePrinted}>
+            Exclude already printed
+          </s-button>
+        </s-banner>
+      ) : null}
 
-      <s-section heading="Filters">
-        <FiltersBar filters={filters} facets={data.facets} hasFilters={data.hasFilters} />
+      <s-section padding="none" accessibilityLabel="Orders">
+        <SavedViewsBar
+          views={data.views}
+          activeQuery={queryString}
+          hasFilters={data.hasFilters}
+          canSave={data.canSave}
+          planName={data.planName}
+        />
+        <s-divider></s-divider>
+        {noOrdersSynced ? null : (
+          <>
+            <s-box padding="base">
+              <FiltersBar filters={filters} facets={data.facets} hasFilters={data.hasFilters} queryString={queryString} />
+            </s-box>
+            <s-divider></s-divider>
+          </>
+        )}
+
+        <BulkActionBar
+          summary={selection.summary}
+          spec={selection.spec}
+          total={list.total}
+          pageRowCount={list.rows.length}
+          allOnPageSelected={selection.allOnPageSelected}
+          fetcher={fetcher}
+          onSelectAllMatching={selection.selectAllMatching}
+          onClear={selection.clear}
+        />
+
+        {emptyState ? (
+          <s-box padding="large">
+            <s-empty-state heading={emptyState.heading}>
+              <s-paragraph slot="subheading">{emptyState.text}</s-paragraph>
+              {emptyState.action === "sync" ? (
+                <s-button slot="primary-action" variant="primary" disabled={!canPrint || undefined} onClick={() => fetcher.submit({ intent: "backfill" }, { method: "post" })}>
+                  Sync from Shopify
+                </s-button>
+              ) : null}
+              {emptyState.action === "clear" ? (
+                <s-button slot="primary-action" href="/app/orders">
+                  Clear filters
+                </s-button>
+              ) : null}
+            </s-empty-state>
+          </s-box>
+        ) : (
+          <OrdersTable
+            rows={list.rows}
+            page={list.page}
+            pageCount={list.pageCount}
+            total={list.total}
+            queryString={queryString}
+            isSelected={selection.isSelected}
+            allOnPageSelected={selection.allOnPageSelected}
+            pageSelectedCount={selection.pageSelectedCount}
+            onToggle={selection.toggle}
+            onSelectPage={selection.selectPage}
+            highlightId={list.jumpToId}
+          />
+        )}
       </s-section>
-
-      <BulkActionBar
-        summary={selection.summary}
-        spec={selection.spec}
-        total={list.total}
-        pageRowCount={list.rows.length}
-        allOnPageSelected={selection.allOnPageSelected}
-        fetcher={fetcher}
-        onSelectAllMatching={selection.selectAllMatching}
-        onClear={selection.clear}
-        onExcludePrinted={selection.excludePrinted}
-      />
-
-      <OrdersTable
-        rows={list.rows}
-        page={list.page}
-        pageCount={list.pageCount}
-        total={list.total}
-        queryString={queryString}
-        isSelected={selection.isSelected}
-        allOnPageSelected={selection.allOnPageSelected}
-        pageSelectedCount={selection.pageSelectedCount}
-        onToggle={selection.toggle}
-        onSelectPage={selection.selectPage}
-        highlightId={list.jumpToId}
-      />
     </s-page>
   );
 }

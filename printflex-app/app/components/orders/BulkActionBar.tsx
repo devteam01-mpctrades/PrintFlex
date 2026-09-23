@@ -13,7 +13,6 @@ interface Props {
   fetcher: FetcherWithComponents<unknown>;
   onSelectAllMatching: () => void;
   onClear: () => void;
-  onExcludePrinted: () => void;
 }
 
 const ACTIONS: Array<{ label: string; documentTypes: string }> = [
@@ -23,14 +22,18 @@ const ACTIONS: Array<{ label: string; documentTypes: string }> = [
   { label: "All three", documentTypes: "ALL" },
 ];
 
+/**
+ * Appears inside the orders card as soon as anything is selected. One
+ * primary action (Print invoices); everything else is secondary.
+ */
 export function BulkActionBar(props: Props) {
   const { summary, spec, total, pageRowCount, allOnPageSelected, fetcher } = props;
   const busy = fetcher.state !== "idle";
   const selection = JSON.stringify(spec);
   const [coverSheet, setCoverSheet] = useState(false);
-  const optionsRef = useRef<HTMLElementTagNameMap["s-box"]>(null);
+  const barRef = useRef<HTMLElementTagNameMap["s-box"]>(null);
   useNativeEvent(
-    optionsRef,
+    barRef,
     "change",
     useCallback((event: Event) => {
       const target = event.target as (HTMLElement & { checked?: boolean }) | null;
@@ -41,21 +44,18 @@ export function BulkActionBar(props: Props) {
   if (summary.count === 0) return null;
 
   const offerSelectAll = summary.mode === "ids" && allOnPageSelected && total > pageRowCount;
+  const countLabel =
+    summary.mode === "filter" ? `All ${summary.count} matching this filter selected` : `${summary.count} selected`;
 
   return (
-    <s-stack gap="base">
-      <s-section
-        heading={
-          summary.mode === "filter"
-            ? `All ${summary.count} orders matching this filter selected`
-            : `${summary.count} selected`
-        }
-      >
+    <s-box ref={barRef} padding="base" background="subdued">
+      <s-stack gap="small">
         <s-stack direction="inline" gap="small" alignItems="center">
+          <s-text type="strong" fontVariantNumeric="tabular-nums">{countLabel}</s-text>
           {ACTIONS.map((action) => (
             <s-button
               key={action.documentTypes}
-              variant={action.documentTypes === "ALL" ? "primary" : "secondary"}
+              variant={action.documentTypes === "INVOICE" ? "primary" : "secondary"}
               disabled={busy || undefined}
               onClick={() =>
                 fetcher.submit(
@@ -68,7 +68,7 @@ export function BulkActionBar(props: Props) {
             </s-button>
           ))}
           <s-button
-            variant="tertiary"
+            variant="secondary"
             disabled={busy || undefined}
             onClick={() => fetcher.submit({ intent: "markPrinted", selection }, { method: "post" })}
           >
@@ -78,34 +78,15 @@ export function BulkActionBar(props: Props) {
             Clear selection
           </s-button>
         </s-stack>
-        <s-box ref={optionsRef} paddingBlockStart="small">
-          <s-checkbox
-            value="coverSheet"
-            label="Add a cover sheet with the batch QR code"
-            checked={coverSheet || undefined}
-          ></s-checkbox>
-        </s-box>
-        {offerSelectAll ? (
-          <s-stack direction="inline" gap="small" alignItems="center">
-            <s-text>All {pageRowCount} orders on this page are selected.</s-text>
-            <s-button variant="tertiary" onClick={props.onSelectAllMatching}>Select all {total} matching this filter</s-button>
-          </s-stack>
-        ) : null}
-      </s-section>
-
-      {summary.printedCount > 0 ? (
-        <s-banner
-          tone="warning"
-          heading={`${summary.printedCount} of these ${summary.printedCount === 1 ? "was" : "were"} printed already`}
-        >
-          <s-paragraph>
-            Printing again is fine, but it is how parcels get shipped twice.
-          </s-paragraph>
-          <s-button slot="secondary-actions" onClick={props.onExcludePrinted}>
-            Exclude already printed
-          </s-button>
-        </s-banner>
-      ) : null}
-    </s-stack>
+        <s-stack direction="inline" gap="base" alignItems="center">
+          <s-checkbox value="coverSheet" label="Add a cover sheet with the batch QR code" checked={coverSheet || undefined}></s-checkbox>
+          {offerSelectAll ? (
+            <s-button variant="tertiary" onClick={props.onSelectAllMatching}>
+              Select all {total} matching this filter, not just this page
+            </s-button>
+          ) : null}
+        </s-stack>
+      </s-stack>
+    </s-box>
   );
 }

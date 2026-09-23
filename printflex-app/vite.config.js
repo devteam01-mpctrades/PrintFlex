@@ -54,5 +54,9 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["@shopify/app-bridge-react"],
+    // Vite's client dependency scan reads route modules before React Router
+    // strips their loader/action imports, so it finds the server-only PDF
+    // renderer and fails to pre-bundle it. Nothing client-side uses these.
+    exclude: ["puppeteer", "@puppeteer/browsers"],
   },
 });

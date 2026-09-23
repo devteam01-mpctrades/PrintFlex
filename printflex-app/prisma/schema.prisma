@@ -54,6 +54,8 @@ model Shop {
   settingsJson       String    @default("{}")
   invoicePrefix      String    @default("INV-")
   invoiceNextNumber  Int       @default(1)
+  /** Next sequential batch number (BATCH-0412). Allocated like invoice numbers, never reused. */
+  batchNextNumber    Int       @default(1)
   installedAt        DateTime  @default(now())
   uninstalledAt      DateTime?
   createdAt          DateTime  @default(now())
@@ -73,6 +75,31 @@ model Shop {
   auditEntries AuditEntry[]
   scanDevices  ScanDevice[]
   sendLogs     SendLog[]
+  syncRuns     SyncRun[]
+}
+
+// One full walk of the store's orders into OrderIndex, started at install or
+// from "Sync from Shopify". Progress is written per page so the Orders page
+// can show it, and the last run tells Home whether anything was ever synced.
+model SyncRun {
+  id           String    @id @default(cuid())
+  shopId       String
+  trigger      String
+  status       String    @default("RUNNING")
+  pages        Int       @default(0)
+  seen         Int       @default(0)
+  created      Int       @default(0)
+  updated      Int       @default(0)
+  stale        Int       @default(0)
+  shopifyTotal Int?
+  beyondWindow Int?
+  error        String?
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, startedAt])
 }
 
 // A phone or scanning bench that signed in with the store PIN. The cookie
@@ -170,6 +197,8 @@ model OrderIndex {
 model DocumentJob {
   id                String    @id @default(cuid())
   shopId            String
+  /** Sequential per shop; null for batches created before numbering existed (they keep their hex label). */
+  number            Int?
   name              String?
   documentTypesJson String
   orderIdsJson      String
@@ -190,6 +219,8 @@ model DocumentJob {
   shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
   documents  Document[]
   scanTokens ScanToken[]
+
+  @@unique([shopId, number])
 
   @@index([shopId, state, createdAt])
 }

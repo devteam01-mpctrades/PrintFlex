@@ -15,7 +15,7 @@ function rawOrder(n: number): RawOrder {
   return {
     id: `gid://shopify/Order/${n}`, name: `#${1000 + n}`, createdAt: "2026-09-21T00:00:00Z", processedAt: "2026-09-21T00:00:00Z",
     note: null, customAttributes: [], email: `c${n}@example.com`, phone: null, taxesIncluded: false, displayFinancialStatus: "PAID",
-    displayFulfillmentStatus: "UNFULFILLED", customer: { displayName: `Customer ${n}` },
+    displayFulfillmentStatus: "UNFULFILLED", 
     billingAddress: null, shippingAddress: { name: `Customer ${n}`, company: null, address1: "1 St", address2: null, city: "Town", province: null, zip: "1", country: "US", phone: null },
     shippingLine: { title: "Standard" },
     currentSubtotalPriceSet: money("10.00"), currentTotalDiscountsSet: money("0.00"), currentShippingPriceSet: money("0.00"),

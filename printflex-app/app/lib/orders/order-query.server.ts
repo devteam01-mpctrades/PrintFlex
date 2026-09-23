@@ -1,6 +1,10 @@
 /**
  * GraphQL documents for order sync. Only the fields the orders list and the
  * documents need are requested; whole order payloads are never stored.
+ *
+ * The Order.customer object is deliberately absent: reading it needs the
+ * read_customers scope, which PrintFlex does not request. Name and email
+ * come from the order itself and its addresses instead.
  */
 
 export const ORDER_INDEX_FRAGMENT = `#graphql
@@ -21,9 +25,8 @@ export const ORDER_INDEX_FRAGMENT = `#graphql
         currencyCode
       }
     }
-    customer {
-      displayName
-      email
+    billingAddress {
+      name
     }
     shippingAddress {
       name
@@ -103,7 +106,7 @@ export interface OrderNode {
   currentTotalPriceSet: {
     presentmentMoney: { amount: string; currencyCode: string };
   };
-  customer: { displayName: string; email: string | null } | null;
+  billingAddress: { name: string | null } | null;
   shippingAddress: { name: string | null; city: string | null; countryCodeV2: string | null } | null;
   shippingLine: { title: string } | null;
   lineItems: { nodes: LineItemNode[] };

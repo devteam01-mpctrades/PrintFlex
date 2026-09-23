@@ -29,6 +29,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   if (!session || session.shopId !== verified.shopId) {
     return { kind: "signin" as const, shopLabel: label, error: null as string | null };
   }
+  if (verified.target.kind === "hub") {
+    // Enrolment QR from the Scan & pack page: the device is signed in, so start scanning.
+    throw redirect("/scan");
+  }
   if (verified.target.kind === "batch") {
     throw redirect(`/scan/batch/${verified.target.jobId}`);
   }

@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import prisma from "../../db.server";
-import { mintScanToken, revokeOrderTokens, rotateScanSecret, scanUrl, verifyScanToken } from "./tokens.server";
+import { mintEnrolToken, mintPreviewToken, mintScanToken, revokeOrderTokens, rotateScanSecret, scanUrl, verifyPreviewToken, verifyScanToken } from "./tokens.server";
 
 async function seed(settingsJson = "{}") {
   const shop = await prisma.shop.create({ data: { domain: `tok-${Math.random().toString(36).slice(2)}.myshopify.com`, settingsJson } });
@@ -66,5 +66,27 @@ describe("scan tokens", () => {
     const { token } = await mintScanToken(shop.id, { kind: "batch", jobId: job.id });
     const result = await verifyScanToken(token);
     expect(result.ok && result.target).toEqual({ kind: "batch", jobId: job.id });
+  });
+});
+
+describe("enrolment and preview tokens", () => {
+  it("mints a hub token that verifies without an order or batch and lasts a day", async () => {
+    const { shop } = await seed();
+    const now = new Date("2026-09-23T00:00:00Z");
+    const { token, expiresAt } = await mintEnrolToken(shop.id, now);
+    expect(expiresAt).toEqual(new Date("2026-09-24T00:00:00Z"));
+    const verified = await verifyScanToken(token, now);
+    expect(verified).toMatchObject({ ok: true, shopId: shop.id, target: { kind: "hub" } });
+  });
+
+  it("preview tokens are stateless, shop-bound and expire after fifteen minutes", async () => {
+    const { shop } = await seed();
+    const now = new Date("2026-09-23T00:00:00Z");
+    const token = await mintPreviewToken(shop.id, now);
+    expect(await verifyPreviewToken(token, now)).toEqual({ ok: true, shopId: shop.id });
+    expect(await verifyPreviewToken(token, new Date(now.getTime() + 16 * 60_000))).toEqual({ ok: false, reason: "expired" });
+    expect(await verifyPreviewToken(token.replace(/.$/, (c) => (c === "A" ? "B" : "A")), now)).toEqual({ ok: false, reason: "bad-signature" });
+    expect(await verifyPreviewToken("pv.nope.1.sig", now)).toEqual({ ok: false, reason: "unknown" });
+    expect(await verifyScanToken(token, now)).toEqual({ ok: false, reason: "unknown" });
   });
 });

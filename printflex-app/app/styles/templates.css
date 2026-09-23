@@ -1,0 +1,11 @@
+/* Three-pane template editor: list, preview, settings. One column under 1000px. */
+.pf-editor {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 340px;
+  gap: 16px;
+  align-items: start;
+}
+.pf-editor > * { min-width: 0; }
+@media (max-width: 1000px) {
+  .pf-editor { grid-template-columns: minmax(0, 1fr); }
+}

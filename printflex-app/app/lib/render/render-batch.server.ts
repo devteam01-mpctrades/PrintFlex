@@ -37,9 +37,8 @@ export function parseJobOptions(json: string): JobOptions {
   }
 }
 
-export function batchLabel(jobId: string): string {
-  return `BATCH-${jobId.slice(-6).toUpperCase()}`;
-}
+import { batchLabel } from "../jobs/batch-label";
+export { batchLabel };
 
 export interface BatchDeps {
   client: GraphqlClient;
@@ -129,7 +128,7 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
     renderedData.push(orderData);
   }
 
-  const label = batchLabel(jobId);
+  const label = batchLabel(job);
   const firstSettings = (await pick(types[0])).settings;
   const paperSize = firstSettings.paperSize;
 
