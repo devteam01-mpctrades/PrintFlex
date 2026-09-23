@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { useRef, useState } from "react";
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { downloadFile } from "../components/download";
@@ -17,6 +17,9 @@ import { hasStorePin, setStorePin } from "../lib/scan/pin.server";
 import { DEFAULT_TAG_NAMES, parseSettings, updateShopSettings, type PackSettings } from "../lib/settings.server";
 import { clearBins, clearBundles, importBins, importBundles, warehouseSummary } from "../lib/warehouse/warehouse.server";
 import { DOCUMENT_TYPES } from "../lib/types";
+import settingsStyles from "../styles/settings.css?url";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: settingsStyles }];
 
 const PACK_TOGGLES: Array<{ key: keyof PackSettings; label: string; details: string }> = [
   { key: "requireAllChecked", label: "Require every item to be checked", details: "Mark as packed stays disabled until every line is complete or flagged." },
@@ -160,195 +163,235 @@ export default function SettingsPage() {
   const invoiceRef = useRef<HTMLFormElement>(null);
   const when = (iso: string) => new Intl.DateTimeFormat("en-GB", { timeZone: data.timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
+  const relative = (iso: string) => {
+    const minutes = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 48) return `${hours} h ago`;
+    return `${Math.round(hours / 24)} days ago`;
+  };
+
   return (
-    <s-page heading="Settings">
+    <s-page heading="Settings" inlineSize="large">
       {fetcher.data && !busy ? <s-banner tone={fetcher.data.ok ? "success" : "critical"}><s-paragraph>{fetcher.data.message}</s-paragraph></s-banner> : null}
 
-      <s-section heading="Warehouse">
-        <s-stack gap="base">
-          <form ref={binsRef} onSubmit={(e) => { e.preventDefault(); submitForm(binsRef.current, "bins"); }}>
-            <s-stack gap="small">
-              <s-heading>Bin location map</s-heading>
-              <s-paragraph color="subdued">
-                {warehouse.bins === 0
-                  ? "No bin locations yet. Pick lists sort by SKU. Paste a CSV with SKU, bin and an optional walking sequence."
-                  : `${warehouse.bins} SKUs mapped${warehouse.withSequence ? `, ${warehouse.withSequence} with a walking sequence` : ""}. Pick lists are sorted into walking order using this map.`}
-              </s-paragraph>
-              <s-text-area name="csv" label="CSV: SKU, bin, walking sequence (optional)" rows={5} placeholder={"PF-001,B-07,2\nPF-003,A-01,1"}></s-text-area>
-              <s-select name="mode" label="Walking sequence" value="csv">
-                <s-option value="csv">From the third column, if present</s-option>
-                <s-option value="derive">Derive from bin codes: aisle, then shelf, then bin</s-option>
-              </s-select>
-              <s-stack direction="inline" gap="small">
-                <s-button type="submit" variant="primary" disabled={busy || undefined}>Import bin locations</s-button>
-                {warehouse.bins > 0 ? <s-button variant="tertiary" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "clearBins" }, { method: "post" })}>Clear</s-button> : null}
-              </s-stack>
-            </s-stack>
-          </form>
-          <s-divider />
-          <form ref={bundlesRef} onSubmit={(e) => { e.preventDefault(); submitForm(bundlesRef.current, "bundles"); }}>
-            <s-stack gap="small">
-              <s-heading>Bundle map</s-heading>
-              <s-paragraph color="subdued">
-                {warehouse.bundles === 0
-                  ? "No bundles yet. A bundle SKU on an order expands into its components on the pack screen."
-                  : `${warehouse.bundles} bundle SKUs expand into components on the pack screen.`}
-              </s-paragraph>
-              <s-text-area name="csv" label="CSV: bundle SKU, component SKU, quantity, component title (optional)" rows={4} placeholder={"KIT-GLASS,PF-001,1,Ginseng Cream\nKIT-GLASS,PF-009,2,Travel Toner"}></s-text-area>
-              <s-stack direction="inline" gap="small">
-                <s-button type="submit" variant="primary" disabled={busy || undefined}>Import bundle map</s-button>
-                {warehouse.bundles > 0 ? <s-button variant="tertiary" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "clearBundles" }, { method: "post" })}>Clear</s-button> : null}
-              </s-stack>
-            </s-stack>
-          </form>
-        </s-stack>
-      </s-section>
+      <div className="pf-settings">
+        <div className="pf-settings-grid">
+          {/* Left: the warehouse and how packing behaves */}
+          <div className="pf-settings-col">
+            <div className="pf-panel">
+              <div className="pf-panel__h"><h2>Warehouse</h2></div>
+              <div className="pf-panel__b">
+                <form ref={binsRef} onSubmit={(e) => { e.preventDefault(); submitForm(binsRef.current, "bins"); }}>
+                  <span className="pf-kicker">Bin location map</span>
+                  <div className={`pf-stat-line${warehouse.bins === 0 ? " empty" : ""}`}>
+                    {warehouse.bins === 0 ? (
+                      <span>No bin locations yet. Pick lists sort by SKU until you add some.</span>
+                    ) : (
+                      <><b>{warehouse.bins.toLocaleString("en-US")}</b><span>SKUs mapped{warehouse.withSequence ? ` · ${warehouse.withSequence} with a walking sequence` : ""}. Pick lists are sorted into walking order.</span></>
+                    )}
+                  </div>
+                  <s-stack gap="small">
+                    <s-text-area name="csv" label="Paste CSV: SKU, bin, walking sequence (optional)" rows={4} placeholder={"PF-001,B-07,2\nPF-003,A-01,1"}></s-text-area>
+                    <s-select name="mode" label="Walking sequence" value="csv">
+                      <s-option value="csv">From the third column, if present</s-option>
+                      <s-option value="derive">Derive from bin codes: aisle, then shelf, then bin</s-option>
+                    </s-select>
+                  </s-stack>
+                  <div className="pf-actions">
+                    <s-button type="submit" variant="primary" disabled={busy || undefined}>Import bin locations</s-button>
+                    {warehouse.bins > 0 ? <s-button variant="tertiary" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "clearBins" }, { method: "post" })}>Clear</s-button> : null}
+                  </div>
+                </form>
+              </div>
+              <div className="pf-panel__b">
+                <form ref={bundlesRef} onSubmit={(e) => { e.preventDefault(); submitForm(bundlesRef.current, "bundles"); }}>
+                  <span className="pf-kicker">Bundle map</span>
+                  <div className={`pf-stat-line${warehouse.bundles === 0 ? " empty" : ""}`}>
+                    {warehouse.bundles === 0 ? (
+                      <span>No bundles yet. A bundle SKU on an order expands into its components on the pack screen.</span>
+                    ) : (
+                      <><b>{warehouse.bundles}</b><span>bundle SKUs expand into components on the pack screen.</span></>
+                    )}
+                  </div>
+                  <s-text-area name="csv" label="Paste CSV: bundle SKU, component SKU, quantity, component title (optional)" rows={3} placeholder={"KIT-GLASS,PF-001,1,Ginseng Cream\nKIT-GLASS,PF-009,2,Travel Toner"}></s-text-area>
+                  <div className="pf-actions">
+                    <s-button type="submit" variant="primary" disabled={busy || undefined}>Import bundle map</s-button>
+                    {warehouse.bundles > 0 ? <s-button variant="tertiary" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "clearBundles" }, { method: "post" })}>Clear</s-button> : null}
+                  </div>
+                </form>
+              </div>
+            </div>
 
-      <s-section heading="Pack behaviour">
-        <form ref={packRef} onSubmit={(e) => e.preventDefault()}>
-          <s-stack gap="small">
-            {PACK_TOGGLES.map((t) => (
-              <s-switch key={t.key} name={t.key} value="on" checked={settings.pack[t.key] || undefined} label={t.label} details={t.details}></s-switch>
-            ))}
-          </s-stack>
-        </form>
-      </s-section>
+            <div className="pf-panel">
+              <div className="pf-panel__h"><h2>Pack behaviour</h2><div className="right"><span className="pf-badge pf-b-neu">Saves on change</span></div></div>
+              <div className="pf-panel__b">
+                <form ref={packRef} onSubmit={(e) => e.preventDefault()}>
+                  <div className="pf-toggles">
+                    {PACK_TOGGLES.map((t) => (
+                      <s-switch key={t.key} name={t.key} value="on" checked={settings.pack[t.key] || undefined} label={t.label} details={t.details}></s-switch>
+                    ))}
+                  </div>
+                </form>
+              </div>
+            </div>
 
-      <s-section heading="Staff access">
-        <s-stack gap="base">
-          {!data.hasPin ? <s-banner tone="warning"><s-paragraph>No store PIN yet, so nobody can open scan mode. Set one below.</s-paragraph></s-banner> : null}
-          <form ref={pinRef} onSubmit={(e) => { e.preventDefault(); submitForm(pinRef.current, "setPin"); }}>
-            <s-stack direction="inline" gap="small" alignItems="end">
-              <s-text-field name="pin" label={data.hasPin ? "New store PIN" : "Store PIN"} placeholder="4 to 8 digits" details="Changing the PIN signs every device out."></s-text-field>
-              <s-button type="submit" variant="primary" disabled={busy || undefined}>{data.hasPin ? "Rotate PIN" : "Set PIN"}</s-button>
-            </s-stack>
-          </form>
-          {devices.length === 0 ? (
-            <s-paragraph color="subdued">No device has signed in yet. Staff scan any printed QR code, enter the PIN and name the device.</s-paragraph>
+            <div className="pf-panel">
+              <div className="pf-panel__h"><h2>Invoice numbering</h2></div>
+              <div className="pf-panel__b">
+                <form ref={invoiceRef} onSubmit={(e) => { e.preventDefault(); submitForm(invoiceRef.current, "invoice"); }}>
+                  <p className="pf-sub">Numbers are sequential with no gaps and never reused. The next number can only move forward past numbers already issued.</p>
+                  <div className="pf-stat-line"><span>Next invoice</span><b>{data.invoice.prefix}{String(data.invoice.nextNumber).padStart(6, "0")}</b></div>
+                  <s-grid gridTemplateColumns="1fr 1fr" gap="small">
+                    <s-text-field name="prefix" label="Prefix" value={data.invoice.prefix}></s-text-field>
+                    <s-number-field name="nextNumber" label="Next number" value={String(data.invoice.nextNumber)} min={1}></s-number-field>
+                  </s-grid>
+                  <div className="pf-actions"><s-button type="submit" variant="primary" disabled={busy || undefined}>Save numbering</s-button></div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: who can scan, what gets written to Shopify, defaults */}
+          <div className="pf-settings-col">
+            <div className="pf-panel">
+              <div className="pf-panel__h">
+                <h2>Staff access</h2>
+                <div className="right">
+                  <span className={`pf-badge ${data.hasPin ? "pf-b-ok" : "pf-b-crit"}`}>{data.hasPin ? "PIN set" : "No PIN yet"}</span>
+                </div>
+              </div>
+              <div className="pf-panel__b">
+                <form ref={pinRef} onSubmit={(e) => { e.preventDefault(); submitForm(pinRef.current, "setPin"); }}>
+                  {!data.hasPin ? <p className="pf-sub">No store PIN yet, so nobody can open scan mode. Set one to let staff sign in on their phones.</p> : null}
+                  <s-stack direction="inline" gap="small" alignItems="end">
+                    <s-text-field name="pin" label={data.hasPin ? "New store PIN" : "Store PIN"} placeholder="4 to 8 digits" details="Changing the PIN signs every device out."></s-text-field>
+                    <s-button type="submit" variant="primary" disabled={busy || undefined}>{data.hasPin ? "Rotate PIN" : "Set PIN"}</s-button>
+                  </s-stack>
+                </form>
+              </div>
+              {devices.length === 0 ? (
+                <div className="pf-panel__empty">No device has signed in yet. Enrol a phone from Scan &amp; pack, or scan any printed QR code, enter the PIN and name the device.</div>
+              ) : (
+                <div className="pf-tscroll">
+                  <table className="pf-t">
+                    <thead><tr><th>Device</th><th>Last seen</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                      {devices.map((d) => (
+                        <tr key={d.id}>
+                          <td>{d.name}{d.staffLabel ? ` · ${d.staffLabel}` : ""}</td>
+                          <td className="mono" title={when(d.lastSeenAt)}>{relative(d.lastSeenAt)}</td>
+                          <td><span className={`pf-badge ${d.stale ? "pf-b-warn" : "pf-b-ok"}`}>{d.stale ? "Must sign in again" : "Active"}</span></td>
+                          <td className="end">
+                            <s-button variant="tertiary" tone="critical" accessibilityLabel={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>Revoke</s-button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="pf-panel">
+              <div className="pf-panel__h"><h2>Tags written to Shopify</h2></div>
+              <div className="pf-panel__b">
+                <form ref={tagsRef} onSubmit={(e) => { e.preventDefault(); submitForm(tagsRef.current, "tags"); }}>
+                  <p className="pf-sub">PrintFlex adds one of these tags to an order when it is printed, packed or flagged. Rename them to fit your own tag scheme.</p>
+                  <s-stack gap="small">
+                    <s-text-field name="printed" label="Printed" value={settings.tagNames.printed} placeholder={data.defaultTags.printed}></s-text-field>
+                    <s-text-field name="packed" label="Packed" value={settings.tagNames.packed} placeholder={data.defaultTags.packed}></s-text-field>
+                    <s-text-field name="needsReview" label="Needs review" value={settings.tagNames.needsReview} placeholder={data.defaultTags.needsReview}></s-text-field>
+                  </s-stack>
+                  <div className="pf-actions"><s-button type="submit" variant="primary" disabled={busy || undefined}>Save tag names</s-button></div>
+                </form>
+              </div>
+            </div>
+
+            <div className="pf-panel">
+              <div className="pf-panel__h"><h2>Defaults</h2></div>
+              <div className="pf-panel__b">
+                <form ref={defaultsRef} onSubmit={(e) => { e.preventDefault(); submitForm(defaultsRef.current, "defaults"); }}>
+                  <s-stack gap="small">
+                    <s-select name="paperSize" label="Default paper size for new templates" value={settings.defaults.paperSize}>
+                      <s-option value="A4">A4</s-option>
+                      <s-option value="LETTER">US Letter</s-option>
+                    </s-select>
+                    <span className="pf-kicker" style={{ marginTop: 6 }}>Default document set · what the morning batch on Home prints</span>
+                    {DOCUMENT_TYPES.map((t) => (
+                      <s-checkbox key={t} name={`set.${t}`} value="on" label={DOC_LABEL[t]} checked={settings.defaults.documentSet.includes(t) || undefined}></s-checkbox>
+                    ))}
+                    <s-select name="timezone" label="Meter timezone" value={data.timezone} details="Billing periods, date filters and the daily tiles use this timezone.">
+                      {data.timezones.map((tz) => <s-option key={tz} value={tz}>{tz}</s-option>)}
+                    </s-select>
+                    <s-number-field name="scanTokenDays" label="Printed QR codes keep working for (days)" value={String(settings.scanTokenDays)} min={1} max={3650}></s-number-field>
+                  </s-stack>
+                  <div className="pf-actions"><s-button type="submit" variant="primary" disabled={busy || undefined}>Save defaults</s-button></div>
+                </form>
+              </div>
+              <div className="pf-panel__f">
+                <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
+                  <span>The setup guide leaves Home once the first document is printed. Bring it back for a new team member.</span>
+                  <s-button disabled={busy || settings.showSetupGuide || undefined} onClick={() => fetcher.submit({ intent: "setupGuide" }, { method: "post" })}>
+                    {settings.showSetupGuide ? "Shown on Home" : "Show the setup guide"}
+                  </s-button>
+                </s-stack>
+              </div>
+            </div>
+
+            <div className="pf-panel">
+              <div className="pf-panel__h"><h2>Customer data requests</h2></div>
+              {exportError ? <div className="pf-panel__b"><s-banner tone="critical"><s-paragraph>{exportError}</s-paragraph></s-banner></div> : null}
+              {data.exports.length === 0 ? (
+                <div className="pf-panel__empty">When a customer asks Shopify for their data, the export PrintFlex prepares appears here for you to forward.</div>
+              ) : (
+                <div className="pf-tscroll">
+                  <table className="pf-t">
+                    <tbody>
+                      {data.exports.map((f) => (
+                        <tr key={f}>
+                          <td className="mono">{f}</td>
+                          <td className="end"><s-button variant="tertiary" onClick={() => void downloadFile(`/app/settings/export/${encodeURIComponent(f)}`, f).then(setExportError)}>Download</s-button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="pf-panel">
+          <div className="pf-panel__h"><h2>Audit log</h2><div className="right"><span className="pf-badge pf-b-neu">Last {data.audit.length}</span></div></div>
+          {data.audit.length === 0 ? (
+            <div className="pf-panel__empty">Template changes, PIN rotations, plan changes and code revocations will be listed here.</div>
           ) : (
-            <s-table>
-              <s-table-header-row>
-                <s-table-header listSlot="primary">Device</s-table-header>
-                <s-table-header>Last seen</s-table-header>
-                <s-table-header>Status</s-table-header>
-                <s-table-header></s-table-header>
-              </s-table-header-row>
-              <s-table-body>
-                {devices.map((d) => (
-                  <s-table-row key={d.id}>
-                    <s-table-cell>{d.name}{d.staffLabel ? ` · ${d.staffLabel}` : ""}</s-table-cell>
-                    <s-table-cell>{when(d.lastSeenAt)}</s-table-cell>
-                    <s-table-cell><s-badge tone={d.stale ? "warning" : "success"}>{d.stale ? "Must sign in again" : "Active"}</s-badge></s-table-cell>
-                    <s-table-cell>
-                      <s-button variant="tertiary" tone="critical" accessibilityLabel={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>Revoke</s-button>
-                    </s-table-cell>
-                  </s-table-row>
-                ))}
-              </s-table-body>
-            </s-table>
+            <div className="pf-tscroll">
+              <table className="pf-t">
+                <thead><tr><th>When</th><th>What</th><th>Who</th><th>Details</th></tr></thead>
+                <tbody>
+                  {data.audit.map((a) => (
+                    <tr key={a.id}>
+                      <td className="mono">{when(a.createdAt)}</td>
+                      <td>{a.label}</td>
+                      <td>{a.actor}</td>
+                      <td style={{ color: "var(--pf-sub)" }}>{a.details === "{}" ? "" : a.details}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </s-stack>
-      </s-section>
-
-      <s-section heading="Tags written to Shopify">
-        <form ref={tagsRef} onSubmit={(e) => { e.preventDefault(); submitForm(tagsRef.current, "tags"); }}>
-          <s-stack gap="small">
-            <s-grid gridTemplateColumns="repeat(auto-fit, minmax(200px, 1fr))" gap="small">
-              <s-text-field name="printed" label="Printed" value={settings.tagNames.printed} placeholder={data.defaultTags.printed}></s-text-field>
-              <s-text-field name="packed" label="Packed" value={settings.tagNames.packed} placeholder={data.defaultTags.packed}></s-text-field>
-              <s-text-field name="needsReview" label="Needs review" value={settings.tagNames.needsReview} placeholder={data.defaultTags.needsReview}></s-text-field>
-            </s-grid>
-            <s-button type="submit" variant="primary" disabled={busy || undefined}>Save tag names</s-button>
-          </s-stack>
-        </form>
-      </s-section>
-
-      <s-section heading="Defaults">
-        <form ref={defaultsRef} onSubmit={(e) => { e.preventDefault(); submitForm(defaultsRef.current, "defaults"); }}>
-          <s-stack gap="small">
-            <s-select name="paperSize" label="Default paper size for new templates" value={settings.defaults.paperSize}>
-              <s-option value="A4">A4</s-option>
-              <s-option value="LETTER">US Letter</s-option>
-            </s-select>
-            <s-heading>Default document set</s-heading>
-            <s-paragraph color="subdued">What the morning batch on Home prints.</s-paragraph>
-            {DOCUMENT_TYPES.map((t) => (
-              <s-checkbox key={t} name={`set.${t}`} value="on" label={DOC_LABEL[t]} checked={settings.defaults.documentSet.includes(t) || undefined}></s-checkbox>
-            ))}
-            <s-select name="timezone" label="Meter timezone" value={data.timezone} details="Billing periods, date filters and the daily tiles use this timezone.">
-              {data.timezones.map((tz) => <s-option key={tz} value={tz}>{tz}</s-option>)}
-            </s-select>
-            <s-number-field name="scanTokenDays" label="Printed QR codes keep working for (days)" value={String(settings.scanTokenDays)} min={1} max={3650}></s-number-field>
-            <s-button type="submit" variant="primary" disabled={busy || undefined}>Save defaults</s-button>
-          </s-stack>
-        </form>
-        <s-divider></s-divider>
-        <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
-          <s-paragraph color="subdued">The setup guide leaves Home once the first document is printed. Bring it back for a new team member.</s-paragraph>
-          <s-button disabled={busy || settings.showSetupGuide || undefined} onClick={() => fetcher.submit({ intent: "setupGuide" }, { method: "post" })}>
-            {settings.showSetupGuide ? "Shown on Home" : "Show the setup guide on Home"}
-          </s-button>
-        </s-stack>
-      </s-section>
-
-      <s-section heading="Invoice numbering">
-        <form ref={invoiceRef} onSubmit={(e) => { e.preventDefault(); submitForm(invoiceRef.current, "invoice"); }}>
-          <s-stack gap="small">
-            <s-paragraph color="subdued">Numbers are sequential with no gaps and never reused. The next number can only move forward past numbers already issued.</s-paragraph>
-            <s-stack direction="inline" gap="small" alignItems="end">
-              <s-text-field name="prefix" label="Prefix" value={data.invoice.prefix}></s-text-field>
-              <s-number-field name="nextNumber" label="Next number" value={String(data.invoice.nextNumber)} min={1}></s-number-field>
-              <s-button type="submit" variant="primary" disabled={busy || undefined}>Save numbering</s-button>
-            </s-stack>
-          </s-stack>
-        </form>
-      </s-section>
-
-      <s-section heading="Customer data requests">
-        {exportError ? <s-banner tone="critical"><s-paragraph>{exportError}</s-paragraph></s-banner> : null}
-        {data.exports.length === 0 ? (
-          <s-paragraph color="subdued">When a customer asks Shopify for their data, the export PrintFlex prepares appears here for you to forward.</s-paragraph>
-        ) : (
-          <s-unordered-list>
-            {data.exports.map((f) => (
-              <s-list-item key={f}>
-                <s-button variant="tertiary" onClick={() => void downloadFile(`/app/settings/export/${encodeURIComponent(f)}`, f).then(setExportError)}>{f}</s-button>
-              </s-list-item>
-            ))}
-          </s-unordered-list>
-        )}
-      </s-section>
-
-      <s-section heading="Audit log">
-        {data.audit.length === 0 ? (
-          <s-paragraph color="subdued">Template changes, PIN rotations, plan changes and code revocations will be listed here.</s-paragraph>
-        ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>When</s-table-header>
-              <s-table-header listSlot="primary">What</s-table-header>
-              <s-table-header>Who</s-table-header>
-              <s-table-header>Details</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {data.audit.map((a) => (
-                <s-table-row key={a.id}>
-                  <s-table-cell>{when(a.createdAt)}</s-table-cell>
-                  <s-table-cell>{a.label}</s-table-cell>
-                  <s-table-cell>{a.actor}</s-table-cell>
-                  <s-table-cell><s-text color="subdued">{a.details === "{}" ? "" : a.details}</s-text></s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
-        )}
-      </s-section>
+        </div>
+      </div>
     </s-page>
   );
 }
 
+export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);
+
 export function ErrorBoundary() {
   return <RouteError />;
 }
-
-export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);
