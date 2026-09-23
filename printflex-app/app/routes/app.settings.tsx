@@ -1,16 +1,12 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { downloadFile } from "../components/download";
 import { useNativeEvent } from "../components/orders/useNativeEvent";
 import { RouteError } from "../components/RouteError";
 import prisma from "../db.server";
 import { audit } from "../lib/audit.server";
 import { configureInvoiceNumbering } from "../lib/invoices/invoice-number.server";
-import { storageRoot } from "../lib/render/storage.server";
 import { requireShop } from "../lib/request.server";
 import { listDevices, revokeDevice } from "../lib/scan/devices.server";
 import { hasStorePin, setStorePin } from "../lib/scan/pin.server";
@@ -35,13 +31,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await requireShop(request);
   const settings = parseSettings(shop.settingsJson);
   const [hasPin, devices, warehouse] = await Promise.all([hasStorePin(shop.id), listDevices(shop.id), warehouseSummary(shop.id)]);
-  const exportsDir = path.join(storageRoot(), "compliance", shop.id);
-  let exportsList: string[] = [];
-  try {
-    exportsList = (await fs.readdir(exportsDir)).filter((f) => f.endsWith(".json")).sort().reverse();
-  } catch {
-    exportsList = [];
-  }
   return {
     timezone: shop.timezone,
     timezones: Intl.supportedValuesOf("timeZone"),
@@ -50,7 +39,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     devices: devices.map((d) => ({ ...d, lastSeenAt: d.lastSeenAt.toISOString(), createdAt: d.createdAt.toISOString() })),
     warehouse,
     invoice: { prefix: shop.invoicePrefix, nextNumber: shop.invoiceNextNumber },
-    exports: exportsList,
     defaultTags: DEFAULT_TAG_NAMES,
   };
 };
@@ -141,7 +129,6 @@ export default function SettingsPage() {
   const fetcher = useFetcher<Result>();
   const busy = fetcher.state !== "idle";
   const packRef = useRef<HTMLFormElement>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
   useNativeEvent(packRef, "change", () => {
     if (!packRef.current) return;
     const form = new FormData(packRef.current);
@@ -363,29 +350,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="pf-panel">
-              <div className="pf-panel__h"><h2>Customer data requests</h2></div>
-              {exportError ? <div className="pf-panel__b"><s-banner tone="critical"><s-paragraph>{exportError}</s-paragraph></s-banner></div> : null}
-              {data.exports.length === 0 ? (
-                <div className="pf-panel__empty">When a customer asks Shopify for their data, the export PrintFlex prepares appears here for you to forward.</div>
-              ) : (
-                <div className="pf-tscroll">
-                  <table className="pf-t">
-                    <tbody>
-                      {data.exports.map((f) => (
-                        <tr key={f}>
-                          <td className="mono">{f}</td>
-                          <td className="end"><button type="button" className="pf-btn pf-btn--ghost" onClick={() => void downloadFile(`/app/settings/export/${encodeURIComponent(f)}`, f).then(setExportError)}>Download</button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
           </div>
         </div>
-
       </div>
     </s-page>
   );
