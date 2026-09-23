@@ -1,0 +1,73 @@
+/* Plans & billing, styled after docs/mockup.html (#s-billing). Same tokens as Home and Scan & pack. */
+.pf-billing {
+  --pf-bg: #f1f1f1; --pf-card: #ffffff; --pf-card-2: #fafafa;
+  --pf-border: #e3e3e3; --pf-border-2: #d2d2d2;
+  --pf-text: #303030; --pf-sub: #616161; --pf-dis: #8a8a8a;
+  --pf-brand: #e25b07; --pf-brand-dk: #b8480a; --pf-brand-ink: #a84206; --pf-brand-soft: #fdefe3; --pf-brand-soft-2: #f9d9bc;
+  --pf-crit-bg: #ffd6d6; --pf-crit-tx: #8e1f0b; --pf-warn-bg: #ffe0b2; --pf-warn-tx: #5e4200;
+  --pf-shadow: 0 1px 0 rgba(0, 0, 0, .05), 0 1px 2px rgba(0, 0, 0, .06);
+  --pf-r: 12px;
+  --pf-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color: var(--pf-text);
+  font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px; line-height: 1.45;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.pf-billing * { box-sizing: border-box; }
+
+.pf-panel { background: var(--pf-card); border: 1px solid var(--pf-border); border-radius: var(--pf-r); box-shadow: var(--pf-shadow); overflow: hidden; }
+.pf-panel__h { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--pf-border); flex-wrap: wrap; }
+.pf-panel__h h2 { font-size: 14px; font-weight: 600; margin: 0; }
+.pf-panel__h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.pf-panel__b { padding: 16px; }
+
+.pf-badge { display: inline-block; border-radius: 8px; padding: 2px 9px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.pf-b-brand { background: var(--pf-brand-soft); color: var(--pf-brand-ink); }
+.pf-b-crit { background: var(--pf-crit-bg); color: var(--pf-crit-tx); }
+.pf-b-warn { background: var(--pf-warn-bg); color: var(--pf-warn-tx); }
+
+/* Usage */
+.pf-usage { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pf-usage .n { font-family: var(--pf-mono); font-size: 34px; font-weight: 600; letter-spacing: -.03em; color: var(--pf-brand-ink); line-height: 1; }
+.pf-usage .n.crit { color: var(--pf-crit-tx); }
+.pf-usage .t { font-size: 13px; color: var(--pf-sub); }
+.pf-meterbar { height: 6px; border-radius: 99px; background: #f6f6f6; border: 1px solid var(--pf-border); margin-top: 12px; overflow: hidden; }
+.pf-meterbar i { display: block; height: 100%; background: var(--pf-brand); border-radius: 99px; transition: width .3s ease; }
+.pf-meterbar.crit i { background: var(--pf-crit-tx); }
+.pf-note { margin-top: 14px; background: var(--pf-brand-soft); border: 1px solid var(--pf-brand-soft-2); border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: var(--pf-text); }
+.pf-note b { color: var(--pf-brand-ink); font-weight: 600; }
+
+/* Limit behaviour */
+.pf-radio { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--pf-border); border-radius: 10px; margin-bottom: 10px; cursor: pointer; background: var(--pf-card); }
+.pf-radio.on { background: var(--pf-brand-soft); border-color: var(--pf-brand); }
+.pf-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pf-radio .dot { flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--pf-border-2); background: #fff; margin-top: 1px; position: relative; }
+.pf-radio.on .dot { border-color: var(--pf-brand); }
+.pf-radio.on .dot::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--pf-brand); }
+.pf-radio:focus-within { outline: 2px solid var(--pf-brand); outline-offset: 2px; }
+.pf-radio .rt { font-weight: 600; }
+.pf-radio .rd { color: var(--pf-sub); font-size: 12.5px; margin-left: 4px; }
+.pf-small { margin: 10px 0 0; font-size: 11.5px; color: var(--pf-sub); }
+
+/* Plans */
+.pf-plans-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pf-seg { display: inline-flex; background: var(--pf-bg); border-radius: 8px; padding: 3px; gap: 2px; }
+.pf-seg button { border: 0; background: transparent; padding: 4px 12px; border-radius: 6px; font: inherit; font-size: 12px; color: var(--pf-sub); font-weight: 500; cursor: pointer; }
+.pf-seg button.on { background: #fff; box-shadow: var(--pf-shadow); color: var(--pf-text); font-weight: 600; }
+.pf-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 900px) { .pf-plans { grid-template-columns: 1fr; } }
+.pf-plancard { background: var(--pf-card); border: 1px solid var(--pf-border); border-radius: var(--pf-r); padding: 16px; box-shadow: var(--pf-shadow); display: flex; flex-direction: column; }
+.pf-plancard.cur { background: var(--pf-brand-soft); border: 2px solid var(--pf-brand); }
+.pf-plancard h3 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.pf-plancard .pr { font-family: var(--pf-mono); font-size: 28px; font-weight: 600; letter-spacing: -.02em; margin: 14px 0 10px; }
+.pf-plancard .pr small { font-size: 12.5px; color: var(--pf-sub); font-weight: 500; letter-spacing: 0; margin-left: 4px; }
+.pf-plancard ul { list-style: none; margin: 0 0 14px; padding: 0; flex: 1; }
+.pf-plancard li { position: relative; padding: 3px 0 3px 16px; font-size: 12.5px; }
+.pf-plancard li::before { content: ""; position: absolute; left: 0; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--pf-brand); }
+.pf-btn { display: block; width: 100%; border: 1px solid var(--pf-border-2); background: #fff; border-radius: 8px; padding: 9px 13px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--pf-text); box-shadow: var(--pf-shadow); cursor: pointer; text-align: center; }
+.pf-btn:hover { background: var(--pf-card-2); }
+.pf-btn:disabled { cursor: default; color: var(--pf-sub); background: #fff; }
+.pf-btn--p { background: var(--pf-brand); border-color: var(--pf-brand); color: #fff; }
+.pf-btn--p:hover { background: var(--pf-brand-dk); }
+.pf-btn:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: 2px; }
+.pf-foot { margin: 0; font-size: 11.5px; color: var(--pf-sub); }

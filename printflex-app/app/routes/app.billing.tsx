@@ -1,9 +1,11 @@
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { RouteError } from "../components/RouteError";
-import { useNativeEvent } from "../components/orders/useNativeEvent";
-import { useRef } from "react";
+import { useState } from "react";
+import billingStyles from "../styles/billing.css?url";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: billingStyles }];
 import prisma from "../db.server";
 import { cancelSubscription, requestPlan, setLimitBehaviour, syncSubscription } from "../lib/billing/billing.server";
 import { getUsage } from "../lib/meter.server";
@@ -29,7 +31,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       used: usage.used,
       limit: usage.limit,
       daysRemaining: usage.daysRemaining,
-      periodLabel: `${fmt.format(start)} – ${fmt.format(new Date(usage.periodEndsAt.getTime() - 1))} · ${shop.timezone}`,
+      periodLabel: `${new Intl.DateTimeFormat("en-GB", { timeZone: shop.timezone, day: "numeric" }).format(start)} – ${fmt.format(new Date(usage.periodEndsAt.getTime() - 1))} · ${shop.timezone}`,
       resetLabel: fmt.format(usage.periodEndsAt),
       ordersThisPeriod,
     },
@@ -74,100 +76,128 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return { ok: false, message: "Unknown action." };
 };
 
+const FEATURES: Record<PlanId, string[]> = {
+  FREE: ["50 metered orders a month", "All three document types", "QR, barcode and scan mode", "One template"],
+  PREMIUM: ["500 metered orders a month", "Unlimited templates", "Automatic invoice email", "Saved views and email support"],
+  UNLIMITED: ["No order cap", "Refund and credit documents", "Per-market template variants", "Priority support"],
+};
+const PLAN_RANK: Record<PlanId, number> = { FREE: 0, PREMIUM: 1, UNLIMITED: 2 };
+
 export default function BillingPage() {
   const { planId, annual, limitBehaviour, usage, plans, justChanged } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<{ ok: boolean; message: string }>();
-  const limitRef = useRef<HTMLFormElement>(null);
-  useNativeEvent(limitRef, "change", () => {
-    if (!limitRef.current) return;
-    const form = new FormData(limitRef.current);
-    form.set("intent", "limit");
-    fetcher.submit(form, { method: "post" });
-  });
+  const [yearly, setYearly] = useState(annual);
   const busy = fetcher.state !== "idle";
   const ratio = usage.limit ? usage.used / usage.limit : 0;
-  const money = (v: number) => `$${v.toFixed(2)}`;
+  const money = (v: number) => (Number.isInteger(v) ? `$${v}` : `$${v.toFixed(2)}`);
+  const setLimit = (behaviour: LimitBehaviour) => {
+    if (behaviour !== limitBehaviour) fetcher.submit({ intent: "limit", limitBehaviour: behaviour }, { method: "post" });
+  };
 
   return (
-    <s-page heading="Plans & billing">
+    <s-page heading="Plans & billing" inlineSize="large">
       {justChanged ? <s-banner tone="success"><s-paragraph>Your plan was updated through Shopify.</s-paragraph></s-banner> : null}
       {fetcher.data && !busy ? <s-banner tone={fetcher.data.ok ? "success" : "critical"}><s-paragraph>{fetcher.data.message}</s-paragraph></s-banner> : null}
 
-      <s-section heading="This billing period">
-        <s-paragraph color="subdued">{usage.periodLabel}</s-paragraph>
-        <s-stack direction="inline" gap="small" alignItems="baseline">
-          <s-heading>{usage.used}</s-heading>
-          <s-text>{usage.limit === null ? "metered orders used · no cap" : `of ${usage.limit} metered orders used · ${usage.daysRemaining} ${usage.daysRemaining === 1 ? "day" : "days"} remaining`}</s-text>
-        </s-stack>
-        {usage.limit !== null ? <s-progress value={usage.used} max={usage.limit} tone={ratio >= 1 ? "critical" : ratio >= 0.9 ? "warning" : "auto"}></s-progress> : null}
-        <s-paragraph>
-          <s-text type="strong">What counts as one order.</s-text> One unit is one order for which at least one PrintFlex document was generated this
-          calendar month, in your store&rsquo;s timezone. Reprinting the same order this month is free. A pick list covering 40 orders counts those
-          40 once. A failed render counts nothing. Orders you never print are never counted &mdash; your store received {usage.ordersThisPeriod} orders this
-          month and {usage.used} of them used the app.
-        </s-paragraph>
-      </s-section>
+      <div className="pf-billing">
+        <div className="pf-panel">
+          <div className="pf-panel__h">
+            <h2>This billing period</h2>
+            <div className="right"><span className="pf-badge pf-b-brand">{usage.periodLabel}</span></div>
+          </div>
+          <div className="pf-panel__b">
+            <div className="pf-usage">
+              <span className={`n${ratio >= 1 ? " crit" : ""}`}>{usage.used}</span>
+              <span className="t">
+                {usage.limit === null
+                  ? "metered orders used · no cap on this plan"
+                  : `of ${usage.limit} metered orders used · ${usage.daysRemaining} ${usage.daysRemaining === 1 ? "day" : "days"} remaining`}
+              </span>
+            </div>
+            {usage.limit !== null ? (
+              <div className={`pf-meterbar${ratio >= 1 ? " crit" : ""}`} role="progressbar" aria-label="Metered orders used" aria-valuemin={0} aria-valuemax={usage.limit} aria-valuenow={usage.used}>
+                <i style={{ width: `${Math.min(100, ratio * 100)}%` }} />
+              </div>
+            ) : null}
+            <div className="pf-note">
+              <b>What counts as one order.</b> One unit is one order for which at least one PrintFlex document was generated this calendar month, in your
+              store&rsquo;s timezone. Reprinting the same order this month is free. A pick list covering 40 orders counts those 40 once. A failed render
+              counts nothing. <b>Orders you never print are never counted</b> &mdash; your store received {usage.ordersThisPeriod.toLocaleString("en-US")} orders
+              this month and {usage.used} of them used the app.
+            </div>
+          </div>
+        </div>
 
-      <s-section heading="When you reach the limit">
-        <form ref={limitRef} onSubmit={(e) => e.preventDefault()}>
-          <s-choice-list name="limitBehaviour" label="Limit behaviour" labelAccessibilityVisibility="exclusive" values={[limitBehaviour]}>
-            <s-choice value="HARD_CAP">
-              Stop and wait for the period to reset
-              <s-text slot="details">Document generation pauses at {usage.limit ?? "the cap"}. Nothing is charged and no plan changes. You can upgrade any time from this page.</s-text>
-            </s-choice>
-            <s-choice value="PROMPT_UPGRADE">
-              Ask me to upgrade
-              <s-text slot="details">We show a prompt at 90% and again at the limit. Upgrading always goes through Shopify&rsquo;s own charge screen.</s-text>
-            </s-choice>
-          </s-choice-list>
-        </form>
-        <s-paragraph color="subdued">PrintFlex never upgrades your plan by itself and never charges for an overage you did not approve.</s-paragraph>
-      </s-section>
+        <div className="pf-panel">
+          <div className="pf-panel__h"><h2>When you reach the limit</h2></div>
+          <div className="pf-panel__b">
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label text is the nested title and description spans */}
+            <label htmlFor="limit-hard-cap" className={`pf-radio${limitBehaviour === "HARD_CAP" ? " on" : ""}`}>
+              <input id="limit-hard-cap" type="radio" name="limitBehaviour" value="HARD_CAP" checked={limitBehaviour === "HARD_CAP"} disabled={busy} onChange={() => setLimit("HARD_CAP")} />
+              <span className="dot" aria-hidden="true" />
+              <span>
+                <span className="rt">Stop and wait for the period to reset</span>
+                <span className="rd">Document generation pauses at {usage.limit ?? "the cap"}. Nothing is charged and no plan changes. You can upgrade any time from this page.</span>
+              </span>
+            </label>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label text is the nested title and description spans */}
+            <label htmlFor="limit-prompt" className={`pf-radio${limitBehaviour === "PROMPT_UPGRADE" ? " on" : ""}`}>
+              <input id="limit-prompt" type="radio" name="limitBehaviour" value="PROMPT_UPGRADE" checked={limitBehaviour === "PROMPT_UPGRADE"} disabled={busy} onChange={() => setLimit("PROMPT_UPGRADE")} />
+              <span className="dot" aria-hidden="true" />
+              <span>
+                <span className="rt">Ask me to upgrade</span>
+                <span className="rd">We show a prompt at 90% and again at the limit. Upgrading always goes through Shopify&rsquo;s own charge screen.</span>
+              </span>
+            </label>
+            <p className="pf-small">PrintFlex never upgrades your plan by itself and never charges for an overage you did not approve.</p>
+          </div>
+        </div>
 
-      <s-section heading="Plans">
-        <s-grid gridTemplateColumns="repeat(auto-fit, minmax(220px, 1fr))" gap="base">
+        <div className="pf-plans-head">
+          <span className="pf-small" style={{ margin: 0 }}>Plans</span>
+          <div className="pf-seg" role="group" aria-label="Billing interval">
+            <button type="button" className={yearly ? "" : "on"} aria-pressed={!yearly} onClick={() => setYearly(false)}>Billed monthly</button>
+            <button type="button" className={yearly ? "on" : ""} aria-pressed={yearly} onClick={() => setYearly(true)}>Billed yearly · 2 months free</button>
+          </div>
+        </div>
+
+        <div className="pf-plans">
           {plans.map((p) => {
             const current = p.id === planId;
-            const features: Record<PlanId, string[]> = {
-              FREE: ["50 metered orders a month", "All three document types", "QR, barcode and scan mode", "One template"],
-              PREMIUM: ["500 metered orders a month", "Unlimited templates", "Automatic invoice email", "Saved views and email support"],
-              UNLIMITED: ["No order cap", "Refund and credit documents", "Per-market template variants", "Priority support"],
-            };
+            const currentInterval = current && (p.id === "FREE" || annual === yearly);
+            const higher = PLAN_RANK[p.id] > PLAN_RANK[planId];
+            const price = p.id === "FREE" ? "$0" : money(yearly ? p.annual : p.monthly);
+            const per = p.id === "FREE" ? "forever" : yearly ? "/year" : "/month";
+            const choose = () => fetcher.submit({ intent: "choose", plan: p.id, annual: yearly ? "1" : "0" }, { method: "post" });
             return (
-              <s-box key={p.id} padding="base" borderWidth="base" borderRadius="base" background={current ? "subdued" : "base"}>
-                <s-stack gap="small">
-                  <s-stack direction="inline" gap="small" alignItems="center">
-                    <s-heading>{p.name}</s-heading>
-                    {current ? <s-badge tone="success">Current{annual ? " · annual" : ""}</s-badge> : null}
-                  </s-stack>
-                  <s-paragraph>{p.monthly === 0 ? "$0 forever" : `${money(p.monthly)} a month, or ${money(p.annual)} a year (ten months’ price)`}</s-paragraph>
-                  <s-unordered-list>
-                    {features[p.id].map((f) => <s-list-item key={f}>{f}</s-list-item>)}
-                  </s-unordered-list>
-                  {p.id === "FREE" ? (
-                    <s-button disabled={current || busy || undefined} onClick={() => fetcher.submit({ intent: "choose", plan: "FREE" }, { method: "post" })}>
-                      {current ? "Your plan" : "Downgrade to Free"}
-                    </s-button>
-                  ) : (
-                    <s-stack direction="inline" gap="small">
-                      <s-button variant={current && !annual ? "secondary" : "primary"} disabled={(current && !annual) || busy || undefined} onClick={() => fetcher.submit({ intent: "choose", plan: p.id, annual: "0" }, { method: "post" })}>
-                        {current && !annual ? "Your plan" : "Monthly"}
-                      </s-button>
-                      <s-button variant="secondary" disabled={(current && annual) || busy || undefined} onClick={() => fetcher.submit({ intent: "choose", plan: p.id, annual: "1" }, { method: "post" })}>
-                        {current && annual ? "Your plan" : "Annual"}
-                      </s-button>
-                    </s-stack>
-                  )}
-                </s-stack>
-              </s-box>
+              <div key={p.id} className={`pf-plancard${current ? " cur" : ""}`}>
+                <h3>
+                  {p.name}
+                  {current ? <span className="pf-badge pf-b-brand">Current{annual ? " · yearly" : ""}</span> : null}
+                </h3>
+                <div className="pr">{price}<small>{per}</small></div>
+                <ul>
+                  {FEATURES[p.id].map((f) => <li key={f}>{f}</li>)}
+                </ul>
+                {currentInterval ? (
+                  <button type="button" className="pf-btn" disabled>Your plan</button>
+                ) : current ? (
+                  <button type="button" className="pf-btn" disabled={busy} onClick={choose}>{yearly ? "Switch to yearly" : "Switch to monthly"}</button>
+                ) : higher ? (
+                  <button type="button" className="pf-btn pf-btn--p" disabled={busy} onClick={choose}>Upgrade</button>
+                ) : (
+                  <button type="button" className="pf-btn" disabled={busy} onClick={choose}>Downgrade</button>
+                )}
+              </div>
             );
           })}
-        </s-grid>
-        <s-paragraph color="subdued">
+        </div>
+
+        <p className="pf-foot">
           All charges are made through Shopify&rsquo;s Billing API and appear on your Shopify invoice. No card or payment detail ever reaches PrintFlex.
           Uninstalling cancels the subscription the same day.
-        </s-paragraph>
-      </s-section>
+        </p>
+      </div>
     </s-page>
   );
 }
