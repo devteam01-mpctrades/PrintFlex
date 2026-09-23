@@ -128,31 +128,6 @@ export default function BillingPage() {
           </div>
         </div>
 
-        <div className="pf-panel">
-          <div className="pf-panel__h"><h2>When you reach the limit</h2></div>
-          <div className="pf-panel__b">
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label text is the nested title and description spans */}
-            <label htmlFor="limit-hard-cap" className={`pf-radio${limitBehaviour === "HARD_CAP" ? " on" : ""}`}>
-              <input id="limit-hard-cap" type="radio" name="limitBehaviour" value="HARD_CAP" checked={limitBehaviour === "HARD_CAP"} disabled={busy} onChange={() => setLimit("HARD_CAP")} />
-              <span className="dot" aria-hidden="true" />
-              <span>
-                <span className="rt">Stop and wait for the period to reset</span>
-                <span className="rd">Document generation pauses at {usage.limit ?? "the cap"}. Nothing is charged and no plan changes. You can upgrade any time from this page.</span>
-              </span>
-            </label>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label text is the nested title and description spans */}
-            <label htmlFor="limit-prompt" className={`pf-radio${limitBehaviour === "PROMPT_UPGRADE" ? " on" : ""}`}>
-              <input id="limit-prompt" type="radio" name="limitBehaviour" value="PROMPT_UPGRADE" checked={limitBehaviour === "PROMPT_UPGRADE"} disabled={busy} onChange={() => setLimit("PROMPT_UPGRADE")} />
-              <span className="dot" aria-hidden="true" />
-              <span>
-                <span className="rt">Ask me to upgrade</span>
-                <span className="rd">We show a prompt at 90% and again at the limit. Upgrading always goes through Shopify&rsquo;s own charge screen.</span>
-              </span>
-            </label>
-            <p className="pf-small">PrintFlex never upgrades your plan by itself and never charges for an overage you did not approve.</p>
-          </div>
-        </div>
-
         <div className="pf-plans-head">
           <span className="pf-small" style={{ margin: 0 }}>Plans</span>
           <div className="pf-seg" role="group" aria-label="Billing interval">
@@ -197,6 +172,31 @@ export default function BillingPage() {
           All charges are made through Shopify&rsquo;s Billing API and appear on your Shopify invoice. No card or payment detail ever reaches PrintFlex.
           Uninstalling cancels the subscription the same day.
         </p>
+        <div className="pf-panel">
+          <div className="pf-panel__h"><h2>When you reach the limit</h2></div>
+          <div className="pf-panel__b">
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label text is the nested title and description spans */}
+            <label htmlFor="limit-hard-cap" className={`pf-radio${limitBehaviour === "HARD_CAP" ? " on" : ""}`}>
+              <input id="limit-hard-cap" type="radio" name="limitBehaviour" value="HARD_CAP" checked={limitBehaviour === "HARD_CAP"} disabled={busy} onChange={() => setLimit("HARD_CAP")} />
+              <span className="dot" aria-hidden="true" />
+              <span>
+                <span className="rt">Stop and wait for the period to reset</span>
+                <span className="rd">Document generation pauses at {usage.limit ?? "the cap"}. Nothing is charged and no plan changes. You can upgrade any time from this page.</span>
+              </span>
+            </label>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label text is the nested title and description spans */}
+            <label htmlFor="limit-prompt" className={`pf-radio${limitBehaviour === "PROMPT_UPGRADE" ? " on" : ""}`}>
+              <input id="limit-prompt" type="radio" name="limitBehaviour" value="PROMPT_UPGRADE" checked={limitBehaviour === "PROMPT_UPGRADE"} disabled={busy} onChange={() => setLimit("PROMPT_UPGRADE")} />
+              <span className="dot" aria-hidden="true" />
+              <span>
+                <span className="rt">Ask me to upgrade</span>
+                <span className="rd">We show a prompt at 90% and again at the limit. Upgrading always goes through Shopify&rsquo;s own charge screen.</span>
+              </span>
+            </label>
+            <p className="pf-small">PrintFlex never upgrades your plan by itself and never charges for an overage you did not approve.</p>
+          </div>
+        </div>
+
       </div>
     </s-page>
   );
