@@ -1,7 +1,9 @@
 import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import homeStyles from "../styles/home.css?url";
+import planBarStyles from "../styles/planbar.css?url";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { PlanBar } from "../components/PlanBar";
 import { RouteError } from "../components/RouteError";
 import prisma from "../db.server";
 import { listSendLog, sendInvoiceEmail } from "../lib/email/invoice-email.server";
@@ -11,11 +13,11 @@ import { getQueue } from "../lib/jobs/worker.server";
 import { capacityMessage, checkCapacity, getUsage } from "../lib/meter.server";
 import { packStats } from "../lib/pack/history.server";
 import { zonedDayStart } from "../lib/period.server";
-import { PLANS } from "../lib/plans.server";
+import { PLAN_ORDER, PLANS, planPills } from "../lib/plans.server";
 import { parseSettings } from "../lib/settings.server";
 import { puppeteerRenderer } from "../lib/render/pdf.server";
 import { requireShop } from "../lib/request.server";
-import type { DocumentType, JobState, PlanId } from "../lib/types";
+import type { DocumentType, JobState } from "../lib/types";
 
 const DOC_LABEL: Record<DocumentType, string> = {
   INVOICE: "Invoice",
@@ -39,21 +41,8 @@ const STATE_BADGE: Record<JobState, { label: string; className: string }> = {
   PRINTED_IN_FALLBACK: { label: "Printed in fallback", className: "pf-b-warn" },
 };
 
-export const links: LinksFunction = () => [{ rel: "stylesheet", href: homeStyles }];
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: homeStyles }, { rel: "stylesheet", href: planBarStyles }];
 
-const PLAN_ORDER: PlanId[] = ["FREE", "PREMIUM", "UNLIMITED"];
-
-function planPills(planId: PlanId): string[] {
-  const e = PLANS[planId].entitlements;
-  const pills: string[] = [];
-  pills.push(e.templates === null ? "Unlimited templates" : e.templates === 1 ? "One template" : `${e.templates} templates`);
-  if (e.automaticInvoiceEmail) pills.push("Auto invoice email");
-  pills.push(e.savedViews === null ? "Saved views" : `${e.savedViews} saved views`);
-  if (e.refundDocuments) pills.push("Refund documents");
-  if (e.perMarketTemplates) pills.push("Per-market templates");
-  if (e.prioritySupport) pills.push("Priority support");
-  return pills;
-}
 
 function describeDocuments(types: DocumentType[]): string {
   if (types.length === 1) return `${DOC_LABEL[types[0]]} only`;
@@ -102,6 +91,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       limit: usage.limit,
       daysRemaining: usage.daysRemaining,
       atLimit: usage.atLimit,
+      promptUpgrade: shop.limitBehaviour === "PROMPT_UPGRADE",
     },
     waiting,
     oldestWaiting: oldestWaiting ? ageLabel(oldestWaiting.shopifyCreatedAt, now) : null,
@@ -216,25 +206,16 @@ export default function HomePage() {
 
       <div className="pf-home">
         <>
-            <div className="pf-planbar">
-              <div>
-                <div className="lbl">Your plan</div>
-                <div className="val">{plan.name}</div>
-              </div>
-              <div className="pf-seg" role="list" aria-label="Plans">
-                {planOptions.map((option) => (
-                  <span key={option.id} role="listitem" className={option.id === plan.id ? "on" : undefined} aria-current={option.id === plan.id ? "true" : undefined}>
-                    {option.name}
-                  </span>
-                ))}
-              </div>
-              <div className="pf-pills">
-                {plan.pills.map((pill) => (
-                  <span key={pill} className="pf-pill">{pill}</span>
-                ))}
-              </div>
-              <span className="push"><s-button href="/app/billing">Change plan</s-button></span>
-            </div>
+            <PlanBar
+              planId={plan.id}
+              planName={plan.name}
+              planOptions={planOptions}
+              pills={plan.pills}
+              used={plan.used}
+              limit={plan.limit}
+              daysRemaining={plan.daysRemaining}
+              promptUpgrade={plan.promptUpgrade}
+            />
 
             <div className="pf-stats">
               {meterTile}

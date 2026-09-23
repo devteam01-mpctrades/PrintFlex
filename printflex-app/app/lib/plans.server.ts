@@ -122,3 +122,18 @@ export function canCreateAnother(
   const limit = getPlan(planId).entitlements[feature];
   return limit === null || currentCount < limit;
 }
+
+/** Short labels for what a plan includes, shown as pills on the plan bar. */
+export function planPills(planId: PlanId): string[] {
+  const e = PLANS[planId].entitlements;
+  const pills: string[] = [];
+  pills.push(e.templates === null ? "Unlimited templates" : e.templates === 1 ? "One template" : `${e.templates} templates`);
+  if (e.automaticInvoiceEmail) pills.push("Auto invoice email");
+  pills.push(e.savedViews === null ? "Saved views" : `${e.savedViews} saved views`);
+  if (e.refundDocuments) pills.push("Refund documents");
+  if (e.perMarketTemplates) pills.push("Per-market templates");
+  if (e.prioritySupport) pills.push("Priority support");
+  return pills;
+}
+
+export const PLAN_ORDER: PlanId[] = ["FREE", "PREMIUM", "UNLIMITED"];

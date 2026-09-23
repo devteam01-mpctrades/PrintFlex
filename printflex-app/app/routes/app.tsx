@@ -1,6 +1,11 @@
 import { isRouteErrorResponse, Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
 import { RouteError } from "../components/RouteError";
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type { HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
+import { PlanBar } from "../components/PlanBar";
+import { PLAN_ORDER, PLANS, planPills } from "../lib/plans.server";
+import planBarStyles from "../styles/planbar.css?url";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: planBarStyles }];
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { getUsage } from "../lib/meter.server";
@@ -18,7 +23,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       used: usage.used,
       limit: usage.limit,
       daysRemaining: usage.daysRemaining,
+      planId: usage.plan.id,
       planName: usage.plan.name,
+      pills: planPills(usage.plan.id),
+      planOptions: PLAN_ORDER.map((id) => ({ id, name: PLANS[id].name })),
       promptUpgrade: shop.limitBehaviour === "PROMPT_UPGRADE",
     },
   };
@@ -29,27 +37,22 @@ export default function App() {
   const { pathname } = useLocation();
   // Home has its own plan bar and meter card, so the strip would repeat them.
   const onHome = pathname.replace(/\/$/, "") === "/app";
-  const ratio = usage.limit ? usage.used / usage.limit : 0;
-  const tone = ratio >= 1 ? "critical" : ratio >= 0.9 ? "warning" : "info";
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      {usage.limit !== null && !onHome ? (
-        <s-box padding="small" background="subdued">
-          <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
-            <s-text fontVariantNumeric="tabular-nums">
-              {usage.planName}: {usage.used} of {usage.limit} metered orders · {usage.daysRemaining} {usage.daysRemaining === 1 ? "day" : "days"} left
-            </s-text>
-            {ratio >= 0.9 ? (
-              <s-badge tone={tone}>
-                {ratio >= 1
-                  ? usage.promptUpgrade ? "At the limit · upgrade to keep printing" : "At the limit · paused until the period resets"
-                  : usage.promptUpgrade ? "90% used · consider upgrading" : "90% used"}
-              </s-badge>
-            ) : null}
-            <s-link href="/app/billing">Plans &amp; billing</s-link>
-          </s-stack>
-        </s-box>
+      {!onHome ? (
+        <div className="pf-planbar-wrap">
+          <PlanBar
+            planId={usage.planId}
+            planName={usage.planName}
+            planOptions={usage.planOptions}
+            pills={usage.pills}
+            used={usage.used}
+            limit={usage.limit}
+            daysRemaining={usage.daysRemaining}
+            promptUpgrade={usage.promptUpgrade}
+          />
+        </div>
       ) : null}
       <s-app-nav>
         <s-link href="/app">Home</s-link>
