@@ -1,18 +1,20 @@
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useFetcher, useLoaderData } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
+import { Link, useFetcher, useLoaderData } from "react-router";
+import homeStyles from "../styles/home.css?url";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { RouteError } from "../components/RouteError";
 import prisma from "../db.server";
 import { listSendLog, sendInvoiceEmail } from "../lib/email/invoice-email.server";
 import { createDocumentJob } from "../lib/jobs/create-job.server";
 import { getQueue } from "../lib/jobs/worker.server";
-import { capacityMessage, checkCapacity } from "../lib/meter.server";
+import { capacityMessage, checkCapacity, getUsage } from "../lib/meter.server";
 import { onboardingState } from "../lib/onboarding.server";
 import { audit } from "../lib/audit.server";
+import { PLANS } from "../lib/plans.server";
 import { parseSettings, updateShopSettings } from "../lib/settings.server";
 import { puppeteerRenderer } from "../lib/render/pdf.server";
 import { requireShop } from "../lib/request.server";
-import type { DocumentType, JobState } from "../lib/types";
+import type { DocumentType, JobState, PlanId } from "../lib/types";
 
 const DOC_LABEL: Record<DocumentType, string> = {
   INVOICE: "Invoice",
@@ -20,43 +22,96 @@ const DOC_LABEL: Record<DocumentType, string> = {
   PICK_LIST: "Pick list",
 };
 
-const STATE_BADGE: Record<JobState, { label: string; tone: "neutral" | "info" | "success" | "critical" | "warning" }> = {
-  QUEUED: { label: "Queued", tone: "neutral" },
-  RUNNING: { label: "Rendering", tone: "info" },
-  SUCCEEDED: { label: "Ready", tone: "success" },
-  FAILED: { label: "Failed", tone: "critical" },
-  CANCELLED: { label: "Cancelled", tone: "warning" },
-  PRINTED_IN_FALLBACK: { label: "Printed in fallback", tone: "warning" },
+/** Short names used in the Recent batches table, matching the mockup ("Invoice + slip + pick list"). */
+const DOC_SHORT: Record<DocumentType, string> = {
+  INVOICE: "Invoice",
+  PACKING_SLIP: "slip",
+  PICK_LIST: "pick list",
 };
+
+const STATE_BADGE: Record<JobState, { label: string; className: string }> = {
+  QUEUED: { label: "Queued", className: "pf-b-neu" },
+  RUNNING: { label: "Rendering", className: "pf-b-brand" },
+  SUCCEEDED: { label: "Ready", className: "pf-b-ok" },
+  FAILED: { label: "Failed", className: "pf-b-crit" },
+  CANCELLED: { label: "Cancelled", className: "pf-b-warn" },
+  PRINTED_IN_FALLBACK: { label: "Printed in fallback", className: "pf-b-warn" },
+};
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: homeStyles }];
+
+const PLAN_ORDER: PlanId[] = ["FREE", "PREMIUM", "UNLIMITED"];
+
+function planPills(planId: PlanId): string[] {
+  const e = PLANS[planId].entitlements;
+  const pills: string[] = [];
+  pills.push(e.templates === null ? "Unlimited templates" : e.templates === 1 ? "One template" : `${e.templates} templates`);
+  if (e.automaticInvoiceEmail) pills.push("Auto invoice email");
+  pills.push(e.savedViews === null ? "Saved views" : `${e.savedViews} saved views`);
+  if (e.refundDocuments) pills.push("Refund documents");
+  if (e.perMarketTemplates) pills.push("Per-market templates");
+  if (e.prioritySupport) pills.push("Priority support");
+  return pills;
+}
+
+function describeDocuments(types: DocumentType[]): string {
+  if (types.length === 1) return `${DOC_LABEL[types[0]]} only`;
+  return types.map((t, i) => (i === 0 ? DOC_LABEL[t] : DOC_SHORT[t])).join(" + ");
+}
+
+function ageLabel(from: Date, now: Date): string {
+  const hours = Math.floor((now.getTime() - from.getTime()) / 3_600_000);
+  if (hours < 1) return "under an hour ago";
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} ${days === 1 ? "day" : "days"} ago`;
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await requireShop(request);
-  const jobs = await prisma.documentJob.findMany({
-    where: { shopId: shop.id },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
-  const [sends, onboarding, waiting, packedToday, needsReview] = await Promise.all([
+  const url = new URL(request.url);
+  const showAll = url.searchParams.get("batches") === "all";
+  const now = new Date();
+  const dayAgo = new Date(now.getTime() - 86_400_000);
+  const waitingWhere = { shopId: shop.id, fulfillmentStatus: "UNFULFILLED", documentStatus: "NEW", cancelledAt: null } as const;
+
+  const [jobs, sends, onboarding, usage, waiting, oldestWaiting, packedToday, needsReview, devices] = await Promise.all([
+    prisma.documentJob.findMany({ where: { shopId: shop.id }, orderBy: { createdAt: "desc" }, take: showAll ? 50 : 5 }),
     listSendLog(shop.id, 10),
     onboardingState(shop.id),
-    prisma.orderIndex.count({ where: { shopId: shop.id, fulfillmentStatus: "UNFULFILLED", documentStatus: "NEW", cancelledAt: null } }),
-    prisma.packEvent.count({ where: { shopId: shop.id, outcome: "PACKED", occurredAt: { gte: new Date(Date.now() - 86_400_000) } } }),
+    getUsage(shop.id, now),
+    prisma.orderIndex.count({ where: waitingWhere }),
+    prisma.orderIndex.findFirst({ where: waitingWhere, orderBy: { shopifyCreatedAt: "asc" }, select: { shopifyCreatedAt: true } }),
+    prisma.packEvent.count({ where: { shopId: shop.id, outcome: "PACKED", occurredAt: { gte: dayAgo } } }),
     prisma.orderIndex.count({ where: { shopId: shop.id, documentStatus: "NEEDS_REVIEW" } }),
+    prisma.packEvent.findMany({ where: { shopId: shop.id, occurredAt: { gte: dayAgo } }, distinct: ["deviceName"], select: { deviceName: true } }),
   ]);
   const settings = parseSettings(shop.settingsJson);
   return {
     timezone: shop.timezone,
     sends,
     onboarding,
+    showAll,
+    plan: {
+      id: usage.plan.id,
+      name: usage.plan.name,
+      pills: planPills(usage.plan.id),
+      used: usage.used,
+      limit: usage.limit,
+      daysRemaining: usage.daysRemaining,
+      atLimit: usage.atLimit,
+    },
     waiting,
+    oldestWaiting: oldestWaiting ? ageLabel(oldestWaiting.shopifyCreatedAt, now) : null,
     packedToday,
     needsReview,
+    devicesActive: devices.length,
     store: { domain: shop.domain, timezone: shop.timezone, tags: settings.tagNames },
     documentSet: settings.defaults.documentSet,
     batches: jobs.map((job) => ({
       id: job.id,
       label: `BATCH-${job.id.slice(-6).toUpperCase()}`,
-      documents: (JSON.parse(job.documentTypesJson) as DocumentType[]).map((t) => DOC_LABEL[t]).join(" + "),
+      documents: describeDocuments(JSON.parse(job.documentTypesJson) as DocumentType[]),
       total: job.total,
       progress: job.progress,
       state: job.state as JobState,
@@ -97,123 +152,209 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function HomePage() {
-  const { batches, timezone, sends, onboarding, waiting, packedToday, needsReview, store, documentSet } = useLoaderData<typeof loader>();
-  const resend = useFetcher<{ ok: boolean; message: string; jobId?: string }>();
+  const { batches, timezone, sends, onboarding, plan, waiting, oldestWaiting, packedToday, needsReview, devicesActive, store, documentSet, showAll } =
+    useLoaderData<typeof loader>();
+  const fetcher = useFetcher<{ ok: boolean; message: string; jobId?: string }>();
+  const busy = fetcher.state !== "idle";
+  const lastIntent = fetcher.formData?.get("intent");
+  const notice = fetcher.data && !busy ? fetcher.data : null;
+
   const steps = [
-    { done: onboarding.confirmed, title: "Confirm store details", text: `${store.domain} · ${store.timezone} · tags ${store.tags.printed}, ${store.tags.packed}, ${store.tags.needsReview}.`, action: onboarding.confirmed ? null : { label: "Looks right", onClick: () => resend.submit({ intent: "confirmStore" }, { method: "post" }) }, href: "/app/settings", hrefLabel: "Change in Settings" },
+    { done: onboarding.confirmed, title: "Confirm store details", text: `${store.domain} · ${store.timezone} · tags ${store.tags.printed}, ${store.tags.packed}, ${store.tags.needsReview}.`, action: onboarding.confirmed ? null : { label: "Looks right", onClick: () => fetcher.submit({ intent: "confirmStore" }, { method: "post" }) }, href: "/app/settings", hrefLabel: "Change in Settings" },
     { done: onboarding.hasLogo, title: "Upload a logo", text: "It prints on every invoice and packing slip.", action: null, href: onboarding.firstTemplateId ? `/app/templates/${onboarding.firstTemplateId}` : "/app/templates", hrefLabel: "Open the template" },
     { done: onboarding.hasPrinted, title: "Print one real order", text: "Pick any order and print an invoice. The QR code on that sheet is the tutorial for step 4.", action: null, href: "/app/orders", hrefLabel: "Open Orders" },
     { done: onboarding.hasScanned, title: "Scan it with a phone", text: "Point the phone camera at the QR code. Set the store PIN in Settings first, then sign in once on the phone.", action: null, href: "/app/settings", hrefLabel: "Set the PIN" },
   ];
-  const when = (iso: string) =>
-    new Intl.DateTimeFormat("en-GB", { timeZone: timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+
+  const when = (iso: string) => {
+    const date = new Date(iso);
+    const time = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, hour: "2-digit", minute: "2-digit" }).format(date);
+    const dayKey = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+    const today = dayKey(new Date());
+    const yesterday = dayKey(new Date(Date.now() - 86_400_000));
+    const key = dayKey(date);
+    if (key === today) return `Today, ${time}`;
+    if (key === yesterday) return `Yesterday, ${time}`;
+    return `${new Intl.DateTimeFormat("en-GB", { timeZone: timezone, day: "numeric", month: "short" }).format(date)}, ${time}`;
+  };
+
+  const ratio = plan.limit ? plan.used / plan.limit : 0;
+  const hasPickList = documentSet.includes("PICK_LIST");
+  const perOrder = documentSet.filter((d) => d !== "PICK_LIST").map((d) => (d === "INVOICE" ? "an invoice" : "packing slip"));
+  const perOrderText = perOrder.length === 2 ? "an invoice and packing slip" : perOrder.length === 1 ? (perOrder[0] === "packing slip" ? "a packing slip" : perOrder[0]) : null;
+  const batchDescription = [
+    perOrderText ? `One combined PDF with ${perOrderText} per order` : "One combined PDF",
+    hasPickList ? (perOrderText ? ", plus a single pick list merged by bin location." : " with a single pick list merged by bin location.") : ".",
+    " Every page carries a QR code and a Code 128 barcode.",
+  ].join("");
 
   return (
     <s-page heading="PrintFlex">
-      {resend.data && resend.state === "idle" && !("orderId" in (resend.formData ?? {})) ? (
-        <s-banner tone={resend.data.ok ? "success" : "critical"}>
-          <s-paragraph>{resend.data.message}</s-paragraph>
-          {resend.data.jobId ? <s-button slot="secondary-actions" href={`/app/jobs/${resend.data.jobId}`}>Open batch</s-button> : null}
+      {notice && lastIntent !== "resend" ? (
+        <s-banner tone={notice.ok ? "success" : "critical"} heading={notice.ok ? "Batch started" : "Nothing printed"}>
+          <s-paragraph>{notice.message}</s-paragraph>
+          {notice.jobId ? <s-button slot="secondary-actions" href={`/app/jobs/${notice.jobId}`}>Open batch</s-button> : null}
         </s-banner>
       ) : null}
 
-      {!onboarding.complete ? (
-        <s-section heading="Get started">
-          <s-stack gap="base">
-            {steps.map((step, i) => (
-              <s-stack key={step.title} direction="inline" gap="base" alignItems="start">
-                <s-badge tone={step.done ? "success" : "neutral"}>{step.done ? "Done" : `Step ${i + 1}`}</s-badge>
-                <s-stack gap="small">
-                  <s-heading>{step.title}</s-heading>
-                  <s-paragraph color="subdued">{step.text}</s-paragraph>
-                  {!step.done ? (
-                    <s-stack direction="inline" gap="small">
-                      {step.action ? <s-button variant="primary" onClick={step.action.onClick}>{step.action.label}</s-button> : null}
-                      <s-button variant={step.action ? "tertiary" : "secondary"} href={step.href}>{step.hrefLabel}</s-button>
-                    </s-stack>
-                  ) : null}
-                </s-stack>
-              </s-stack>
+      <div className="pf-home">
+        <div className="pf-planbar">
+          <div>
+            <div className="lbl">Your plan</div>
+            <div className="val">{plan.name}</div>
+          </div>
+          <div className="pf-seg" role="list" aria-label="Plans">
+            {PLAN_ORDER.map((id) => (
+              <span key={id} role="listitem" className={id === plan.id ? "on" : undefined} aria-current={id === plan.id ? "true" : undefined}>
+                {PLANS[id].name}
+              </span>
             ))}
-          </s-stack>
-        </s-section>
-      ) : null}
+          </div>
+          <div className="pf-pills">
+            {plan.pills.map((pill) => (
+              <span key={pill} className="pf-pill">{pill}</span>
+            ))}
+          </div>
+          <Link className="pf-btn pf-btn--p push" to="/app/billing">Change plan</Link>
+        </div>
 
-      <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
-        <s-section heading="Waiting to print">
-          <s-heading>{waiting}</s-heading>
-          <s-paragraph color="subdued">Unfulfilled orders with no document yet</s-paragraph>
-        </s-section>
-        <s-section heading="Packed today">
-          <s-heading>{packedToday}</s-heading>
-          <s-paragraph color="subdued">{needsReview} {needsReview === 1 ? "order needs" : "orders need"} review</s-paragraph>
-        </s-section>
-      </s-grid>
-
-      <s-section heading="Start the morning batch">
-        <s-paragraph>
-          One combined PDF with {documentSet.map((d) => DOC_LABEL[d].toLowerCase()).join(", ").replace(/, ([^,]*)$/, " and $1")} per order, with a cover sheet.
-          Every page carries a QR code and a Code 128 barcode. Change the set in Settings.
-        </s-paragraph>
-        <s-stack direction="inline" gap="base">
-          <s-button href="/app/templates">Edit template</s-button>
-          <s-button href="/app/scan-pack">Scan &amp; pack</s-button>
-          <s-button variant="primary" disabled={waiting === 0 || resend.state !== "idle" || undefined} onClick={() => resend.submit({ intent: "morningBatch" }, { method: "post" })}>
-            {waiting === 0 ? "Nothing waiting" : `Print ${waiting} unfulfilled`}
-          </s-button>
-        </s-stack>
-      </s-section>
-
-      <s-section heading="Recent batches">
-        {batches.length === 0 ? (
-          <s-paragraph>
-            No batches yet. Print your first orders from the Orders screen and
-            they will appear here with their status.
-          </s-paragraph>
-        ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header listSlot="primary">Batch</s-table-header>
-              <s-table-header>Documents</s-table-header>
-              <s-table-header format="numeric">Orders</s-table-header>
-              <s-table-header>Created</s-table-header>
-              <s-table-header listSlot="kicker">Status</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {batches.map((batch) => (
-                <s-table-row key={batch.id}>
-                  <s-table-cell>
-                    <s-link href={`/app/jobs/${batch.id}`}>{batch.label}</s-link>
-                  </s-table-cell>
-                  <s-table-cell>{batch.documents}</s-table-cell>
-                  <s-table-cell>
-                    <s-text fontVariantNumeric="tabular-nums">{batch.total}</s-text>
-                  </s-table-cell>
-                  <s-table-cell>{when(batch.createdAt)}</s-table-cell>
-                  <s-table-cell>
-                    <s-badge tone={STATE_BADGE[batch.state].tone}>
-                      {batch.state === "RUNNING"
-                        ? `Rendering ${Math.round((batch.progress / Math.max(1, batch.total)) * 100)}%`
-                        : STATE_BADGE[batch.state].label}
-                    </s-badge>
-                  </s-table-cell>
-                </s-table-row>
+        {!onboarding.complete ? (
+          <s-section heading="Get started">
+            <s-stack gap="base">
+              {steps.map((step, i) => (
+                <s-stack key={step.title} direction="inline" gap="base" alignItems="start">
+                  <s-badge tone={step.done ? "success" : "neutral"}>{step.done ? "Done" : `Step ${i + 1}`}</s-badge>
+                  <s-stack gap="small">
+                    <s-heading>{step.title}</s-heading>
+                    <s-paragraph color="subdued">{step.text}</s-paragraph>
+                    {!step.done ? (
+                      <s-stack direction="inline" gap="small">
+                        {step.action ? <s-button variant="primary" disabled={busy || undefined} onClick={step.action.onClick}>{step.action.label}</s-button> : null}
+                        <s-button variant={step.action ? "tertiary" : "secondary"} href={step.href}>{step.hrefLabel}</s-button>
+                      </s-stack>
+                    ) : null}
+                  </s-stack>
+                </s-stack>
               ))}
-            </s-table-body>
-          </s-table>
-        )}
-        <s-paragraph color="subdued">
-          A batch marked &ldquo;Printed in fallback&rdquo; means the render queue was
-          busy, so it printed from the browser instead. Nothing is lost and no
-          order is metered twice.
-        </s-paragraph>
-      </s-section>
+            </s-stack>
+          </s-section>
+        ) : null}
 
-      <s-section heading="Invoice emails">
-        {resend.data && resend.state === "idle" ? <s-banner tone={resend.data.ok ? "success" : "critical"}><s-paragraph>{resend.data.message}</s-paragraph></s-banner> : null}
-        {sends.length === 0 ? (
-          <s-paragraph color="subdued">No invoice emails yet. Turn them on per invoice template under Templates.</s-paragraph>
-        ) : (
+        <div className="pf-stats">
+          <div className={`pf-stat hero${ratio >= 1 ? " crit" : ratio >= 0.9 ? " warn" : ""}`}>
+            <div className="k">Orders metered this month</div>
+            <div className="v">
+              {plan.used} {plan.limit !== null ? <small>of {plan.limit}</small> : <small>no cap</small>}
+            </div>
+            {plan.limit !== null ? (
+              <div className="pf-meterbar" role="progressbar" aria-label="Metered orders used this period" aria-valuemin={0} aria-valuemax={plan.limit} aria-valuenow={plan.used}>
+                <i style={{ width: `${Math.min(100, ratio * 100)}%` }} />
+              </div>
+            ) : null}
+            <div className="d">
+              Counted once per order, only when a document is generated. {plan.daysRemaining} {plan.daysRemaining === 1 ? "day" : "days"} left in this period.
+            </div>
+          </div>
+          <div className="pf-stat">
+            <div className="k">Waiting to print</div>
+            <div className="v">{waiting}</div>
+            <div className="d">{waiting === 0 ? "Every unfulfilled order already has documents" : <>Unfulfilled &middot; oldest placed {oldestWaiting}</>}</div>
+          </div>
+          <div className="pf-stat">
+            <div className="k">Packed today</div>
+            <div className="v">{packedToday}</div>
+            <div className="d">
+              {needsReview} {needsReview === 1 ? "order needs" : "orders need"} review &middot; {devicesActive} {devicesActive === 1 ? "device" : "devices"} active
+            </div>
+          </div>
+        </div>
+
+        <div className="pf-panel">
+          <div className="pf-panel__h">
+            <h2>Start the morning batch</h2>
+            <div className="right">
+              <Link className="pf-btn" to="/app/templates">Edit template</Link>
+              <Link className="pf-btn" to="/app/scan-pack">Open scan mode</Link>
+              <button
+                type="button"
+                className="pf-btn pf-btn--p"
+                disabled={waiting === 0 || plan.atLimit || busy}
+                onClick={() => fetcher.submit({ intent: "morningBatch" }, { method: "post" })}
+              >
+                {busy && lastIntent === "morningBatch" ? "Starting…" : waiting === 0 ? "Nothing waiting" : plan.atLimit ? "At the plan limit" : `Print ${waiting} unfulfilled`}
+              </button>
+            </div>
+          </div>
+          <div className="pf-panel__b tight">
+            <p>{batchDescription}</p>
+          </div>
+          {plan.atLimit ? (
+            <div className="pf-panel__note">
+              <strong>Paused at the limit.</strong> You have used every metered order on the {plan.name} plan this period. Printing resumes when the period resets, or sooner if you{" "}
+              <Link className="pf-link" to="/app/billing">change plan</Link>.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="pf-panel">
+          <div className="pf-panel__h">
+            <h2>{showAll ? "All batches" : "Recent batches"}</h2>
+            {batches.length > 0 ? (
+              <div className="right">
+                <Link className="pf-btn pf-btn--sm" to={showAll ? "/app" : "/app?batches=all"}>{showAll ? "Show recent" : "View all"}</Link>
+              </div>
+            ) : null}
+          </div>
+          {batches.length === 0 ? (
+            <div className="pf-panel__empty">
+              <p>No batches yet. Print your first orders from the Orders screen and they will appear here with their status.</p>
+              <Link className="pf-btn" to="/app/orders">Open Orders</Link>
+            </div>
+          ) : (
+            <>
+              <div className="pf-tscroll">
+                <table className="pf-t">
+                  <thead>
+                    <tr>
+                      <th>Batch</th>
+                      <th>Documents</th>
+                      <th className="num">Orders</th>
+                      <th>Created</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {batches.map((batch) => (
+                      <tr key={batch.id}>
+                        <td className="pf-mono">
+                          <Link className="pf-link" to={`/app/jobs/${batch.id}`}>{batch.label}</Link>
+                        </td>
+                        <td>{batch.documents}</td>
+                        <td className="num">{batch.total}</td>
+                        <td>{when(batch.createdAt)}</td>
+                        <td>
+                          <span className={`pf-badge ${STATE_BADGE[batch.state].className}`}>
+                            {batch.state === "RUNNING"
+                              ? `Rendering ${Math.round((batch.progress / Math.max(1, batch.total)) * 100)}%`
+                              : STATE_BADGE[batch.state].label}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="pf-panel__note">
+                <strong>Printed in fallback</strong> means the render queue was busy, so the batch printed from the browser instead. Nothing was lost and no order was metered twice.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {sends.length > 0 ? (
+        <s-section heading="Invoice emails">
+          {notice && lastIntent === "resend" ? <s-banner tone={notice.ok ? "success" : "critical"}><s-paragraph>{notice.message}</s-paragraph></s-banner> : null}
           <s-table>
             <s-table-header-row>
               <s-table-header listSlot="primary">Order</s-table-header>
@@ -235,7 +376,7 @@ export default function HomePage() {
                     {send.error ? <s-text color="subdued"> {send.error}</s-text> : null}
                   </s-table-cell>
                   <s-table-cell>
-                    <s-button variant="tertiary" disabled={resend.state !== "idle" || undefined} onClick={() => resend.submit({ intent: "resend", orderId: send.orderId }, { method: "post" })}>
+                    <s-button variant="tertiary" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "resend", orderId: send.orderId }, { method: "post" })}>
                       Resend
                     </s-button>
                   </s-table-cell>
@@ -243,8 +384,8 @@ export default function HomePage() {
               ))}
             </s-table-body>
           </s-table>
-        )}
-      </s-section>
+        </s-section>
+      ) : null}
     </s-page>
   );
 }

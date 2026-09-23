@@ -1,4 +1,4 @@
-import { isRouteErrorResponse, Outlet, useLoaderData, useRouteError } from "react-router";
+import { isRouteErrorResponse, Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
 import { RouteError } from "../components/RouteError";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -26,12 +26,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function App() {
   const { apiKey, usage } = useLoaderData<typeof loader>();
+  const { pathname } = useLocation();
+  // Home has its own plan bar and meter card, so the strip would repeat them.
+  const onHome = pathname.replace(/\/$/, "") === "/app";
   const ratio = usage.limit ? usage.used / usage.limit : 0;
   const tone = ratio >= 1 ? "critical" : ratio >= 0.9 ? "warning" : "info";
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      {usage.limit !== null ? (
+      {usage.limit !== null && !onHome ? (
         <s-box padding="small" background="subdued">
           <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
             <s-text fontVariantNumeric="tabular-nums">
