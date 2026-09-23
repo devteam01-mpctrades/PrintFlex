@@ -118,3 +118,23 @@ table.pf-t .num { text-align: right; font-family: var(--pf-mono); font-variant-n
 .pf-b-brand { background: var(--pf-brand-soft); color: var(--pf-brand-ink); }
 
 .pf-foot { text-align: center; font-size: 11.5px; color: var(--pf-sub); padding: 6px 0 2px; }
+
+/* Setup guide (first run) */
+.pf-guide__bar { height: 4px; background: var(--pf-bg); }
+.pf-guide__bar i { display: block; height: 100%; background: var(--pf-brand); transition: width .3s ease; }
+.pf-guide { list-style: none; margin: 0; padding: 6px 0; }
+.pf-guide li { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--pf-border); }
+.pf-guide li:last-child { border-bottom: 0; }
+.pf-guide__mark { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; background: var(--pf-bg); color: var(--pf-sub); }
+.pf-guide li.done .pf-guide__mark { background: var(--pf-ok-bg); color: var(--pf-ok-tx); }
+.pf-guide li.current .pf-guide__mark { background: var(--pf-brand); color: #fff; }
+.pf-guide__body { flex: 1; min-width: 0; }
+.pf-guide__title { font-weight: 600; font-size: 13px; padding-top: 2px; }
+.pf-guide li.done .pf-guide__title { color: var(--pf-sub); text-decoration: line-through; text-decoration-color: var(--pf-border-2); }
+.pf-guide__body p { margin: 4px 0 10px; color: var(--pf-sub); font-size: 12.5px; }
+.pf-guide__actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pf-stats--single { grid-template-columns: minmax(0, 420px); }
+.pf-planline { margin: 0; font-size: 12.5px; color: var(--pf-sub); }
+.pf-planline strong { color: var(--pf-text); }
+.pf-stat.attention { background: var(--pf-brand-soft); border-color: var(--pf-brand-soft-2); }
+.pf-stat.attention .v { color: var(--pf-brand-ink); }

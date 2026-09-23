@@ -35,6 +35,8 @@ export interface ShopSettings {
   defaults: DefaultsSettings;
   /** Onboarding step 1, when the merchant confirmed store details. */
   onboardingConfirmedAt: string | null;
+  /** Show the setup guide on Home even after the first document was generated. */
+  showSetupGuide: boolean;
 }
 
 export const DEFAULT_DEFAULTS: DefaultsSettings = { paperSize: "A4", documentSet: ["INVOICE", "PACKING_SLIP", "PICK_LIST"] };
@@ -88,6 +90,7 @@ export function parseSettings(json: string | null | undefined): ShopSettings {
       documentSet: set.length ? [...new Set(set)] : DEFAULT_DEFAULTS.documentSet,
     },
     onboardingConfirmedAt: typeof root.onboardingConfirmedAt === "string" ? root.onboardingConfirmedAt : null,
+    showSetupGuide: root.showSetupGuide === true,
     pack: {
       requireAllChecked: bool(pack.requireAllChecked, DEFAULT_PACK_SETTINGS.requireAllChecked),
       showPhotos: bool(pack.showPhotos, DEFAULT_PACK_SETTINGS.showPhotos),

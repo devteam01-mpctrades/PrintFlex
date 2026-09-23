@@ -102,6 +102,10 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<Result> =
       await audit(shop.id, "merchant", "settings.changed", "tags", { printed, packed, needsReview });
       return { ok: true, message: "Tag names saved. New prints and packs use them; tags already on orders are unchanged." };
     }
+    case "setupGuide": {
+      await updateShopSettings(prisma, shop.id, (current) => ({ ...current, showSetupGuide: true }));
+      return { ok: true, message: "The setup guide is back on Home." };
+    }
     case "defaults": {
       const set = DOCUMENT_TYPES.filter((t) => form.get(`set.${t}`) === "on");
       if (set.length === 0) return { ok: false, message: "Choose at least one document for the default set." };
@@ -278,6 +282,13 @@ export default function SettingsPage() {
             <s-button type="submit" variant="primary" disabled={busy || undefined}>Save defaults</s-button>
           </s-stack>
         </form>
+        <s-divider></s-divider>
+        <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
+          <s-paragraph color="subdued">The setup guide leaves Home once the first document is printed. Bring it back for a new team member.</s-paragraph>
+          <s-button disabled={busy || settings.showSetupGuide || undefined} onClick={() => fetcher.submit({ intent: "setupGuide" }, { method: "post" })}>
+            {settings.showSetupGuide ? "Shown on Home" : "Show the setup guide on Home"}
+          </s-button>
+        </s-stack>
       </s-section>
 
       <s-section heading="Invoice numbering">
