@@ -200,8 +200,8 @@ export default function SettingsPage() {
                     </s-select>
                   </s-stack>
                   <div className="pf-actions">
-                    <s-button type="submit" variant="primary" disabled={busy || undefined}>Import bin locations</s-button>
-                    {warehouse.bins > 0 ? <s-button variant="tertiary" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "clearBins" }, { method: "post" })}>Clear</s-button> : null}
+                    <button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Import bin locations</button>
+                    {warehouse.bins > 0 ? <button type="button" className="pf-btn pf-btn--ghost" disabled={busy} onClick={() => fetcher.submit({ intent: "clearBins" }, { method: "post" })}>Clear</button> : null}
                   </div>
                 </form>
               </div>
@@ -217,8 +217,8 @@ export default function SettingsPage() {
                   </div>
                   <s-text-area name="csv" label="Paste CSV: bundle SKU, component SKU, quantity, component title (optional)" rows={3} placeholder={"KIT-GLASS,PF-001,1,Ginseng Cream\nKIT-GLASS,PF-009,2,Travel Toner"}></s-text-area>
                   <div className="pf-actions">
-                    <s-button type="submit" variant="primary" disabled={busy || undefined}>Import bundle map</s-button>
-                    {warehouse.bundles > 0 ? <s-button variant="tertiary" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "clearBundles" }, { method: "post" })}>Clear</s-button> : null}
+                    <button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Import bundle map</button>
+                    {warehouse.bundles > 0 ? <button type="button" className="pf-btn pf-btn--ghost" disabled={busy} onClick={() => fetcher.submit({ intent: "clearBundles" }, { method: "post" })}>Clear</button> : null}
                   </div>
                 </form>
               </div>
@@ -247,7 +247,7 @@ export default function SettingsPage() {
                     <s-text-field name="prefix" label="Prefix" value={data.invoice.prefix}></s-text-field>
                     <s-number-field name="nextNumber" label="Next number" value={String(data.invoice.nextNumber)} min={1}></s-number-field>
                   </s-grid>
-                  <div className="pf-actions"><s-button type="submit" variant="primary" disabled={busy || undefined}>Save numbering</s-button></div>
+                  <div className="pf-actions"><button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Save numbering</button></div>
                 </form>
               </div>
             </div>
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                   {!data.hasPin ? <p className="pf-sub">No store PIN yet, so nobody can open scan mode. Set one to let staff sign in on their phones.</p> : null}
                   <s-stack direction="inline" gap="small" alignItems="end">
                     <s-text-field name="pin" label={data.hasPin ? "New store PIN" : "Store PIN"} placeholder="4 to 8 digits" details="Changing the PIN signs every device out."></s-text-field>
-                    <s-button type="submit" variant="primary" disabled={busy || undefined}>{data.hasPin ? "Rotate PIN" : "Set PIN"}</s-button>
+                    <button type="submit" className="pf-btn pf-btn--p" disabled={busy}>{data.hasPin ? "Rotate PIN" : "Set PIN"}</button>
                   </s-stack>
                 </form>
               </div>
@@ -284,7 +284,7 @@ export default function SettingsPage() {
                           <td className="mono" title={when(d.lastSeenAt)}>{relative(d.lastSeenAt)}</td>
                           <td><span className={`pf-badge ${d.stale ? "pf-b-warn" : "pf-b-ok"}`}>{d.stale ? "Must sign in again" : "Active"}</span></td>
                           <td className="end">
-                            <s-button variant="tertiary" tone="critical" accessibilityLabel={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>Revoke</s-button>
+                            <button type="button" className="pf-btn pf-btn--ghost" aria-label={`Revoke ${d.name}`} disabled={busy} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>Revoke</button>
                           </td>
                         </tr>
                       ))}
@@ -304,7 +304,7 @@ export default function SettingsPage() {
                     <s-text-field name="packed" label="Packed" value={settings.tagNames.packed} placeholder={data.defaultTags.packed}></s-text-field>
                     <s-text-field name="needsReview" label="Needs review" value={settings.tagNames.needsReview} placeholder={data.defaultTags.needsReview}></s-text-field>
                   </s-stack>
-                  <div className="pf-actions"><s-button type="submit" variant="primary" disabled={busy || undefined}>Save tag names</s-button></div>
+                  <div className="pf-actions"><button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Save tag names</button></div>
                 </form>
               </div>
             </div>
@@ -327,15 +327,15 @@ export default function SettingsPage() {
                     </s-select>
                     <s-number-field name="scanTokenDays" label="Printed QR codes keep working for (days)" value={String(settings.scanTokenDays)} min={1} max={3650}></s-number-field>
                   </s-stack>
-                  <div className="pf-actions"><s-button type="submit" variant="primary" disabled={busy || undefined}>Save defaults</s-button></div>
+                  <div className="pf-actions"><button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Save defaults</button></div>
                 </form>
               </div>
               <div className="pf-panel__f">
                 <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
                   <span>The setup guide leaves Home once the first document is printed. Bring it back for a new team member.</span>
-                  <s-button disabled={busy || settings.showSetupGuide || undefined} onClick={() => fetcher.submit({ intent: "setupGuide" }, { method: "post" })}>
+                  <button type="button" className="pf-btn" disabled={busy || settings.showSetupGuide} onClick={() => fetcher.submit({ intent: "setupGuide" }, { method: "post" })}>
                     {settings.showSetupGuide ? "Shown on Home" : "Show the setup guide"}
-                  </s-button>
+                  </button>
                 </s-stack>
               </div>
             </div>
@@ -352,7 +352,7 @@ export default function SettingsPage() {
                       {data.exports.map((f) => (
                         <tr key={f}>
                           <td className="mono">{f}</td>
-                          <td className="end"><s-button variant="tertiary" onClick={() => void downloadFile(`/app/settings/export/${encodeURIComponent(f)}`, f).then(setExportError)}>Download</s-button></td>
+                          <td className="end"><button type="button" className="pf-btn pf-btn--ghost" onClick={() => void downloadFile(`/app/settings/export/${encodeURIComponent(f)}`, f).then(setExportError)}>Download</button></td>
                         </tr>
                       ))}
                     </tbody>

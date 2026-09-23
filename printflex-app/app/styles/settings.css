@@ -56,3 +56,13 @@ table.pf-t .mono { font-family: var(--pf-mono); font-variant-numeric: tabular-nu
 table.pf-t .end { text-align: right; }
 .pf-link { color: var(--pf-brand-ink); font-weight: 600; text-decoration: none; }
 .pf-link:hover { text-decoration: underline; }
+
+/* Buttons: brand orange for the primary action of each panel, white for secondary. */
+.pf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--pf-border-2); background: #fff; border-radius: 8px; padding: 8px 14px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--pf-text); box-shadow: var(--pf-shadow); cursor: pointer; white-space: nowrap; }
+.pf-btn:hover { background: var(--pf-card-2); }
+.pf-btn--p { background: var(--pf-brand); border-color: var(--pf-brand); color: #fff; }
+.pf-btn--p:hover { background: #b8480a; }
+.pf-btn--ghost { border-color: transparent; box-shadow: none; background: transparent; color: var(--pf-brand-ink); }
+.pf-btn--ghost:hover { background: var(--pf-brand-soft); }
+.pf-btn:disabled { cursor: default; opacity: .55; }
+.pf-btn:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: 2px; }
