@@ -8,7 +8,7 @@ import { downloadFile } from "../components/download";
 import { useNativeEvent } from "../components/orders/useNativeEvent";
 import { RouteError } from "../components/RouteError";
 import prisma from "../db.server";
-import { audit, listAudit } from "../lib/audit.server";
+import { audit } from "../lib/audit.server";
 import { configureInvoiceNumbering } from "../lib/invoices/invoice-number.server";
 import { storageRoot } from "../lib/render/storage.server";
 import { requireShop } from "../lib/request.server";
@@ -34,7 +34,7 @@ const DOC_LABEL = { INVOICE: "Invoice", PACKING_SLIP: "Packing slip", PICK_LIST:
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await requireShop(request);
   const settings = parseSettings(shop.settingsJson);
-  const [hasPin, devices, warehouse, auditRows] = await Promise.all([hasStorePin(shop.id), listDevices(shop.id), warehouseSummary(shop.id), listAudit(shop.id, 50)]);
+  const [hasPin, devices, warehouse] = await Promise.all([hasStorePin(shop.id), listDevices(shop.id), warehouseSummary(shop.id)]);
   const exportsDir = path.join(storageRoot(), "compliance", shop.id);
   let exportsList: string[] = [];
   try {
@@ -51,7 +51,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     warehouse,
     invoice: { prefix: shop.invoicePrefix, nextNumber: shop.invoiceNextNumber },
     exports: exportsList,
-    audit: auditRows,
     defaultTags: DEFAULT_TAG_NAMES,
   };
 };
@@ -387,28 +386,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="pf-panel">
-          <div className="pf-panel__h"><h2>Audit log</h2><div className="right"><span className="pf-badge pf-b-neu">Last {data.audit.length}</span></div></div>
-          {data.audit.length === 0 ? (
-            <div className="pf-panel__empty">Template changes, PIN rotations, plan changes and code revocations will be listed here.</div>
-          ) : (
-            <div className="pf-tscroll">
-              <table className="pf-t">
-                <thead><tr><th>When</th><th>What</th><th>Who</th><th>Details</th></tr></thead>
-                <tbody>
-                  {data.audit.map((a) => (
-                    <tr key={a.id}>
-                      <td className="mono">{when(a.createdAt)}</td>
-                      <td>{a.label}</td>
-                      <td>{a.actor}</td>
-                      <td style={{ color: "var(--pf-sub)" }}>{a.details === "{}" ? "" : a.details}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </div>
     </s-page>
   );
