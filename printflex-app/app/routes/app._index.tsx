@@ -100,6 +100,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     /** Rows in OrderIndex: zero means nothing was ever synced. */
     indexed,
     showAll,
+    /** Plan names for the segmented plan bar, so the component never imports plans.server. */
+    planOptions: PLAN_ORDER.map((id) => ({ id, name: PLANS[id].name })),
     plan: {
       id: usage.plan.id,
       name: usage.plan.name,
@@ -165,7 +167,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function HomePage() {
   const data = useLoaderData<typeof loader>();
-  const { batches, timezone, sends, onboarding, plan, indexed, waiting, oldestWaiting, packedToday, needsReview, devicesActive, store, documentSet, showAll, firstRun, showSetupGuide } = data;
+  const { batches, timezone, sends, onboarding, plan, planOptions, indexed, waiting, oldestWaiting, packedToday, needsReview, devicesActive, store, documentSet, showAll, firstRun, showSetupGuide } = data;
   const fetcher = useFetcher<{ ok: boolean; message: string; jobId?: string }>();
   const busy = fetcher.state !== "idle";
   const lastIntent = fetcher.formData?.get("intent");
@@ -302,9 +304,9 @@ export default function HomePage() {
                 <div className="val">{plan.name}</div>
               </div>
               <div className="pf-seg" role="list" aria-label="Plans">
-                {PLAN_ORDER.map((id) => (
-                  <span key={id} role="listitem" className={id === plan.id ? "on" : undefined} aria-current={id === plan.id ? "true" : undefined}>
-                    {PLANS[id].name}
+                {planOptions.map((option) => (
+                  <span key={option.id} role="listitem" className={option.id === plan.id ? "on" : undefined} aria-current={option.id === plan.id ? "true" : undefined}>
+                    {option.name}
                   </span>
                 ))}
               </div>
