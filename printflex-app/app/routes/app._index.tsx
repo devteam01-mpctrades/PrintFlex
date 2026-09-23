@@ -9,12 +9,10 @@ import { batchLabel } from "../lib/jobs/batch-label";
 import { createDocumentJob } from "../lib/jobs/create-job.server";
 import { getQueue } from "../lib/jobs/worker.server";
 import { capacityMessage, checkCapacity, getUsage } from "../lib/meter.server";
-import { onboardingState } from "../lib/onboarding.server";
 import { packStats } from "../lib/pack/history.server";
 import { zonedDayStart } from "../lib/period.server";
-import { audit } from "../lib/audit.server";
 import { PLANS } from "../lib/plans.server";
-import { parseSettings, updateShopSettings } from "../lib/settings.server";
+import { parseSettings } from "../lib/settings.server";
 import { puppeteerRenderer } from "../lib/render/pdf.server";
 import { requireShop } from "../lib/request.server";
 import type { DocumentType, JobState, PlanId } from "../lib/types";
@@ -78,10 +76,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const today = zonedDayStart(new Intl.DateTimeFormat("en-CA", { timeZone: shop.timezone }).format(now), shop.timezone);
   const waitingWhere = { shopId: shop.id, fulfillmentStatus: "UNFULFILLED", documentStatus: "NEW", cancelledAt: null } as const;
 
-  const [jobs, sends, onboarding, usage, indexed, waiting, oldestWaiting, stats] = await Promise.all([
+  const [jobs, sends, usage, indexed, waiting, oldestWaiting, stats] = await Promise.all([
     prisma.documentJob.findMany({ where: { shopId: shop.id }, orderBy: { createdAt: "desc" }, take: showAll ? 50 : 5 }),
     listSendLog(shop.id, 10),
-    onboardingState(shop.id),
     getUsage(shop.id, now),
     prisma.orderIndex.count({ where: { shopId: shop.id } }),
     prisma.orderIndex.count({ where: waitingWhere }),
@@ -92,11 +89,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     timezone: shop.timezone,
     sends,
-    onboarding,
-    /** First run until the first document was ever generated. Derived from Document rows, never a toggle. */
-    firstRun: !onboarding.hasPrinted,
-    /** The merchant asked, in Settings, to keep the guide on Home after first run. */
-    showSetupGuide: settings.showSetupGuide,
     /** Rows in OrderIndex: zero means nothing was ever synced. */
     indexed,
     showAll,
@@ -134,15 +126,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, admin } = await requireShop(request);
   const form = await request.formData();
   const intent = form.get("intent");
-  if (intent === "confirmStore") {
-    await updateShopSettings(prisma, shop.id, (current) => ({ ...current, onboardingConfirmedAt: new Date().toISOString() }));
-    await audit(shop.id, "merchant", "settings.changed", "onboarding");
-    return { ok: true, message: "Store details confirmed." };
-  }
-  if (intent === "hideGuide") {
-    await updateShopSettings(prisma, shop.id, (current) => ({ ...current, showSetupGuide: false }));
-    return { ok: true, message: "Setup guide hidden. Bring it back any time from Settings." };
-  }
   if (intent === "morningBatch") {
     const settings = parseSettings(shop.settingsJson);
     const orders = await prisma.orderIndex.findMany({
@@ -167,27 +150,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function HomePage() {
   const data = useLoaderData<typeof loader>();
-  const { batches, timezone, sends, onboarding, plan, planOptions, indexed, waiting, oldestWaiting, packedToday, needsReview, devicesActive, store, documentSet, showAll, firstRun, showSetupGuide } = data;
+  const { batches, timezone, sends, plan, planOptions, indexed, waiting, oldestWaiting, packedToday, needsReview, devicesActive, documentSet, showAll } = data;
   const fetcher = useFetcher<{ ok: boolean; message: string; jobId?: string }>();
   const busy = fetcher.state !== "idle";
   const lastIntent = fetcher.formData?.get("intent");
   const notice = fetcher.data && !busy ? fetcher.data : null;
-
-  const steps = [
-    {
-      done: onboarding.confirmed,
-      title: "Confirm store details",
-      text: `${store.domain} · ${store.timezone} · tags ${store.tags.printed}, ${store.tags.packed}, ${store.tags.needsReview}.`,
-      primary: { label: "Looks right", onClick: () => fetcher.submit({ intent: "confirmStore" }, { method: "post" }) },
-      href: "/app/settings",
-      hrefLabel: "Change in Settings",
-    },
-    { done: onboarding.hasLogo, title: "Upload a logo", text: "It prints on every invoice and packing slip.", primary: null, href: onboarding.firstTemplateId ? `/app/templates?template=${onboarding.firstTemplateId}` : "/app/templates", hrefLabel: "Open the template" },
-    { done: onboarding.hasPrinted, title: "Print one real order", text: "Pick any order and print an invoice. The QR code on that sheet is the tutorial for step 4.", primary: null, href: "/app/orders", hrefLabel: "Open Orders" },
-    { done: onboarding.hasScanned, title: "Scan it with a phone", text: "Point the phone camera at the QR code. Set the store PIN in Settings first, then sign in once on the phone.", primary: null, href: "/app/scan-pack", hrefLabel: "Open Scan & pack" },
-  ];
-  const doneCount = steps.filter((s) => s.done).length;
-  const currentIndex = steps.findIndex((s) => !s.done);
 
   const when = (iso: string) => {
     const date = new Date(iso);
@@ -238,45 +205,6 @@ export default function HomePage() {
     </div>
   );
 
-  // Shopify's setup-guide pattern: progress, finished steps collapsed with a check, only the current step open.
-  const setupGuide = (
-    <div className="pf-panel">
-      <div className="pf-panel__h">
-        <h2>Set up PrintFlex</h2>
-        <div className="right">
-          <span className="pf-badge pf-b-neu">{doneCount} of {steps.length} complete</span>
-          {!firstRun ? (
-            <s-button variant="tertiary" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "hideGuide" }, { method: "post" })}>Hide</s-button>
-          ) : null}
-        </div>
-      </div>
-      <div className="pf-guide__bar"><i style={{ width: `${(doneCount / steps.length) * 100}%` }} /></div>
-      <ol className="pf-guide">
-        {steps.map((step, i) => {
-          const current = i === currentIndex;
-          return (
-            <li key={step.title} className={step.done ? "done" : current ? "current" : "todo"}>
-              <span className="pf-guide__mark" aria-hidden="true">{step.done ? "✓" : i + 1}</span>
-              <div className="pf-guide__body">
-                <div className="pf-guide__title">{step.title}</div>
-                {current ? (
-                  <>
-                    <p>{step.text}</p>
-                    <div className="pf-guide__actions">
-                      {/* On first run the guide owns the page's one primary button; alongside the morning batch it steps down. */}
-                      {step.primary ? <s-button variant={firstRun ? "primary" : "secondary"} disabled={busy || undefined} onClick={step.primary.onClick}>{step.primary.label}</s-button> : null}
-                      <s-button variant={step.primary ? "tertiary" : firstRun ? "primary" : "secondary"} href={step.href}>{step.hrefLabel}</s-button>
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-
   return (
     <s-page heading="PrintFlex">
       {notice && lastIntent !== "resend" ? (
@@ -287,17 +215,7 @@ export default function HomePage() {
       ) : null}
 
       <div className="pf-home">
-        {firstRun ? (
-          <>
-            {/* First run: the guide is the page. One primary button, the current step's. */}
-            {setupGuide}
-            <div className="pf-stats pf-stats--single">{meterTile}</div>
-            <p className="pf-planline">
-              You are on the <strong>{plan.name}</strong> plan · {plan.pills.join(" · ")} · <Link className="pf-link" to="/app/billing">Plans &amp; billing</Link>
-            </p>
-          </>
-        ) : (
-          <>
+        <>
             <div className="pf-planbar">
               <div>
                 <div className="lbl">Your plan</div>
@@ -317,8 +235,6 @@ export default function HomePage() {
               </div>
               <span className="push"><s-button href="/app/billing">Change plan</s-button></span>
             </div>
-
-            {showSetupGuide ? setupGuide : null}
 
             <div className="pf-stats">
               {meterTile}
@@ -418,8 +334,7 @@ export default function HomePage() {
                 </>
               )}
             </div>
-          </>
-        )}
+        </>
       </div>
 
       {sends.length > 0 ? (

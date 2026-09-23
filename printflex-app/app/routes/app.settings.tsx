@@ -92,10 +92,6 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<Result> =
       await audit(shop.id, "merchant", "settings.changed", "tags", { printed, packed, needsReview });
       return { ok: true, message: "Tag names saved. New prints and packs use them; tags already on orders are unchanged." };
     }
-    case "setupGuide": {
-      await updateShopSettings(prisma, shop.id, (current) => ({ ...current, showSetupGuide: true }));
-      return { ok: true, message: "The setup guide is back on Home." };
-    }
     case "defaults": {
       const set = DOCUMENT_TYPES.filter((t) => form.get(`set.${t}`) === "on");
       if (set.length === 0) return { ok: false, message: "Choose at least one document for the default set." };
@@ -339,14 +335,6 @@ export default function SettingsPage() {
                   </label>
                   <div className="pf-actions"><button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Save defaults</button></div>
                 </form>
-              </div>
-              <div className="pf-panel__f">
-                <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
-                  <span>The setup guide leaves Home once the first document is printed. Bring it back for a new team member.</span>
-                  <button type="button" className="pf-btn" disabled={busy || settings.showSetupGuide} onClick={() => fetcher.submit({ intent: "setupGuide" }, { method: "post" })}>
-                    {settings.showSetupGuide ? "Shown on Home" : "Show the setup guide"}
-                  </button>
-                </s-stack>
               </div>
             </div>
 
