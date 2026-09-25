@@ -41,7 +41,10 @@ export const SCAN_CSS = `
   .notice.bad { border-color: var(--bad); background: #fef2f2; }
   .notice.ok { border-color: var(--ok); background: #ecfdf5; }
   .row { display: flex; gap: 10px; align-items: center; }
-  .row > * { flex: 1; }
+  .row > * { flex: 1 1 0; min-width: 0; }
+  .problem { padding: 4px 0 0; }
+  .choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .choices .btn { margin-top: 0; min-height: 48px; padding: 10px 6px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   video { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; background: #111; border-radius: 12px; }
   .hint { font-size: 14px; color: var(--muted); margin-top: 8px; }
   .list { list-style: none; padding: 0; margin: 0; }
@@ -74,6 +77,10 @@ export const SCAN_CSS = `
   .preview .list .count { font-size: 15px !important; font-weight: 600 !important; min-width: 40px !important; color: var(--muted) !important; }
   .preview .btn { min-height: 46px; font-size: 15px; padding: 12px; border-radius: 10px; }
   .preview .btn:disabled { background: #d9d9d9; color: #6b6b6b; opacity: 1; }
+  .preview .choices { gap: 6px; }
+  .preview .choices .btn { min-height: 40px; font-size: 13px; padding: 8px 4px; }
+  .preview label { font-size: 14px; margin: 10px 0 5px; }
+  .preview input { font-size: 15px; padding: 10px 12px; }
 `;
 
 const SCAN_HEAD = (
@@ -107,7 +114,7 @@ export function ScanShell({ title, device, children, preview = false }: Props) {
   if (preview) {
     return (
       <div className="preview">
-        <style dangerouslySetInnerHTML={{ __html: `${SCAN_CSS} html, body { overflow: hidden; }` }} />
+        <style dangerouslySetInnerHTML={{ __html: `${SCAN_CSS} html { scrollbar-width: none; } html::-webkit-scrollbar { display: none; }` }} />
         <main className="wrap">
           {SCAN_HEAD}
           {children}

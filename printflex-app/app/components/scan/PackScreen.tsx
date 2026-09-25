@@ -382,10 +382,10 @@ function ProblemForm({ onSave, onCancel }: { onSave: (outcome: Problem, note: st
   const [outcome, setOutcome] = useState<Problem>("SHORT_PICK");
   const [note, setNote] = useState("");
   return (
-    <div style={{ padding: "0 10px 12px" }}>
-      <div className="row">
+    <div className="problem">
+      <div className="choices" role="group" aria-label="What happened">
         {(Object.keys(PROBLEM_LABEL) as Problem[]).map((p) => (
-          <button key={p} type="button" className={`btn ${outcome === p ? "" : "secondary"}`} style={{ marginTop: 0, minHeight: 48, padding: 10 }} onClick={() => setOutcome(p)}>
+          <button key={p} type="button" className={`btn ${outcome === p ? "" : "secondary"}`} aria-pressed={outcome === p} onClick={() => setOutcome(p)}>
             {PROBLEM_LABEL[p]}
           </button>
         ))}
