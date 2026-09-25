@@ -2,6 +2,7 @@ import "@shopify/shopify-app-react-router/adapters/node";
 import {
   ApiVersion,
   AppDistribution,
+  DeliveryMethod,
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
@@ -21,11 +22,21 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   billing: BILLING_CONFIG,
+  // Order webhooks are registered per store at install (shop-level subscriptions), because the
+  // app-level ones declared in shopify.app.toml were not delivered for an already-installed store.
+  // Uninstall, scope and compliance topics stay app-level in the toml, as Shopify requires.
+  webhooks: {
+    ORDERS_CREATE: { deliveryMethod: DeliveryMethod.Http, callbackUrl: "/webhooks/orders" },
+    ORDERS_UPDATED: { deliveryMethod: DeliveryMethod.Http, callbackUrl: "/webhooks/orders" },
+    ORDERS_FULFILLED: { deliveryMethod: DeliveryMethod.Http, callbackUrl: "/webhooks/orders" },
+    ORDERS_CANCELLED: { deliveryMethod: DeliveryMethod.Http, callbackUrl: "/webhooks/orders" },
+  },
   future: {
     expiringOfflineAccessTokens: true,
   },
   hooks: {
     afterAuth: async ({ session, admin }) => {
+      await shopify.registerWebhooks({ session });
       const shop = await syncShopFromShopify(admin, session.shop);
       if (shop.uninstalledAt) await handleReinstall(shop.id);
       const synced = await prisma.orderIndex.count({ where: { shopId: shop.id } });
