@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNativeEvent } from "../orders/useNativeEvent";
 import { describeRank, previewRank, type AssignmentRule, type RankedTemplate } from "../../lib/templates/rules";
 import {
@@ -11,6 +11,7 @@ import {
   type TemplateSettings,
 } from "../../lib/templates/template-constants";
 import type { DocumentType } from "../../lib/types";
+import { Btn, Switch } from "../ui";
 
 export interface SettingsTemplate {
   id: string;
@@ -63,40 +64,44 @@ export function SettingsPane({ template, fonts, siblings, onChanged, onDelete, b
   const [accent, setAccent] = useState(s.accentColor);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const logoRef = useRef<HTMLElementTagNameMap["s-drop-zone"]>(null);
   const colorRef = useRef<HTMLElementTagNameMap["s-color-field"]>(null);
   const kindRef = useRef<HTMLElementTagNameMap["s-select"]>(null);
   const countriesRef = useRef<HTMLElementTagNameMap["s-text-field"]>(null);
   const tagsRef = useRef<HTMLElementTagNameMap["s-text-field"]>(null);
 
-  useNativeEvent(
-    logoRef,
-    "change",
-    useCallback(
-      (event: Event) => {
-        const zone = event.target as HTMLElementTagNameMap["s-drop-zone"];
-        const file = zone.files?.[0];
-        if (!file) return;
-        if (!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)) {
-          setLogoError("That file is not a PNG, JPEG or SVG.");
-          return;
-        }
-        if (file.size > MAX_LOGO_BYTES) {
-          setLogoError(`This file is ${Math.round(file.size / 1024)} KB. Logos must be under ${MAX_LOGO_LABEL}; export a smaller PNG or an SVG.`);
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-          setLogo(String(reader.result));
-          setLogoAction("set");
-          setLogoError(null);
-          onChanged();
-        };
-        reader.readAsDataURL(file);
-      },
-      [onChanged],
-    ),
+  const acceptLogoFile = useCallback(
+    (file: File | undefined) => {
+      if (!file) return;
+      if (!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)) {
+        setLogoError("That file is not a PNG, JPEG or SVG.");
+        return;
+      }
+      if (file.size > MAX_LOGO_BYTES) {
+        setLogoError(`This file is ${Math.round(file.size / 1024)} KB. Logos must be under ${MAX_LOGO_LABEL}; export a smaller PNG or an SVG.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setLogo(String(reader.result));
+        setLogoAction("set");
+        setLogoError(null);
+        onChanged();
+      };
+      reader.readAsDataURL(file);
+    },
+    [onChanged],
   );
+
+  // The drop zone only exists while there is no logo, so it is tracked in
+  // state rather than a ref: the listener must attach whenever it mounts.
+  const [dropZone, setDropZone] = useState<HTMLElementTagNameMap["s-drop-zone"] | null>(null);
+  useEffect(() => {
+    if (!dropZone) return;
+    const listener = () => acceptLogoFile(dropZone.files?.[0]);
+    dropZone.addEventListener("change", listener);
+    return () => dropZone.removeEventListener("change", listener);
+  }, [dropZone, acceptLogoFile]);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
 
   useNativeEvent(kindRef, "change", useCallback((e: Event) => setKind((e.target as HTMLElementTagNameMap["s-select"]).value as RuleKind), []));
   useNativeEvent(countriesRef, "input", useCallback((e: Event) => setCountries((e.target as HTMLElementTagNameMap["s-text-field"]).value), []));
@@ -124,7 +129,7 @@ export function SettingsPane({ template, fonts, siblings, onChanged, onDelete, b
   const toggle = (name: string, checked: boolean, label: string, details?: string) => (
     <s-box key={name}>
       <input type="hidden" name={`${name}.present`} value="1" />
-      <s-switch name={name} value="on" checked={checked || undefined} label={label} details={details}></s-switch>
+      <Switch name={name} value="on" defaultChecked={checked} label={label} details={details} />
     </s-box>
   );
 
@@ -143,24 +148,50 @@ export function SettingsPane({ template, fonts, siblings, onChanged, onDelete, b
             <input type="hidden" name="logoAction" value={logoAction} />
             <input type="hidden" name="logoDataUrl" value={logoAction === "set" && logo ? logo : ""} />
             {logo ? (
-              <s-stack direction="inline" gap="base" alignItems="center">
-                <s-thumbnail src={logo} alt="Current logo" size="large"></s-thumbnail>
-                <s-button
-                  variant="tertiary"
-                  tone="critical"
-                  icon="delete"
-                  onClick={() => {
-                    setLogo(null);
-                    setLogoAction("remove");
-                    onChanged();
+              <>
+                <s-text type="strong">Logo</s-text>
+                <div className="pf-logo">
+                  <div className="pf-logo__tile"><img src={logo} alt="Current logo" /></div>
+                  <div className="pf-logo__body">
+                    <span className="pf-logo__title">{logoAction === "set" ? "New logo, not saved yet" : "Current logo"}</span>
+                    <span className="pf-logo__hint">Printed up to 18 mm tall on every document.</span>
+                  </div>
+                  <div className="pf-logo__actions">
+                    <Btn onClick={() => replaceInputRef.current?.click()}>Replace</Btn>
+                    <Btn
+                      tone="critical"
+                      icon="delete"
+                      onClick={() => {
+                        setLogo(null);
+                        setLogoAction("remove");
+                        setLogoError(null);
+                        onChanged();
+                      }}
+                    >
+                      Remove
+                    </Btn>
+                  </div>
+                </div>
+                <input
+                  ref={replaceInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml"
+                  hidden
+                  aria-label="Replace logo"
+                  onChange={(e) => {
+                    acceptLogoFile(e.target.files?.[0]);
+                    e.target.value = "";
                   }}
-                >
-                  Remove logo
-                </s-button>
-              </s-stack>
-            ) : null}
-            <s-drop-zone ref={logoRef} label={logo ? "Replace logo" : "Logo"} accept="image/png,image/jpeg,image/svg+xml"></s-drop-zone>
-            {logoError ? <s-text tone="critical">{logoError}</s-text> : <s-text color="subdued">PNG, JPEG or SVG under {MAX_LOGO_LABEL}. Printed up to 18 mm tall.</s-text>}
+                />
+              </>
+            ) : (
+              <s-drop-zone ref={setDropZone} label="Logo" accept="image/png,image/jpeg,image/svg+xml"></s-drop-zone>
+            )}
+            {logoError ? (
+              <s-text tone="critical">{logoError}</s-text>
+            ) : logo ? null : (
+              <s-text color="subdued">PNG, JPEG or SVG under {MAX_LOGO_LABEL}. Printed up to 18 mm tall.</s-text>
+            )}
           </s-stack>
 
           {/* Accent colour */}
@@ -235,9 +266,9 @@ export function SettingsPane({ template, fonts, siblings, onChanged, onDelete, b
 
           {/* Advanced */}
           <s-stack gap="small">
-            <s-button variant="tertiary" icon={showAdvanced ? "chevron-up" : "chevron-down"} onClick={() => setShowAdvanced((v) => !v)}>
+            <Btn variant="tertiary" icon={showAdvanced ? "chevron-up" : "chevron-down"} onClick={() => setShowAdvanced((v) => !v)}>
               {showAdvanced ? "Hide advanced settings" : "Advanced settings"}
-            </s-button>
+            </Btn>
             <div hidden={!showAdvanced}>
               <s-stack gap="base">
                 <s-grid gridTemplateColumns="1fr 1fr" gap="small">
@@ -253,8 +284,8 @@ export function SettingsPane({ template, fonts, siblings, onChanged, onDelete, b
                   </s-select>
                   {template.type !== "PICK_LIST" ? (
                     <s-select name="codes.position" label="Codes position" value={s.codes.position}>
-                      <s-option value="header">Header</s-option>
-                      <s-option value="footer">Footer</s-option>
+                      <s-option value="footer">Bottom, beside the totals</s-option>
+                      <s-option value="header">Top, in the header</s-option>
                     </s-select>
                   ) : null}
                   {template.type !== "PICK_LIST" ? (
@@ -289,9 +320,9 @@ export function SettingsPane({ template, fonts, siblings, onChanged, onDelete, b
 
           {template.canDelete ? (
             <s-box paddingBlockStart="small">
-              <s-button variant="tertiary" tone="critical" disabled={busy || undefined} onClick={onDelete}>
+              <Btn variant="tertiary" tone="critical" disabled={busy || undefined} onClick={onDelete}>
                 Delete this template
-              </s-button>
+              </Btn>
             </s-box>
           ) : null}
         </s-stack>

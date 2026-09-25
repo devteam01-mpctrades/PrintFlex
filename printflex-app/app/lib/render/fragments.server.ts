@@ -45,8 +45,13 @@ export function addressLines(address: Address | null, fallbackName: string | nul
   ].filter((line): line is string => Boolean(line && line.trim()));
 }
 
-function party(title: string, lines: string[]): string {
-  return `<section class="party"><h3>${escapeHtml(title)}</h3>${lines.map((l) => `<div>${escapeHtml(l)}</div>`).join("")}</section>`;
+/** One address block: the first line is the name, contact lines sit apart underneath. */
+function party(title: string, lines: string[], contact: string[] = []): string {
+  const [name, ...rest] = lines;
+  const nameHtml = name ? `<div class="name">${escapeHtml(name)}</div>` : "";
+  const restHtml = rest.map((l) => `<div>${escapeHtml(l)}</div>`).join("");
+  const contactHtml = contact.length ? `<div class="contact">${contact.map((c) => `<div>${escapeHtml(c)}</div>`).join("")}</div>` : "";
+  return `<section class="party"><h3>${escapeHtml(title)}</h3>${nameHtml}${restHtml}${contactHtml}</section>`;
 }
 
 export function codesHtml(codes: Codes | undefined, settings: TemplateSettings): string {
@@ -107,10 +112,11 @@ export function renderInvoiceFragment(input: InvoiceFragmentInput): string {
   const money = (m: { amount: string; currencyCode: string }) => formatMoney(m.amount, m.currencyCode);
 
   const sellerLines = [order.seller.name, ...addressLines(order.seller.address, null).slice(1)];
-  if (order.seller.email) sellerLines.push(order.seller.email);
+  const sellerContact = order.seller.email ? [order.seller.email] : [];
   const buyerLines = addressLines(order.billingAddress ?? order.shippingAddress, order.customerName);
-  if (f.customerEmail && order.email) buyerLines.push(order.email);
-  if (f.customerPhone && order.phone) buyerLines.push(order.phone);
+  const buyerContact: string[] = [];
+  if (f.customerEmail && order.email) buyerContact.push(order.email);
+  if (f.customerPhone && order.phone) buyerContact.push(order.phone);
   const shipToLines = order.shippingAddress && order.billingAddress ? addressLines(order.shippingAddress, order.customerName) : [];
 
   const showDiscountCol = f.lineDiscounts && order.lineItems.some((li) => Number(li.lineDiscount.amount) > 0);
@@ -160,8 +166,8 @@ export function renderInvoiceFragment(input: InvoiceFragmentInput): string {
     </div>
   </header>
   <div class="parties cols-${shipToLines.length ? 3 : 2}">
-    ${party("From", sellerLines)}
-    ${party("Bill to", buyerLines)}
+    ${party("From", sellerLines, sellerContact)}
+    ${party("Bill to", buyerLines, buyerContact)}
     ${shipToLines.length ? party("Ship to", shipToLines) : ""}
   </div>
   <table class="lines">
@@ -171,15 +177,18 @@ export function renderInvoiceFragment(input: InvoiceFragmentInput): string {
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <div class="totals"><table>
-    <tr><th>Subtotal</th><td>${money(order.subtotal)}</td></tr>
-    ${Number(order.totalDiscounts.amount) > 0 ? `<tr><th>Discounts</th><td>−${money(order.totalDiscounts)}</td></tr>` : ""}
-    <tr><th>Shipping</th><td>${money(order.shipping)}</td></tr>
-    ${taxRows}
-    <tr class="grand"><th>Total (${escapeHtml(order.currency)})</th><td>${money(order.total)}</td></tr>
-  </table></div>
+  <div class="closing">
+    <div class="codes">${inFooter}</div>
+    <div class="totals"><table>
+      <tr><th>Subtotal</th><td>${money(order.subtotal)}</td></tr>
+      ${Number(order.totalDiscounts.amount) > 0 ? `<tr><th>Discounts</th><td>−${money(order.totalDiscounts)}</td></tr>` : ""}
+      <tr><th>Shipping</th><td>${money(order.shipping)}</td></tr>
+      ${taxRows}
+      <tr class="grand"><th>Total (${escapeHtml(order.currency)})</th><td>${money(order.total)}</td></tr>
+    </table></div>
+  </div>
   ${f.orderNotes && order.note ? `<div class="notes"><h3>Order notes</h3><div>${escapeMultiline(order.note)}</div></div>` : ""}
-  <footer><div>${escapeMultiline(settings.footerText)}</div><div class="codes">${inFooter}</div></footer>
+  <footer><div>${escapeMultiline(settings.footerText)}</div></footer>
 </article>`;
 }
 
@@ -195,8 +204,9 @@ export function renderPackingSlipFragment(input: PackingSlipFragmentInput): stri
   const { order, settings, timezone, bins } = input;
   const f = settings.fields;
   const shipLines = addressLines(order.shippingAddress ?? order.billingAddress, order.customerName);
-  if (f.customerPhone && order.phone) shipLines.push(order.phone);
-  if (f.customerEmail && order.email) shipLines.push(order.email);
+  const shipContact: string[] = [];
+  if (f.customerPhone && order.phone) shipContact.push(order.phone);
+  if (f.customerEmail && order.email) shipContact.push(order.email);
   const anyBin = f.binLocation && order.lineItems.some((li) => li.sku && bins.has(li.sku));
   const gift = f.giftMessage ? giftMessage(order) : null;
   const totalUnits = order.lineItems.reduce((n, li) => n + li.quantity, 0);
@@ -233,7 +243,7 @@ export function renderPackingSlipFragment(input: PackingSlipFragmentInput): stri
     </div>
   </header>
   <div class="parties cols-2">
-    ${party("Ship to", shipLines)}
+    ${party("Ship to", shipLines, shipContact)}
     ${party("From", [order.seller.name, ...addressLines(order.seller.address, null).slice(1)])}
   </div>
   ${gift ? `<div class="callout"><h3>Gift message</h3><div>${escapeMultiline(gift)}</div></div>` : ""}
@@ -242,7 +252,8 @@ export function renderPackingSlipFragment(input: PackingSlipFragmentInput): stri
     <thead><tr><th></th><th class="qty">Qty</th><th>Item</th>${f.sku ? "<th>SKU</th>" : ""}${extras.map((c) => `<th>${c.head}</th>`).join("")}${anyBin ? "<th>Bin</th>" : ""}</tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <footer><div>${escapeMultiline(settings.footerText)}</div><div class="codes">${inFooter}</div></footer>
+  <div class="closing"><div class="codes">${inFooter}</div></div>
+  <footer><div>${escapeMultiline(settings.footerText)}</div></footer>
 </article>`;
 }
 

@@ -1,7 +1,7 @@
 /* Three-pane template editor: list, preview, settings. One column under 1000px. */
 .pf-editor {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 340px;
+  grid-template-columns: 236px minmax(0, 1fr) 340px;
   gap: 16px;
   align-items: start;
 }
@@ -9,3 +9,72 @@
 @media (max-width: 1000px) {
   .pf-editor { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------------------------------------------------------------- Template list
+ * Compact card in the same tokens as the Settings panels. Rows are links;
+ * the selected one gets the brand bar so it reads at a glance.
+ */
+.pf-tlist {
+  --pf-card: #ffffff; --pf-card-2: #fafafa; --pf-border: #e3e3e3;
+  --pf-text: #303030; --pf-sub: #616161;
+  --pf-brand: #e25b07; --pf-brand-ink: #a84206; --pf-brand-soft: #fdefe3; --pf-brand-soft-2: #f9d9bc;
+  --pf-neu-bg: #e7e7e7; --pf-neu-tx: #5c5c5c; --pf-info-bg: #e0f0ff; --pf-info-tx: #00527c;
+  --pf-shadow: 0 1px 0 rgba(0, 0, 0, .05), 0 1px 2px rgba(0, 0, 0, .06);
+  --pf-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  background: var(--pf-card); border: 1px solid var(--pf-border); border-radius: 12px; box-shadow: var(--pf-shadow); overflow: hidden;
+  color: var(--pf-text); font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px; line-height: 1.4;
+}
+.pf-tlist * { box-sizing: border-box; }
+.pf-tlist__h { padding: 12px 14px; border-bottom: 1px solid var(--pf-border); }
+.pf-tlist__h h2 { margin: 0; font-size: 14px; font-weight: 600; }
+
+.pf-tlist__groups { padding: 8px 8px 4px; display: flex; flex-direction: column; gap: 6px; }
+.pf-tlist__kicker { margin: 0; padding: 6px 6px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--pf-sub); }
+.pf-tlist__rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.pf-tlist__row {
+  display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 10px; border-radius: 8px;
+  border-left: 3px solid transparent; color: inherit; text-decoration: none;
+}
+.pf-tlist__row:hover { background: var(--pf-card-2); }
+.pf-tlist__row:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: -2px; }
+.pf-tlist__row.is-selected { background: var(--pf-brand-soft); border-left-color: var(--pf-brand); }
+.pf-tlist__text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.pf-tlist__name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-tlist__row.is-selected .pf-tlist__name { color: var(--pf-brand-ink); font-weight: 600; }
+.pf-tlist__rule { font-size: 11.5px; color: var(--pf-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-tlist__badge { flex: 0 0 auto; border-radius: 6px; padding: 1px 7px; font-size: 10.5px; font-weight: 600; white-space: nowrap; background: var(--pf-neu-bg); color: var(--pf-neu-tx); }
+.pf-tlist__badge.is-rank { background: var(--pf-info-bg); color: var(--pf-info-tx); font-family: var(--pf-mono); }
+
+.pf-tlist__help { border-top: 1px solid var(--pf-border); }
+.pf-tlist__helpbtn {
+  display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 9px 14px; gap: 8px;
+  border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 600; color: var(--pf-brand-ink); cursor: pointer; text-align: left;
+}
+.pf-tlist__helpbtn:hover { background: var(--pf-brand-soft); }
+.pf-tlist__helpbtn:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: -2px; }
+.pf-tlist__helptext { margin: 0; padding: 0 14px 12px; font-size: 12px; color: var(--pf-sub); }
+
+.pf-tlist__f { border-top: 1px solid var(--pf-border); padding: 10px 14px 12px; background: var(--pf-card-2); display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.pf-tlist__version { font-size: 11.5px; color: var(--pf-sub); font-variant-numeric: tabular-nums; }
+.pf-tlist__restore { padding-inline: 0; font-size: 12px; }
+.pf-tlist__restore:hover { background: transparent; text-decoration: underline; }
+
+/* ---------------------------------------------------------------- Logo card
+ * Shown in the settings pane once a logo exists, in place of the drop zone.
+ */
+.pf-logo {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px; border: 1px solid #e3e3e3; border-radius: 10px; background: #fafafa;
+  font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px; color: #303030;
+}
+.pf-logo * { box-sizing: border-box; }
+.pf-logo__tile {
+  flex: 0 0 auto; width: 64px; height: 64px; border-radius: 8px; border: 1px solid #e3e3e3; background: #fff;
+  display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden;
+}
+.pf-logo__tile img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.pf-logo__body { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pf-logo__title { font-weight: 600; }
+.pf-logo__hint { font-size: 12px; color: #616161; }
+.pf-logo__actions { flex: 1 1 100%; display: flex; gap: 8px; }
+.pf-logo__actions .pf-btn { flex: 1 1 0; }

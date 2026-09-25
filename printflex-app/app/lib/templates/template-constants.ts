@@ -97,7 +97,7 @@ export const DEFAULT_TEMPLATE_SETTINGS: TemplateSettings = {
     weight: false,
     paymentStatus: true,
   },
-  codes: { qr: true, barcode: true, position: "header", size: "medium" },
+  codes: { qr: true, barcode: true, position: "footer", size: "medium" },
 };
 
 /** Which toggles make sense on which document. */

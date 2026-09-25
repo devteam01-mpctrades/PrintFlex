@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { Btn } from "../ui";
 
 export interface TemplateListItem {
   id: string;
@@ -29,75 +30,60 @@ interface Props {
  * The left pane: every template grouped by document type, because
  * precedence is resolved per type. Selecting a row changes the URL's
  * `template` param; the route reloads only its data, not the page.
+ * Kept narrow on purpose so the preview gets the width.
  */
 export function TemplateList({ groups, selectedId, version, savedLabel, hasHistory, onRestore }: Props) {
   const [showHelp, setShowHelp] = useState(false);
   return (
-    <s-section padding="none" accessibilityLabel="Templates">
-      <s-box padding="base" paddingBlockEnd="small">
-        <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
-          <s-heading>Templates</s-heading>
-          <s-button variant="tertiary" icon={showHelp ? "chevron-up" : "chevron-down"} onClick={() => setShowHelp((v) => !v)}>
-            How precedence works
-          </s-button>
-        </s-stack>
+    <nav className="pf-tlist" aria-label="Templates">
+      <div className="pf-tlist__h"><h2>Templates</h2></div>
+
+      <div className="pf-tlist__groups">
+        {groups.map((group) => (
+          <div key={group.type} className="pf-tlist__group">
+            <h3 className="pf-tlist__kicker">{group.label}</h3>
+            <ul className="pf-tlist__rows">
+              {group.templates.map((t) => {
+                const selected = t.id === selectedId;
+                return (
+                  <li key={t.id}>
+                    <Link to={`/app/templates?template=${t.id}`} className={`pf-tlist__row${selected ? " is-selected" : ""}`} aria-current={selected ? "page" : undefined}>
+                      <span className="pf-tlist__text">
+                        <span className="pf-tlist__name">{t.name}</span>
+                        <span className="pf-tlist__rule">{t.rule}</span>
+                      </span>
+                      <span className={`pf-tlist__badge${t.isCatchAll ? "" : " is-rank"}`} title={t.isCatchAll ? "Used when no other rule matches" : `Checked ${t.rank === 1 ? "first" : `in position ${t.rank}`}`}>
+                        {t.isCatchAll ? "Fallback" : `#${t.rank}`}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="pf-tlist__help">
+        <button type="button" className="pf-tlist__helpbtn" aria-expanded={showHelp} onClick={() => setShowHelp((v) => !v)}>
+          <span>How precedence works</span>
+          <span aria-hidden="true">{showHelp ? "▴" : "▾"}</span>
+        </button>
         {showHelp ? (
-          <s-box paddingBlockStart="small">
-            <s-paragraph color="subdued">
-              For each document type, PrintFlex walks the templates in the order shown and uses the first whose rule matches the
-              order. A rule with a tag beats one without; then a rule with a country beats one without; then more conditions beat
-              fewer; then the older template wins. The &ldquo;All orders&rdquo; template is always last, so every order prints.
-            </s-paragraph>
-          </s-box>
+          <p className="pf-tlist__helptext">
+            For each document type, PrintFlex walks the templates in the order shown and uses the first whose rule matches the order.
+            A rule with a tag beats one without; then a rule with a country beats one without; then more conditions beat fewer; then
+            the older template wins. The &ldquo;All orders&rdquo; template is always last, so every order prints.
+          </p>
         ) : null}
-      </s-box>
+      </div>
 
-      {groups.map((group) => (
-        <s-box key={group.type} paddingInline="base" paddingBlockEnd="small">
-          <s-box paddingBlock="small-200">
-            <s-text color="subdued" type="strong">{group.label}</s-text>
-          </s-box>
-          <s-stack gap="small-200">
-            {group.templates.map((t) => {
-              const selected = t.id === selectedId;
-              return (
-                <Link
-                  key={t.id}
-                  to={`/app/templates?template=${t.id}`}
-                  aria-current={selected ? "true" : undefined}
-                  style={{ textDecoration: "none", color: "inherit", display: "block" }}
-                >
-                  <s-box
-                    padding="small"
-                    borderRadius="base"
-                    background={selected ? "subdued" : "transparent"}
-                    borderWidth={selected ? "small-100" : "none"}
-                    borderColor="base"
-                  >
-                    <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
-                      <s-stack gap="none">
-                        <s-text type="strong">{t.name}</s-text>
-                        <s-text color="subdued">{t.rule}</s-text>
-                      </s-stack>
-                      <s-badge tone={t.isCatchAll ? "neutral" : "info"}>{t.isCatchAll ? "Fallback" : `${t.rank}`}</s-badge>
-                    </s-stack>
-                  </s-box>
-                </Link>
-              );
-            })}
-          </s-stack>
-        </s-box>
-      ))}
-
-      <s-divider></s-divider>
-      <s-box padding="base">
-        <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
-          <s-text color="subdued" fontVariantNumeric="tabular-nums">Version {version} · saved {savedLabel}</s-text>
-          <s-button variant="tertiary" disabled={!hasHistory || undefined} onClick={onRestore}>
-            Restore a previous version
-          </s-button>
-        </s-stack>
-      </s-box>
-    </s-section>
+      <div className="pf-tlist__f">
+        <span className="pf-tlist__version">Version {version} · saved {savedLabel}</span>
+        <Btn variant="tertiary" className="pf-tlist__restore" disabled={!hasHistory || undefined} onClick={onRestore}>
+          Restore a previous version
+        </Btn>
+      </div>
+    </nav>
   );
 }
