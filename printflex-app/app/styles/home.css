@@ -30,21 +30,7 @@
 }
 .pf-home * { box-sizing: border-box; }
 
-/* buttons */
-.pf-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--pf-border-2); background: #fff; border-radius: 8px; padding: 6px 13px;
-  font: inherit; font-size: 12.5px; font-weight: 550; color: var(--pf-text); box-shadow: var(--pf-shadow);
-  text-decoration: none; cursor: pointer; white-space: nowrap; line-height: 1.3;
-}
-.pf-btn:hover { background: var(--pf-card-2); }
-.pf-btn--p { background: var(--pf-brand); border-color: var(--pf-brand); color: #fff; }
-.pf-btn--p:hover { background: var(--pf-brand-dk); }
-.pf-btn--sm { padding: 4px 10px; font-size: 12px; }
-.pf-btn:disabled, .pf-btn[aria-disabled="true"] {
-  background: var(--pf-bg); border-color: var(--pf-border); color: var(--pf-dis); cursor: not-allowed; box-shadow: none;
-}
-.pf-btn:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: 2px; }
+/* Buttons come from app/styles/app.css (shared Btn); nothing to override here. */
 
 /* plan bar */
 .pf-planbar {

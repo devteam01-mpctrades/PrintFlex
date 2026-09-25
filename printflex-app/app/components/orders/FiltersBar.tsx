@@ -101,9 +101,9 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
 
   return (
     <Form method="get" ref={formRef} onSubmit={(e) => e.preventDefault()}>
-      <s-stack gap="small">
-        <s-stack direction="inline" gap="small" alignItems="center">
-          <s-box inlineSize="100%" maxInlineSize="520px">
+      <div>
+        <div className="pf-filterrow">
+          <div className="pf-filterrow__search">
             <s-search-field
               name="q"
               label="Search orders"
@@ -111,9 +111,10 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
               placeholder="Order number, customer, email or SKU. Scan a barcode to jump to its order."
               value={filters.q}
             ></s-search-field>
-          </s-box>
+          </div>
+          <div className="pf-filterrow__chips">
 
-          <Btn commandFor="filter-fulfillment" command="--toggle" icon="chevron-down" variant={filters.fulfillment ? "secondary" : "tertiary"}>
+          <Btn commandFor="filter-fulfillment" command="--toggle" icon="chevron-down" className={filters.fulfillment ? "is-on" : undefined}>
             Fulfilment{count(Boolean(filters.fulfillment))}
           </Btn>
           <s-popover id="filter-fulfillment">
@@ -127,7 +128,7 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
             </s-box>
           </s-popover>
 
-          <Btn commandFor="filter-docstatus" command="--toggle" icon="chevron-down" variant={filters.docStatus ? "secondary" : "tertiary"}>
+          <Btn commandFor="filter-docstatus" command="--toggle" icon="chevron-down" className={filters.docStatus ? "is-on" : undefined}>
             Documents{count(Boolean(filters.docStatus))}
           </Btn>
           <s-popover id="filter-docstatus">
@@ -141,7 +142,7 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
             </s-box>
           </s-popover>
 
-          <Btn commandFor="filter-country" command="--toggle" icon="chevron-down" variant={filters.country ? "secondary" : "tertiary"}>
+          <Btn commandFor="filter-country" command="--toggle" icon="chevron-down" className={filters.country ? "is-on" : undefined}>
             Country{count(Boolean(filters.country))}
           </Btn>
           <s-popover id="filter-country">
@@ -155,7 +156,7 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
             </s-box>
           </s-popover>
 
-          <Btn commandFor="filter-more" command="--toggle" icon="chevron-down" variant={filters.shipping || filters.tag || filters.from || filters.to ? "secondary" : "tertiary"}>
+          <Btn commandFor="filter-more" command="--toggle" icon="chevron-down" className={filters.shipping || filters.tag || filters.from || filters.to ? "is-on" : undefined}>
             More filters
           </Btn>
           <s-popover id="filter-more">
@@ -178,10 +179,12 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
               </s-stack>
             </s-box>
           </s-popover>
-        </s-stack>
+          </div>
+        </div>
 
         {hasFilters ? (
-          <s-stack direction="inline" gap="small-200" alignItems="center">
+          <div className="pf-applied">
+            <span className="pf-applied__label">Filtering by</span>
             {chips.map((chip) => (
               <s-clickable-chip
                 key={chip.key}
@@ -195,9 +198,9 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
             <Btn variant="tertiary" onClick={() => void navigate("/app/orders")}>
               Clear all
             </Btn>
-          </s-stack>
+          </div>
         ) : null}
-      </s-stack>
+      </div>
     </Form>
   );
 }

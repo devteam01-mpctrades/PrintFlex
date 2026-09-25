@@ -239,7 +239,7 @@ export default function HomePage() {
               <div className="pf-panel__h">
                 <h2>Start the morning batch</h2>
                 <div className="right">
-                  <Btn href="/app/templates">Edit template</Btn>
+                  <Btn variant="tertiary" href="/app/templates">Edit template</Btn>
                   <Btn href="/app/scan-pack">Open scan mode</Btn>
                   <Btn
                     variant="primary"
@@ -274,7 +274,7 @@ export default function HomePage() {
               {batches.length === 0 ? (
                 <div className="pf-panel__empty">
                   <p>No batches yet. Print your first orders from the Orders screen and they will appear here with their status.</p>
-                  <Btn href="/app/orders">Open Orders</Btn>
+                  <Btn variant="primary" href="/app/orders">Open Orders</Btn>
                 </div>
               ) : (
                 <>

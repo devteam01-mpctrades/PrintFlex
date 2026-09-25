@@ -16,7 +16,7 @@ interface Props {
 }
 
 const ACTIONS: Array<{ label: string; documentTypes: string }> = [
-  { label: "Print invoices", documentTypes: "INVOICE" },
+  { label: "Invoices", documentTypes: "INVOICE" },
   { label: "Packing slips", documentTypes: "PACKING_SLIP" },
   { label: "Pick list", documentTypes: "PICK_LIST" },
   { label: "All three", documentTypes: "ALL" },
@@ -39,45 +39,46 @@ export function BulkActionBar(props: Props) {
     summary.mode === "filter" ? `All ${summary.count} matching this filter selected` : `${summary.count} selected`;
 
   return (
-    <s-box padding="base" background="subdued">
-      <s-stack gap="small">
-        <s-stack direction="inline" gap="small" alignItems="center">
-          <s-text type="strong" fontVariantNumeric="tabular-nums">{countLabel}</s-text>
-          {ACTIONS.map((action) => (
-            <Btn
-              key={action.documentTypes}
-              variant={action.documentTypes === "INVOICE" ? "primary" : "secondary"}
-              disabled={busy || undefined}
-              onClick={() =>
-                fetcher.submit(
-                  { intent: "print", documentTypes: action.documentTypes, selection, coverSheet: coverSheet ? "on" : "off" },
-                  { method: "post" },
-                )
-              }
-            >
-              {action.label}
-            </Btn>
-          ))}
+    <div className="pf-bulk" role="region" aria-label="Selected orders">
+      <div className="pf-bulk__who">
+        <span className="pf-bulk__count">{countLabel}</span>
+        {offerSelectAll ? (
+          <Btn variant="tertiary" onClick={props.onSelectAllMatching}>
+            Select all {total} matching
+          </Btn>
+        ) : null}
+        <Btn variant="tertiary" icon="delete" aria-label="Clear selection" onClick={props.onClear}>
+          Clear
+        </Btn>
+      </div>
+      <div className="pf-bulk__print">
+        <span className="pf-bulk__label">Print</span>
+        {ACTIONS.map((action) => (
           <Btn
-            variant="secondary"
+            key={action.documentTypes}
+            variant={action.documentTypes === "INVOICE" ? "primary" : "secondary"}
             disabled={busy || undefined}
-            onClick={() => fetcher.submit({ intent: "markPrinted", selection }, { method: "post" })}
+            onClick={() =>
+              fetcher.submit(
+                { intent: "print", documentTypes: action.documentTypes, selection, coverSheet: coverSheet ? "on" : "off" },
+                { method: "post" },
+              )
+            }
           >
-            Mark as printed
+            {action.label}
           </Btn>
-          <Btn variant="tertiary" onClick={props.onClear}>
-            Clear selection
-          </Btn>
-        </s-stack>
-        <s-stack direction="inline" gap="base" alignItems="center">
-          <Check value="coverSheet" label="Add a cover sheet with the batch QR code" checked={coverSheet} onChange={(e) => setCoverSheet(e.target.checked)} />
-          {offerSelectAll ? (
-            <Btn variant="tertiary" onClick={props.onSelectAllMatching}>
-              Select all {total} matching this filter, not just this page
-            </Btn>
-          ) : null}
-        </s-stack>
-      </s-stack>
-    </s-box>
+        ))}
+      </div>
+      <div className="pf-bulk__more">
+        <Check value="coverSheet" label="Cover sheet with batch QR" checked={coverSheet} onChange={(e) => setCoverSheet(e.target.checked)} />
+        <Btn
+          variant="secondary"
+          disabled={busy || undefined}
+          onClick={() => fetcher.submit({ intent: "markPrinted", selection }, { method: "post" })}
+        >
+          Mark as printed
+        </Btn>
+      </div>
+    </div>
   );
 }

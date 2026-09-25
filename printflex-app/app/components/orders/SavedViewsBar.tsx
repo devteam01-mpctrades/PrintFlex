@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useFetcher, useNavigate } from "react-router";
+import { Link, useFetcher, useNavigate } from "react-router";
 import type { SavedViewItem } from "../../lib/orders/saved-views.server";
 import { Btn } from "../ui";
 
@@ -46,37 +46,43 @@ export function SavedViewsBar({ views, activeQuery, hasFilters, canSave, planNam
   }
 
   return (
-    <s-box paddingInline="base" paddingBlock="small">
-      <s-stack direction="inline" gap="small-200" alignItems="center">
+    <>
+      <nav className="pf-views" aria-label="Views">
         {views.map((view) => {
           const isActive = active?.id === view.id;
           return (
-            <Btn
+            <Link
               key={view.id}
-              href={`/app/orders${view.query ? `?${view.query}` : ""}`}
-              variant={isActive ? "secondary" : "tertiary"}
-              aria-label={isActive ? `${view.name}, current view` : view.name}
+              to={`/app/orders${view.query ? `?${view.query}` : ""}`}
+              className="pf-views__tab"
+              aria-current={isActive ? "page" : undefined}
             >
               {view.name}
-            </Btn>
+            </Link>
           );
         })}
-        {active && !active.builtIn ? (
-          <Btn
-            variant="tertiary"
-            tone="critical"
-            icon="delete"
-            aria-label={`Delete view ${active.name}`}
-            disabled={busy || undefined}
-            onClick={() => fetcher.submit({ intent: "deleteView", viewId: active.id }, { method: "post" })}
-          ></Btn>
+        {(active && !active.builtIn) || (hasFilters && !active) ? (
+          <span className="pf-views__actions">
+            {active && !active.builtIn ? (
+              <Btn
+                variant="tertiary"
+                tone="critical"
+                icon="delete"
+                aria-label={`Delete view ${active.name}`}
+                disabled={busy || undefined}
+                onClick={() => fetcher.submit({ intent: "deleteView", viewId: active.id }, { method: "post" })}
+              >
+                Delete view
+              </Btn>
+            ) : null}
+            {hasFilters && !active ? (
+              <Btn variant="tertiary" icon="plus" commandFor="save-view-modal" command="--show">
+                Save this view
+              </Btn>
+            ) : null}
+          </span>
         ) : null}
-        {hasFilters && !active ? (
-          <Btn variant="tertiary" icon="plus" commandFor="save-view-modal" command="--show">
-            Save this view
-          </Btn>
-        ) : null}
-      </s-stack>
+      </nav>
 
       <s-modal id="save-view-modal" heading="Save this view" ref={modalRef}>
         {canSave ? (
@@ -108,6 +114,6 @@ export function SavedViewsBar({ views, activeQuery, hasFilters, canSave, planNam
           </>
         )}
       </s-modal>
-    </s-box>
+    </>
   );
 }

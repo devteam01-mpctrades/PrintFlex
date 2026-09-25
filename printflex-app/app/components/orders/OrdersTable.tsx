@@ -48,11 +48,6 @@ export function documentsLabel(documents: DocumentType[]): string {
   return DOC_ORDER.filter((d) => documents.includes(d)).map((d) => DOC_LABEL[d]).join("+");
 }
 
-interface CheckboxElement extends HTMLElement {
-  value: string;
-  checked: boolean;
-}
-
 /**
  * The orders table. Expects at least one row; the route renders the empty
  * states. Pagination and selection events come from the Polaris elements.
@@ -85,24 +80,6 @@ export function OrdersTable(props: Props) {
     { capture: true },
   );
 
-  useNativeEvent(
-    tableRef,
-    "change",
-    useCallback(
-      (event: Event) => {
-        const target = event.target as CheckboxElement | null;
-        if (!target || target.tagName.toLowerCase() !== "input") return;
-        if (target.value === "__page__") {
-          props.onSelectPage(target.checked);
-          return;
-        }
-        const index = rows.findIndex((row) => row.id === target.value);
-        if (index >= 0) props.onToggle(index, target.checked, shiftRef.current);
-      },
-      [props, rows],
-    ),
-  );
-
   const first = (page - 1) * PAGE_SIZE + 1;
   const last = first + rows.length - 1;
 
@@ -121,7 +98,7 @@ export function OrdersTable(props: Props) {
               aria-label="Select all orders on this page"
               checked={allOnPageSelected}
               indeterminate={!allOnPageSelected && pageSelectedCount > 0}
-              onChange={() => undefined}
+              onChange={(event) => props.onSelectPage(event.target.checked)}
             />
           </s-table-header>
           <HeaderCell width="sm" listSlot="primary">Order</HeaderCell>
@@ -132,13 +109,13 @@ export function OrdersTable(props: Props) {
           <HeaderCell listSlot="kicker">Status</HeaderCell>
         </s-table-header-row>
         <s-table-body>
-          {rows.map((row) => {
+          {rows.map((row, index) => {
             const selected = isSelected(row.id);
             const highlighted = row.id === props.highlightId;
             return (
               <s-table-row key={row.id}>
                 <s-table-cell>
-                  <Check value={row.id} aria-label={`Select ${row.orderName}`} checked={selected} onChange={() => undefined} />
+                  <Check value={row.id} aria-label={`Select ${row.orderName}`} checked={selected} onChange={(event) => props.onToggle(index, event.target.checked, shiftRef.current)} />
                 </s-table-cell>
                 <Cell width="sm">
                   <s-link href={`shopify://admin/orders/${row.shopifyOrderNumber}`} tone={highlighted ? "auto" : "neutral"}>

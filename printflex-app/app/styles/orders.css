@@ -1,0 +1,33 @@
+/* Orders: the view tabs and the filter row at the top of the orders card. Layout only; controls come from components/ui and Polaris. */
+.pf-views { display: flex; align-items: center; gap: 4px; padding: 0 12px; overflow-x: auto; scrollbar-width: none; font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.pf-views::-webkit-scrollbar { display: none; }
+.pf-views__tab {
+  position: relative; flex: 0 0 auto; padding: 14px 10px 12px; font-size: 13px; font-weight: 500; color: #616161; text-decoration: none; white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.pf-views__tab:hover { color: #303030; }
+.pf-views__tab[aria-current="page"] { color: #303030; font-weight: 600; border-bottom-color: #e25b07; }
+.pf-views__tab:focus-visible { outline: 2px solid #e25b07; outline-offset: -2px; border-radius: 6px; }
+.pf-views__actions { margin-left: auto; display: flex; align-items: center; gap: 4px; padding-left: 8px; }
+
+.pf-filterrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pf-filterrow__search { flex: 1 1 320px; min-width: 0; }
+.pf-filterrow__chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pf-filterrow__chips .pf-btn { padding: 7px 10px 7px 12px; font-weight: 500; border-radius: 999px; }
+.pf-filterrow__chips .pf-btn.is-on { background: #fdefe3; border-color: #f9d9bc; color: #a84206; font-weight: 600; }
+.pf-applied { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-top: 10px; margin-top: 10px; border-top: 1px solid #e3e3e3; }
+.pf-applied__label { font-size: 12px; color: #616161; margin-right: 2px; }
+
+/* Bulk action bar: appears above the table once something is selected. */
+.pf-bulk {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px;
+  background: #fdefe3; border-bottom: 1px solid #f9d9bc;
+  font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px; color: #303030;
+}
+.pf-bulk__who, .pf-bulk__print, .pf-bulk__more { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pf-bulk__count { font-weight: 700; color: #a84206; font-variant-numeric: tabular-nums; white-space: nowrap; padding: 4px 10px; background: #fff; border: 1px solid #f9d9bc; border-radius: 999px; }
+.pf-bulk__print { padding-left: 16px; border-left: 1px solid #f9d9bc; }
+.pf-bulk__label { font-size: 12px; font-weight: 600; color: #616161; text-transform: uppercase; letter-spacing: .04em; margin-right: 2px; }
+.pf-bulk__more { margin-left: auto; gap: 14px; }
+.pf-bulk .pf-btn { padding: 7px 12px; }
+@media (max-width: 900px) { .pf-bulk__more { margin-left: 0; } }

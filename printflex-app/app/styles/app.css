@@ -62,3 +62,11 @@
 .pf-switch input:disabled { opacity: .5; }
 .pf-switch .t { font-weight: 500; }
 .pf-switch .d { display: block; font-size: 12px; color: #616161; margin-top: 2px; }
+
+/* Polaris fields read their placeholder colour from this custom property, which passes through their shadow DOM.
+ * Lighter than the default secondary text so sample values read as hints, not as typed input. */
+:root {
+  --s-input-field-placeholder-color-f4125: #a3a3a3;
+  /* Focus rings on Polaris fields, selects and buttons in the brand orange instead of Shopify blue. */
+  --p-color-border-focus-f4125: #e25b07;
+}

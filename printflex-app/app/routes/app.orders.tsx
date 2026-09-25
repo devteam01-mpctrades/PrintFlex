@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
 import prisma from "../db.server";
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
+import ordersStyles from "../styles/orders.css?url";
 import { useFetcher, useLoaderData, useRevalidator } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: ordersStyles }];
 import { RouteError } from "../components/RouteError";
 import { BulkActionBar } from "../components/orders/BulkActionBar";
 import { FiltersBar } from "../components/orders/FiltersBar";

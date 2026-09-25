@@ -214,7 +214,7 @@ export default function SettingsPage() {
             </section>
 
             <section className="pf-panel" aria-labelledby="h-pack">
-              <div className="pf-panel__h"><h2 id="h-pack">Pack behaviour</h2><div className="right"><span className="pf-badge pf-b-neu">Saves on change</span></div></div>
+              <div className="pf-panel__h"><h2 id="h-pack">Pack behaviour</h2><div className="right"><span className="pf-badge pf-b-brand">Saves on change</span></div></div>
               <div className="pf-panel__b">
                 <form ref={packRef} onSubmit={(e) => e.preventDefault()}>
                   <div className="pf-toggles">
@@ -227,7 +227,7 @@ export default function SettingsPage() {
             </section>
 
             <section className="pf-panel" aria-labelledby="h-invoice">
-              <div className="pf-panel__h"><h2 id="h-invoice">Invoice numbering</h2><div className="right"><span className="pf-badge pf-b-neu mono">Next {nextInvoice}</span></div></div>
+              <div className="pf-panel__h"><h2 id="h-invoice">Invoice numbering</h2><div className="right"><span className="pf-badge pf-b-brand mono">Next {nextInvoice}</span></div></div>
               <div className="pf-panel__b">
                 <form ref={invoiceRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(invoiceRef.current, "invoice"); }}>
                   <p className="pf-sub">Numbers are sequential with no gaps and never reused. The next number can only move forward past numbers already issued.</p>
