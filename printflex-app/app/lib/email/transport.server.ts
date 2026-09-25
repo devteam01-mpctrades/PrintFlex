@@ -1,3 +1,4 @@
+import { GmailTransport, gmailCredentialsFromEnv } from "./gmail-transport.server";
 import { SmtpTransport } from "./smtp-transport.server";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -79,12 +80,18 @@ export class OutboxTransport implements EmailTransport {
  */
 export const EMAIL_FROM = process.env.PRINTFLEX_EMAIL_FROM?.trim() || "PrintFlex <team@mpctrades.com>";
 
-let smtp: EmailTransport | null = null;
+let shared: EmailTransport | null = null;
 
-/** The transport for a shop: SMTP when PRINTFLEX_SMTP_URL is set, otherwise the .eml outbox. */
+/**
+ * The transport for a shop, by environment: the Gmail API when the OAuth
+ * credentials are set, else SMTP when PRINTFLEX_SMTP_URL is set, else the
+ * .eml outbox. Real transports are shared across shops.
+ */
 export function transportFor(shopId: string): EmailTransport {
+  const gmail = gmailCredentialsFromEnv();
   const url = process.env.PRINTFLEX_SMTP_URL?.trim();
-  if (!url) return new OutboxTransport(shopId);
-  if (!smtp) smtp = new SmtpTransport(url);
-  return smtp;
+  if (!gmail && !url) return new OutboxTransport(shopId);
+  const wanted = gmail ? "gmail" : "smtp";
+  if (!shared || shared.name !== wanted) shared = gmail ? new GmailTransport(gmail) : new SmtpTransport(url as string);
+  return shared;
 }
