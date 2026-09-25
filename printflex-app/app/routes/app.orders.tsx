@@ -28,6 +28,7 @@ import { describeSyncRun } from "../lib/orders/sync-status";
 import { latestSyncRun, startBackfill } from "../lib/orders/sync.server";
 import { getPlan } from "../lib/plans.server";
 import { requireShop } from "../lib/request.server";
+import { Btn } from "../components/ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await requireShop(request);
@@ -255,14 +256,14 @@ export default function OrdersPage() {
 
   return (
     <s-page heading="Orders">
-      <s-button
+      <Btn
         slot="secondary-actions"
         disabled={syncing || undefined}
         loading={syncing || undefined}
         onClick={() => fetcher.submit({ intent: "backfill" }, { method: "post" })}
       >
         {syncing ? "Syncing…" : "Sync from Shopify"}
-      </s-button>
+      </Btn>
 
       {syncRunning && data.sync ? (
         <s-banner tone="info" heading="Syncing orders from Shopify">
@@ -280,14 +281,14 @@ export default function OrdersPage() {
         <s-banner tone={fetcher.data.ok ? "success" : "critical"}>
           <s-paragraph>{fetcher.data.message}</s-paragraph>
           {fetcher.data.printUrl ? (
-            <s-button slot="secondary-actions" href={fetcher.data.printUrl} target="_blank">
+            <Btn slot="secondary-actions" href={fetcher.data.printUrl} target="_blank">
               Print from browser
-            </s-button>
+            </Btn>
           ) : null}
           {fetcher.data.jobId ? (
-            <s-button slot="secondary-actions" href={`/app/jobs/${fetcher.data.jobId}`}>
+            <Btn slot="secondary-actions" href={`/app/jobs/${fetcher.data.jobId}`}>
               Open batch
-            </s-button>
+            </Btn>
           ) : null}
         </s-banner>
       ) : null}
@@ -306,9 +307,9 @@ export default function OrdersPage() {
           heading={`${selection.summary.printedCount} of these ${selection.summary.printedCount === 1 ? "was" : "were"} printed already`}
         >
           <s-paragraph>Printing again is fine, but it is how parcels get shipped twice.</s-paragraph>
-          <s-button slot="secondary-actions" onClick={selection.excludePrinted}>
+          <Btn slot="secondary-actions" onClick={selection.excludePrinted}>
             Exclude already printed
-          </s-button>
+          </Btn>
         </s-banner>
       ) : null}
 
@@ -346,14 +347,14 @@ export default function OrdersPage() {
             <s-empty-state heading={emptyState.heading}>
               <s-paragraph slot="subheading">{emptyState.text}</s-paragraph>
               {emptyState.action === "sync" ? (
-                <s-button slot="primary-action" variant="primary" disabled={!canPrint || undefined} onClick={() => fetcher.submit({ intent: "backfill" }, { method: "post" })}>
+                <Btn slot="primary-action" variant="primary" disabled={!canPrint || undefined} onClick={() => fetcher.submit({ intent: "backfill" }, { method: "post" })}>
                   Sync from Shopify
-                </s-button>
+                </Btn>
               ) : null}
               {emptyState.action === "clear" ? (
-                <s-button slot="primary-action" href="/app/orders">
+                <Btn slot="primary-action" href="/app/orders">
                   Clear filters
-                </s-button>
+                </Btn>
               ) : null}
             </s-empty-state>
           </s-box>

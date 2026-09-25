@@ -4,6 +4,7 @@ import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useNativeEvent } from "../components/orders/useNativeEvent";
 import { RouteError } from "../components/RouteError";
+import { Btn, Check, Switch } from "../components/ui";
 import prisma from "../db.server";
 import { audit } from "../lib/audit.server";
 import { configureInvoiceNumbering } from "../lib/invoices/invoice-number.server";
@@ -154,6 +155,8 @@ export default function SettingsPage() {
     return `${Math.round(hours / 24)} days ago`;
   };
 
+  const nextInvoice = `${data.invoice.prefix}${String(data.invoice.nextNumber).padStart(6, "0")}`;
+
   return (
     <s-page heading="Settings" inlineSize="large">
       {fetcher.data && !busy ? <s-banner tone={fetcher.data.ok ? "success" : "critical"}><s-paragraph>{fetcher.data.message}</s-paragraph></s-banner> : null}
@@ -162,109 +165,101 @@ export default function SettingsPage() {
         <div className="pf-settings-grid">
           {/* Left: the warehouse and how packing behaves */}
           <div className="pf-settings-col">
-            <div className="pf-panel">
-              <div className="pf-panel__h"><h2>Warehouse</h2></div>
-              <div className="pf-panel__b">
-                <form ref={binsRef} onSubmit={(e) => { e.preventDefault(); submitForm(binsRef.current, "bins"); }}>
-                  <span className="pf-kicker">Bin location map</span>
-                  <div className={`pf-stat-line${warehouse.bins === 0 ? " empty" : ""}`}>
-                    {warehouse.bins === 0 ? (
-                      <span>No bin locations yet. Pick lists sort by SKU until you add some.</span>
-                    ) : (
-                      <><b>{warehouse.bins.toLocaleString("en-US")}</b><span>SKUs mapped{warehouse.withSequence ? ` · ${warehouse.withSequence} with a walking sequence` : ""}. Pick lists are sorted into walking order.</span></>
-                    )}
-                  </div>
-                  <label className="pf-field">
-                    <span>Paste CSV: SKU, bin, walking sequence (optional)</span>
-                    <textarea className="pf-textarea" name="csv" rows={4} placeholder={"PF-001,B-07,2\nPF-003,A-01,1"} />
-                  </label>
-                  <label className="pf-field">
-                    <span>Walking sequence</span>
-                    <select className="pf-select" name="mode" defaultValue="csv">
-                      <option value="csv">From the third column, if present</option>
-                      <option value="derive">Derive from bin codes: aisle, then shelf, then bin</option>
-                    </select>
-                  </label>
-                  <div className="pf-actions">
-                    <button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Import bin locations</button>
-                    {warehouse.bins > 0 ? <button type="button" className="pf-btn pf-btn--ghost" disabled={busy} onClick={() => fetcher.submit({ intent: "clearBins" }, { method: "post" })}>Clear</button> : null}
-                  </div>
-                </form>
-              </div>
-              <div className="pf-panel__b">
-                <form ref={bundlesRef} onSubmit={(e) => { e.preventDefault(); submitForm(bundlesRef.current, "bundles"); }}>
-                  <span className="pf-kicker">Bundle map</span>
-                  <div className={`pf-stat-line${warehouse.bundles === 0 ? " empty" : ""}`}>
-                    {warehouse.bundles === 0 ? (
-                      <span>No bundles yet. A bundle SKU on an order expands into its components on the pack screen.</span>
-                    ) : (
-                      <><b>{warehouse.bundles}</b><span>bundle SKUs expand into components on the pack screen.</span></>
-                    )}
-                  </div>
-                  <label className="pf-field">
-                    <span>Paste CSV: bundle SKU, component SKU, quantity, component title (optional)</span>
-                    <textarea className="pf-textarea" name="csv" rows={3} placeholder={"KIT-GLASS,PF-001,1,Ginseng Cream\nKIT-GLASS,PF-009,2,Travel Toner"} />
-                  </label>
-                  <div className="pf-actions">
-                    <button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Import bundle map</button>
-                    {warehouse.bundles > 0 ? <button type="button" className="pf-btn pf-btn--ghost" disabled={busy} onClick={() => fetcher.submit({ intent: "clearBundles" }, { method: "post" })}>Clear</button> : null}
-                  </div>
-                </form>
-              </div>
-            </div>
+            <section className="pf-panel" aria-labelledby="h-warehouse">
+              <div className="pf-panel__h"><h2 id="h-warehouse">Warehouse</h2></div>
 
-            <div className="pf-panel">
-              <div className="pf-panel__h"><h2>Pack behaviour</h2><div className="right"><span className="pf-badge pf-b-neu">Saves on change</span></div></div>
+              <div className="pf-panel__b">
+                <form ref={binsRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(binsRef.current, "bins"); }}>
+                  <div className="pf-block">
+                    <h3 className="pf-kicker">Bin location map</h3>
+                    <div className={`pf-stat-line${warehouse.bins === 0 ? " empty" : ""}`}>
+                      {warehouse.bins === 0 ? (
+                        <span>No bin locations yet. Pick lists sort by SKU until you add some.</span>
+                      ) : (
+                        <><b>{warehouse.bins.toLocaleString("en-US")}</b><span>SKUs mapped{warehouse.withSequence ? ` · ${warehouse.withSequence} with a walking sequence` : ""}. Pick lists are sorted into walking order.</span></>
+                      )}
+                    </div>
+                  </div>
+                  <s-text-area name="csv" label="Paste CSV" details="One line per SKU: SKU, bin, walking sequence (optional)." rows={4} placeholder={"PF-001,B-07,2\nPF-003,A-01,1"}></s-text-area>
+                  <s-select name="mode" label="Walking sequence" value="csv">
+                    <s-option value="csv">From the third column, if present</s-option>
+                    <s-option value="derive">Derive from bin codes: aisle, then shelf, then bin</s-option>
+                  </s-select>
+                  <div className="pf-actions">
+                    <Btn type="submit" variant="primary" disabled={busy}>Import bin locations</Btn>
+                    {warehouse.bins > 0 ? <Btn variant="tertiary" tone="critical" disabled={busy} onClick={() => fetcher.submit({ intent: "clearBins" }, { method: "post" })}>Clear bin locations</Btn> : null}
+                  </div>
+                </form>
+              </div>
+
+              <div className="pf-panel__b">
+                <form ref={bundlesRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(bundlesRef.current, "bundles"); }}>
+                  <div className="pf-block">
+                    <h3 className="pf-kicker">Bundle map</h3>
+                    <div className={`pf-stat-line${warehouse.bundles === 0 ? " empty" : ""}`}>
+                      {warehouse.bundles === 0 ? (
+                        <span>No bundles yet. A bundle SKU on an order expands into its components on the pack screen.</span>
+                      ) : (
+                        <><b>{warehouse.bundles}</b><span>bundle SKUs expand into components on the pack screen.</span></>
+                      )}
+                    </div>
+                  </div>
+                  <s-text-area name="csv" label="Paste CSV" details="One line per component: bundle SKU, component SKU, quantity, component title (optional)." rows={3} placeholder={"KIT-GLASS,PF-001,1,Ginseng Cream\nKIT-GLASS,PF-009,2,Travel Toner"}></s-text-area>
+                  <div className="pf-actions">
+                    <Btn type="submit" variant="primary" disabled={busy}>Import bundle map</Btn>
+                    {warehouse.bundles > 0 ? <Btn variant="tertiary" tone="critical" disabled={busy} onClick={() => fetcher.submit({ intent: "clearBundles" }, { method: "post" })}>Clear bundle map</Btn> : null}
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <section className="pf-panel" aria-labelledby="h-pack">
+              <div className="pf-panel__h"><h2 id="h-pack">Pack behaviour</h2><div className="right"><span className="pf-badge pf-b-neu">Saves on change</span></div></div>
               <div className="pf-panel__b">
                 <form ref={packRef} onSubmit={(e) => e.preventDefault()}>
                   <div className="pf-toggles">
                     {PACK_TOGGLES.map((t) => (
-                      // eslint-disable-next-line jsx-a11y/label-has-associated-control -- the title and details spans are the label text
-                      <label key={t.key} className="pf-switch">
-                        <input type="checkbox" name={t.key} value="on" defaultChecked={settings.pack[t.key]} disabled={busy} />
-                        <span><span className="t">{t.label}</span><span className="d">{t.details}</span></span>
-                      </label>
+                      <Switch key={t.key} name={t.key} value="on" defaultChecked={settings.pack[t.key]} disabled={busy} label={t.label} details={t.details} />
                     ))}
                   </div>
                 </form>
               </div>
-            </div>
+            </section>
 
-            <div className="pf-panel">
-              <div className="pf-panel__h"><h2>Invoice numbering</h2></div>
+            <section className="pf-panel" aria-labelledby="h-invoice">
+              <div className="pf-panel__h"><h2 id="h-invoice">Invoice numbering</h2><div className="right"><span className="pf-badge pf-b-neu mono">Next {nextInvoice}</span></div></div>
               <div className="pf-panel__b">
-                <form ref={invoiceRef} onSubmit={(e) => { e.preventDefault(); submitForm(invoiceRef.current, "invoice"); }}>
+                <form ref={invoiceRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(invoiceRef.current, "invoice"); }}>
                   <p className="pf-sub">Numbers are sequential with no gaps and never reused. The next number can only move forward past numbers already issued.</p>
-                  <div className="pf-stat-line"><span>Next invoice</span><b>{data.invoice.prefix}{String(data.invoice.nextNumber).padStart(6, "0")}</b></div>
                   <div className="pf-grid2">
-                    <label className="pf-field"><span>Prefix</span><input className="pf-input mono" name="prefix" defaultValue={data.invoice.prefix} /></label>
-                    <label className="pf-field"><span>Next number</span><input className="pf-input mono" name="nextNumber" type="number" min={1} defaultValue={data.invoice.nextNumber} /></label>
+                    <s-text-field name="prefix" label="Prefix" defaultValue={data.invoice.prefix} placeholder="INV-"></s-text-field>
+                    <s-number-field name="nextNumber" label="Next number" min={1} step={1} defaultValue={String(data.invoice.nextNumber)}></s-number-field>
                   </div>
-                  <div className="pf-actions"><button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Save numbering</button></div>
+                  <div className="pf-actions"><Btn type="submit" variant="primary" disabled={busy}>Save numbering</Btn></div>
                 </form>
               </div>
-            </div>
+            </section>
           </div>
 
           {/* Right: who can scan, what gets written to Shopify, defaults */}
           <div className="pf-settings-col">
-            <div className="pf-panel">
+            <section className="pf-panel" aria-labelledby="h-staff">
               <div className="pf-panel__h">
-                <h2>Staff access</h2>
+                <h2 id="h-staff">Staff access</h2>
                 <div className="right">
                   <span className={`pf-badge ${data.hasPin ? "pf-b-ok" : "pf-b-crit"}`}>{data.hasPin ? "PIN set" : "No PIN yet"}</span>
                 </div>
               </div>
               <div className="pf-panel__b">
-                <form ref={pinRef} onSubmit={(e) => { e.preventDefault(); submitForm(pinRef.current, "setPin"); }}>
-                  {!data.hasPin ? <p className="pf-sub">No store PIN yet, so nobody can open scan mode. Set one to let staff sign in on their phones.</p> : null}
+                <form ref={pinRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(pinRef.current, "setPin"); }}>
+                  <p className="pf-sub">
+                    {data.hasPin
+                      ? "Staff sign in on their phones with this PIN plus a device name. Changing it signs every device out."
+                      : "No store PIN yet, so nobody can open scan mode. Set one to let staff sign in on their phones."}
+                  </p>
                   <div className="pf-row">
-                    <label className="pf-field">
-                      <span>{data.hasPin ? "New store PIN" : "Store PIN"}</span>
-                      <input className="pf-input mono" name="pin" inputMode="numeric" pattern="[0-9]*" placeholder="4 to 8 digits" autoComplete="off" />
-                      <span className="hint">Changing the PIN signs every device out.</span>
-                    </label>
-                    <button type="submit" className="pf-btn pf-btn--p" disabled={busy}>{data.hasPin ? "Rotate PIN" : "Set PIN"}</button>
+                    <s-text-field name="pin" label={data.hasPin ? "New store PIN" : "Store PIN"} placeholder="4 to 8 digits" autocomplete="off"></s-text-field>
+                    <Btn type="submit" variant="primary" disabled={busy}>{data.hasPin ? "Rotate PIN" : "Set PIN"}</Btn>
                   </div>
                 </form>
               </div>
@@ -273,7 +268,7 @@ export default function SettingsPage() {
               ) : (
                 <div className="pf-tscroll">
                   <table className="pf-t">
-                    <thead><tr><th>Device</th><th>Last seen</th><th>Status</th><th></th></tr></thead>
+                    <thead><tr><th>Device</th><th>Last seen</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead>
                     <tbody>
                       {devices.map((d) => (
                         <tr key={d.id}>
@@ -281,7 +276,7 @@ export default function SettingsPage() {
                           <td className="mono" title={when(d.lastSeenAt)}>{relative(d.lastSeenAt)}</td>
                           <td><span className={`pf-badge ${d.stale ? "pf-b-warn" : "pf-b-ok"}`}>{d.stale ? "Must sign in again" : "Active"}</span></td>
                           <td className="end">
-                            <button type="button" className="pf-btn pf-btn--ghost" aria-label={`Revoke ${d.name}`} disabled={busy} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>Revoke</button>
+                            <Btn variant="tertiary" tone="critical" aria-label={`Revoke ${d.name}`} disabled={busy} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>Revoke</Btn>
                           </td>
                         </tr>
                       ))}
@@ -289,55 +284,50 @@ export default function SettingsPage() {
                   </table>
                 </div>
               )}
-            </div>
+            </section>
 
-            <div className="pf-panel">
-              <div className="pf-panel__h"><h2>Tags written to Shopify</h2></div>
+            <section className="pf-panel" aria-labelledby="h-tags">
+              <div className="pf-panel__h"><h2 id="h-tags">Tags written to Shopify</h2></div>
               <div className="pf-panel__b">
-                <form ref={tagsRef} onSubmit={(e) => { e.preventDefault(); submitForm(tagsRef.current, "tags"); }}>
+                <form ref={tagsRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(tagsRef.current, "tags"); }}>
                   <p className="pf-sub">PrintFlex adds one of these tags to an order when it is printed, packed or flagged. Rename them to fit your own tag scheme.</p>
-                  <label className="pf-field"><span>Printed</span><input className="pf-input mono" name="printed" defaultValue={settings.tagNames.printed} placeholder={data.defaultTags.printed} /></label>
-                  <label className="pf-field"><span>Packed</span><input className="pf-input mono" name="packed" defaultValue={settings.tagNames.packed} placeholder={data.defaultTags.packed} /></label>
-                  <label className="pf-field"><span>Needs review</span><input className="pf-input mono" name="needsReview" defaultValue={settings.tagNames.needsReview} placeholder={data.defaultTags.needsReview} /></label>
-                  <div className="pf-actions"><button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Save tag names</button></div>
+                  <s-text-field name="printed" label="Printed" defaultValue={settings.tagNames.printed} placeholder={data.defaultTags.printed} details="Added when at least one document has been generated."></s-text-field>
+                  <s-text-field name="packed" label="Packed" defaultValue={settings.tagNames.packed} placeholder={data.defaultTags.packed} details="Added when staff mark the order packed in scan mode."></s-text-field>
+                  <s-text-field name="needsReview" label="Needs review" defaultValue={settings.tagNames.needsReview} placeholder={data.defaultTags.needsReview} details="Added when a line is short-picked or reported damaged."></s-text-field>
+                  <div className="pf-actions"><Btn type="submit" variant="primary" disabled={busy}>Save tag names</Btn></div>
                 </form>
               </div>
-            </div>
+            </section>
 
-            <div className="pf-panel">
-              <div className="pf-panel__h"><h2>Defaults</h2></div>
+            <section className="pf-panel" aria-labelledby="h-defaults">
+              <div className="pf-panel__h"><h2 id="h-defaults">Defaults</h2></div>
               <div className="pf-panel__b">
-                <form ref={defaultsRef} onSubmit={(e) => { e.preventDefault(); submitForm(defaultsRef.current, "defaults"); }}>
-                  <label className="pf-field">
-                    <span>Default paper size for new templates</span>
-                    <select className="pf-select" name="paperSize" defaultValue={settings.defaults.paperSize}>
-                      <option value="A4">A4</option>
-                      <option value="LETTER">US Letter</option>
-                    </select>
-                  </label>
-                  <span className="pf-kicker">Default document set · what the morning batch on Home prints</span>
-                  {DOCUMENT_TYPES.map((t) => (
-                    <label key={t} className="pf-check">
-                      <input type="checkbox" name={`set.${t}`} value="on" defaultChecked={settings.defaults.documentSet.includes(t)} />
-                      <span>{DOC_LABEL[t]}</span>
-                    </label>
-                  ))}
-                  <label className="pf-field" style={{ marginTop: 10 }}>
-                    <span>Meter timezone</span>
-                    <select className="pf-select" name="timezone" defaultValue={data.timezone}>
-                      {data.timezones.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
-                    </select>
-                    <span className="hint">Billing periods, date filters and the daily tiles use this timezone.</span>
-                  </label>
-                  <label className="pf-field">
-                    <span>Printed QR codes keep working for (days)</span>
-                    <input className="pf-input mono" name="scanTokenDays" type="number" min={1} max={3650} defaultValue={settings.scanTokenDays} />
-                  </label>
-                  <div className="pf-actions"><button type="submit" className="pf-btn pf-btn--p" disabled={busy}>Save defaults</button></div>
+                <form ref={defaultsRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(defaultsRef.current, "defaults"); }}>
+                  <s-select name="paperSize" label="Default paper size for new templates" value={settings.defaults.paperSize}>
+                    <s-option value="A4">A4</s-option>
+                    <s-option value="LETTER">US Letter</s-option>
+                  </s-select>
+
+                  <fieldset className="pf-fieldset">
+                    <legend className="pf-legend">Default document set</legend>
+                    <p className="pf-sub">What the morning batch on Home prints for each order.</p>
+                    <div className="pf-checks">
+                      {DOCUMENT_TYPES.map((t) => (
+                        <Check key={t} name={`set.${t}`} value="on" defaultChecked={settings.defaults.documentSet.includes(t)} label={DOC_LABEL[t]} />
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <s-select name="timezone" label="Meter timezone" value={data.timezone} details="Billing periods, date filters and the daily tiles use this timezone.">
+                    {data.timezones.map((tz) => <s-option key={tz} value={tz}>{tz}</s-option>)}
+                  </s-select>
+
+                  <s-number-field name="scanTokenDays" label="Printed QR codes keep working for" min={1} max={3650} step={1} suffix="days" defaultValue={String(settings.scanTokenDays)} details="After this, a scanned code asks staff to reprint the document."></s-number-field>
+
+                  <div className="pf-actions"><Btn type="submit" variant="primary" disabled={busy}>Save defaults</Btn></div>
                 </form>
               </div>
-            </div>
-
+            </section>
           </div>
         </div>
       </div>

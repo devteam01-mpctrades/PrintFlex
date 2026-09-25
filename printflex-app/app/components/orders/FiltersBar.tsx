@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { Form, useNavigate } from "react-router";
 import type { OrderFacets, OrderFilters } from "../../lib/orders/list.server";
 import { useNativeEvent } from "./useNativeEvent";
+import { Btn } from "../ui";
 
 interface Props {
   filters: OrderFilters;
@@ -112,9 +113,9 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
             ></s-search-field>
           </s-box>
 
-          <s-button commandFor="filter-fulfillment" command="--toggle" icon="chevron-down" variant={filters.fulfillment ? "secondary" : "tertiary"}>
+          <Btn commandFor="filter-fulfillment" command="--toggle" icon="chevron-down" variant={filters.fulfillment ? "secondary" : "tertiary"}>
             Fulfilment{count(Boolean(filters.fulfillment))}
-          </s-button>
+          </Btn>
           <s-popover id="filter-fulfillment">
             <s-box padding="base" minInlineSize="220px">
               <s-choice-list name="fulfillment" label="Fulfilment" labelAccessibilityVisibility="exclusive" values={[filters.fulfillment]}>
@@ -126,9 +127,9 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
             </s-box>
           </s-popover>
 
-          <s-button commandFor="filter-docstatus" command="--toggle" icon="chevron-down" variant={filters.docStatus ? "secondary" : "tertiary"}>
+          <Btn commandFor="filter-docstatus" command="--toggle" icon="chevron-down" variant={filters.docStatus ? "secondary" : "tertiary"}>
             Documents{count(Boolean(filters.docStatus))}
-          </s-button>
+          </Btn>
           <s-popover id="filter-docstatus">
             <s-box padding="base" minInlineSize="220px">
               <s-choice-list name="docStatus" label="Document status" labelAccessibilityVisibility="exclusive" values={[filters.docStatus]}>
@@ -140,9 +141,9 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
             </s-box>
           </s-popover>
 
-          <s-button commandFor="filter-country" command="--toggle" icon="chevron-down" variant={filters.country ? "secondary" : "tertiary"}>
+          <Btn commandFor="filter-country" command="--toggle" icon="chevron-down" variant={filters.country ? "secondary" : "tertiary"}>
             Country{count(Boolean(filters.country))}
-          </s-button>
+          </Btn>
           <s-popover id="filter-country">
             <s-box padding="base" minInlineSize="220px">
               <s-select name="country" label="Country" value={filters.country}>
@@ -154,9 +155,9 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
             </s-box>
           </s-popover>
 
-          <s-button commandFor="filter-more" command="--toggle" icon="chevron-down" variant={filters.shipping || filters.tag || filters.from || filters.to ? "secondary" : "tertiary"}>
+          <Btn commandFor="filter-more" command="--toggle" icon="chevron-down" variant={filters.shipping || filters.tag || filters.from || filters.to ? "secondary" : "tertiary"}>
             More filters
-          </s-button>
+          </Btn>
           <s-popover id="filter-more">
             <s-box padding="base" minInlineSize="280px">
               <s-stack gap="base">
@@ -191,9 +192,9 @@ export function FiltersBar({ filters, facets, hasFilters, queryString }: Props) 
                 {chip.label}
               </s-clickable-chip>
             ))}
-            <s-button variant="tertiary" onClick={() => void navigate("/app/orders")}>
+            <Btn variant="tertiary" onClick={() => void navigate("/app/orders")}>
               Clear all
-            </s-button>
+            </Btn>
           </s-stack>
         ) : null}
       </s-stack>

@@ -3,9 +3,9 @@ import { RouteError } from "../components/RouteError";
 import type { HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { PlanBar } from "../components/PlanBar";
 import { PLAN_ORDER, PLANS, planPills } from "../lib/plans.server";
-import planBarStyles from "../styles/planbar.css?url";
+import appStyles from "../styles/app.css?url";
 
-export const links: LinksFunction = () => [{ rel: "stylesheet", href: planBarStyles }];
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: appStyles }];
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { getUsage } from "../lib/meter.server";

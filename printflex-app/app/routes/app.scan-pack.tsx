@@ -19,6 +19,7 @@ import { listDevices, revokeDevice } from "../lib/scan/devices.server";
 import { hasStorePin } from "../lib/scan/pin.server";
 import { mintEnrolToken, mintPreviewToken, scanUrl } from "../lib/scan/tokens.server";
 import scanPackStyles from "../styles/scan-pack.css?url";
+import { Btn } from "../components/ui";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: scanPackStyles }];
 
@@ -108,7 +109,7 @@ export default function ScanPackPage() {
             <s-text type="strong">Set a store PIN to open scan mode</s-text>
             <s-paragraph>Staff sign in on their phone with this PIN and a device name. Nobody needs a Shopify account.</s-paragraph>
           </s-stack>
-          <s-button slot="secondary-actions" href="/app/settings">Set the PIN in Settings</s-button>
+          <Btn slot="secondary-actions" href="/app/settings">Set the PIN in Settings</Btn>
         </s-banner>
       ) : null}
       {fetcher.data && fetcher.state === "idle" ? (
@@ -127,9 +128,9 @@ export default function ScanPackPage() {
                 <div className="pf-panel__h">
                   <h2>Enrol another phone</h2>
                   <div className="right">
-                    <s-button variant="tertiary" icon={showEnrol ? "chevron-up" : "chevron-down"} onClick={() => setShowEnrol((v) => !v)}>
+                    <Btn variant="tertiary" icon={showEnrol ? "chevron-up" : "chevron-down"} onClick={() => setShowEnrol((v) => !v)}>
                       {showEnrol ? "Hide" : "Show"}
-                    </s-button>
+                    </Btn>
                   </div>
                 </div>
                 <div hidden={!showEnrol}>{staffAccess}</div>

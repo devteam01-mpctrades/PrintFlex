@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import homeStyles from "../styles/home.css?url";
-import planBarStyles from "../styles/planbar.css?url";
+import appStyles from "../styles/app.css?url";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { PlanBar } from "../components/PlanBar";
 import { RouteError } from "../components/RouteError";
@@ -18,6 +18,7 @@ import { parseSettings } from "../lib/settings.server";
 import { puppeteerRenderer } from "../lib/render/pdf.server";
 import { requireShop } from "../lib/request.server";
 import type { DocumentType, JobState } from "../lib/types";
+import { Btn } from "../components/ui";
 
 const DOC_LABEL: Record<DocumentType, string> = {
   INVOICE: "Invoice",
@@ -41,7 +42,7 @@ const STATE_BADGE: Record<JobState, { label: string; className: string }> = {
   PRINTED_IN_FALLBACK: { label: "Printed in fallback", className: "pf-b-warn" },
 };
 
-export const links: LinksFunction = () => [{ rel: "stylesheet", href: homeStyles }, { rel: "stylesheet", href: planBarStyles }];
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: homeStyles }, { rel: "stylesheet", href: appStyles }];
 
 
 function describeDocuments(types: DocumentType[]): string {
@@ -200,7 +201,7 @@ export default function HomePage() {
       {notice && lastIntent !== "resend" ? (
         <s-banner tone={notice.ok ? "success" : "critical"} heading={notice.ok ? undefined : "Nothing printed"}>
           <s-paragraph>{notice.message}</s-paragraph>
-          {notice.jobId ? <s-button slot="secondary-actions" href={`/app/jobs/${notice.jobId}`}>Open batch</s-button> : null}
+          {notice.jobId ? <Btn slot="secondary-actions" href={`/app/jobs/${notice.jobId}`}>Open batch</Btn> : null}
         </s-banner>
       ) : null}
 
@@ -238,16 +239,16 @@ export default function HomePage() {
               <div className="pf-panel__h">
                 <h2>Start the morning batch</h2>
                 <div className="right">
-                  <s-button href="/app/templates">Edit template</s-button>
-                  <s-button href="/app/scan-pack">Open scan mode</s-button>
-                  <s-button
+                  <Btn href="/app/templates">Edit template</Btn>
+                  <Btn href="/app/scan-pack">Open scan mode</Btn>
+                  <Btn
                     variant="primary"
                     disabled={waiting === 0 || plan.atLimit || busy || undefined}
                     loading={busy && lastIntent === "morningBatch" ? true : undefined}
                     onClick={() => fetcher.submit({ intent: "morningBatch" }, { method: "post" })}
                   >
                     {indexed === 0 ? "No orders synced" : waiting === 0 ? "Nothing waiting" : plan.atLimit ? "At the plan limit" : `Print ${waiting} unfulfilled`}
-                  </s-button>
+                  </Btn>
                 </div>
               </div>
               <div className="pf-panel__b tight">
@@ -266,14 +267,14 @@ export default function HomePage() {
                 <h2>{showAll ? "All batches" : "Recent batches"}</h2>
                 {batches.length > 0 ? (
                   <div className="right">
-                    <s-button variant="tertiary" href={showAll ? "/app" : "/app?batches=all"}>{showAll ? "Show recent" : "View all"}</s-button>
+                    <Btn variant="tertiary" href={showAll ? "/app" : "/app?batches=all"}>{showAll ? "Show recent" : "View all"}</Btn>
                   </div>
                 ) : null}
               </div>
               {batches.length === 0 ? (
                 <div className="pf-panel__empty">
                   <p>No batches yet. Print your first orders from the Orders screen and they will appear here with their status.</p>
-                  <s-button href="/app/orders">Open Orders</s-button>
+                  <Btn href="/app/orders">Open Orders</Btn>
                 </div>
               ) : (
                 <>
@@ -342,9 +343,9 @@ export default function HomePage() {
                     {send.error ? <s-text color="subdued"> {send.error}</s-text> : null}
                   </s-table-cell>
                   <s-table-cell>
-                    <s-button variant="tertiary" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "resend", orderId: send.orderId }, { method: "post" })}>
+                    <Btn variant="tertiary" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "resend", orderId: send.orderId }, { method: "post" })}>
                       Resend
-                    </s-button>
+                    </Btn>
                   </s-table-cell>
                 </s-table-row>
               ))}

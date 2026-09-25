@@ -29,14 +29,27 @@
 .pf-panel__f { padding: 11px 16px; border-top: 1px solid var(--pf-border); font-size: 12px; color: var(--pf-sub); }
 .pf-panel__empty { padding: 18px 16px; color: var(--pf-sub); font-size: 12.5px; }
 
-.pf-sub { margin: 0 0 10px; color: var(--pf-sub); font-size: 12.5px; }
-.pf-kicker { display: block; font-size: 11.5px; font-weight: 600; color: var(--pf-sub); margin: 0 0 8px; letter-spacing: .02em; }
-.pf-stat-line { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--pf-brand-soft); border: 1px solid var(--pf-brand-soft-2); border-radius: 10px; margin-bottom: 12px; font-size: 12.5px; }
+.pf-sub { margin: 0; color: var(--pf-sub); font-size: 12.5px; }
+.pf-kicker { margin: 0 0 8px; font-size: 11.5px; font-weight: 600; color: var(--pf-sub); letter-spacing: .02em; text-transform: uppercase; }
+.pf-stat-line { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--pf-brand-soft); border: 1px solid var(--pf-brand-soft-2); border-radius: 10px; font-size: 12.5px; }
 .pf-stat-line b { font-family: var(--pf-mono); color: var(--pf-brand-ink); font-size: 15px; }
 .pf-stat-line.empty { background: var(--pf-card-2); border-color: var(--pf-border); color: var(--pf-sub); }
-.pf-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-.pf-toggles > * { display: block; padding: 8px 0; border-top: 1px solid var(--pf-border); }
+
+/* Form layout only. Fields are Polaris (s-text-field, s-select, ...); buttons, switches and checkboxes come from components/ui. */
+.pf-form { display: flex; flex-direction: column; gap: 14px; }
+.pf-block { display: flex; flex-direction: column; }
+.pf-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.pf-row > s-text-field, .pf-row > s-select, .pf-row > s-number-field { flex: 1 1 200px; min-width: 0; }
+.pf-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .pf-grid2 { grid-template-columns: minmax(0, 1fr); } }
+.pf-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pf-legend { padding: 0; font-size: 13px; font-weight: 500; color: var(--pf-text); }
+.pf-checks { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
+.pf-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 2px; }
+.pf-toggles > * { padding: 10px 0; border-top: 1px solid var(--pf-border); }
 .pf-toggles > :first-child { border-top: 0; padding-top: 0; }
+.pf-toggles > :last-child { padding-bottom: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .pf-badge { display: inline-block; border-radius: 8px; padding: 2px 9px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
 .pf-b-ok { background: var(--pf-ok-bg); color: var(--pf-ok-tx); }
@@ -44,6 +57,7 @@
 .pf-b-crit { background: #ffd6d6; color: #8e1f0b; }
 .pf-b-neu { background: var(--pf-neu-bg); color: var(--pf-neu-tx); }
 .pf-b-brand { background: var(--pf-brand-soft); color: var(--pf-brand-ink); }
+.pf-badge.mono { font-family: var(--pf-mono); font-weight: 500; }
 
 .pf-tscroll { overflow-x: auto; }
 table.pf-t { width: 100%; border-collapse: collapse; }
@@ -56,51 +70,3 @@ table.pf-t .mono { font-family: var(--pf-mono); font-variant-numeric: tabular-nu
 table.pf-t .end { text-align: right; }
 .pf-link { color: var(--pf-brand-ink); font-weight: 600; text-decoration: none; }
 .pf-link:hover { text-decoration: underline; }
-
-/* Buttons: brand orange for the primary action of each panel, white for secondary. */
-.pf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--pf-border-2); background: #fff; border-radius: 8px; padding: 8px 14px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--pf-text); box-shadow: var(--pf-shadow); cursor: pointer; white-space: nowrap; }
-.pf-btn:hover { background: var(--pf-card-2); }
-.pf-btn--p { background: var(--pf-brand); border-color: var(--pf-brand); color: #fff; }
-.pf-btn--p:hover { background: #b8480a; }
-.pf-btn--ghost { border-color: transparent; box-shadow: none; background: transparent; color: var(--pf-brand-ink); }
-.pf-btn--ghost:hover { background: var(--pf-brand-soft); }
-.pf-btn:disabled { cursor: default; opacity: .55; }
-.pf-btn:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: 2px; }
-
-/* Form controls in the brand colour. Native elements, so every form posts the same field names. */
-.pf-field { display: block; margin: 0 0 12px; }
-.pf-field > span { display: block; font-size: 12.5px; font-weight: 500; color: var(--pf-text); margin-bottom: 6px; }
-.pf-field .hint { display: block; font-size: 11.5px; color: var(--pf-sub); margin-top: 6px; }
-.pf-input, .pf-select, .pf-textarea {
-  width: 100%; font: inherit; font-size: 13px; color: var(--pf-text); background: #fff;
-  border: 1px solid var(--pf-border-2); border-radius: 8px; padding: 8px 10px; box-shadow: var(--pf-shadow);
-}
-.pf-textarea { resize: vertical; min-height: 76px; font-family: var(--pf-mono); font-size: 12.5px; }
-.pf-input.mono { font-family: var(--pf-mono); }
-.pf-select { appearance: none; padding-right: 30px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23616161' stroke-width='1.5' d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
-.pf-input:hover, .pf-select:hover, .pf-textarea:hover { border-color: #b8b8b8; }
-.pf-input:focus, .pf-select:focus, .pf-textarea:focus { outline: none; border-color: var(--pf-brand); box-shadow: 0 0 0 3px var(--pf-brand-soft-2); }
-.pf-input::placeholder, .pf-textarea::placeholder { color: var(--pf-dis); }
-.pf-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
-.pf-row > .pf-field { flex: 1 1 180px; margin-bottom: 0; }
-.pf-row > .pf-btn { margin-bottom: 1px; }
-.pf-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.pf-grid2 > .pf-field { margin-bottom: 0; }
-
-/* Switch */
-.pf-switch { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
-.pf-switch input { appearance: none; -webkit-appearance: none; flex: 0 0 auto; width: 36px; height: 20px; margin: 2px 0 0; border-radius: 999px; background: #c9c9c9; position: relative; cursor: pointer; transition: background .15s ease; }
-.pf-switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s ease; }
-.pf-switch input:checked { background: var(--pf-brand); }
-.pf-switch input:checked::after { transform: translateX(16px); }
-.pf-switch input:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: 2px; }
-.pf-switch input:disabled { opacity: .5; }
-.pf-switch .t { font-weight: 500; }
-.pf-switch .d { display: block; font-size: 12px; color: var(--pf-sub); margin-top: 2px; }
-
-/* Checkbox */
-.pf-check { display: flex; gap: 10px; align-items: center; padding: 6px 0; cursor: pointer; }
-.pf-check input { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin: 0; border: 1.5px solid var(--pf-border-2); border-radius: 5px; background: #fff; position: relative; cursor: pointer; }
-.pf-check input:checked { background: var(--pf-brand); border-color: var(--pf-brand); }
-.pf-check input:checked::after { content: ""; position: absolute; left: 5px; top: 1.5px; width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
-.pf-check input:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: 2px; }

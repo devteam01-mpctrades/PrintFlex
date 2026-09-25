@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { downloadFile } from "../download";
+import { Btn } from "../ui";
 
 export interface HistoryItem {
   id: string;
@@ -82,14 +83,14 @@ export function ScanHistory({ history, timezone, canExport, planName }: Props) {
       <div className="pf-panel__h">
         <h2>Scan history</h2>
         <div className="right">
-          <s-button onClick={exportCsv}>Export CSV</s-button>
+          <Btn onClick={exportCsv}>Export CSV</Btn>
         </div>
       </div>
       {notice ? (
         <div className="pf-panel__b" style={{ paddingBottom: 0 }}>
           <s-banner tone={notice.tone} dismissible onDismiss={() => setNotice(null)}>
             <s-paragraph>{notice.text}</s-paragraph>
-            {notice.tone === "info" ? <s-button slot="secondary-actions" href="/app/billing">See plans</s-button> : null}
+            {notice.tone === "info" ? <Btn slot="secondary-actions" href="/app/billing">See plans</Btn> : null}
           </s-banner>
         </div>
       ) : null}
@@ -136,7 +137,7 @@ export function ScanHistory({ history, timezone, canExport, planName }: Props) {
         </span>
         {history.length > INITIAL_ROWS ? (
           <span className="right">
-            <s-button variant="tertiary" onClick={() => setExpanded((v) => !v)}>{expanded ? "Show fewer" : `Show all ${history.length}`}</s-button>
+            <Btn variant="tertiary" onClick={() => setExpanded((v) => !v)}>{expanded ? "Show fewer" : `Show all ${history.length}`}</Btn>
           </span>
         ) : null}
       </div>

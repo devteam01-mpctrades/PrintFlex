@@ -29,6 +29,7 @@ import {
 import { DOCUMENT_TYPE_LABELS, FONT_CHOICES } from "../lib/templates/template-constants";
 import { DOCUMENT_TYPES, type DocumentType } from "../lib/types";
 import editorStyles from "../styles/templates.css?url";
+import { Btn } from "../components/ui";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: editorStyles }];
 
@@ -274,9 +275,9 @@ export default function TemplatesPage() {
 
   return (
     <s-page heading="Templates" inlineSize="large">
-      <s-button slot="primary-action" variant="primary" commandFor="new-template" command="--show">
+      <Btn slot="primary-action" variant="primary" commandFor="new-template" command="--show">
         New template
-      </s-button>
+      </Btn>
 
       {saver.data?.message && saver.state === "idle" ? (
         <s-banner tone={saver.data.ok ? "success" : "critical"} heading={saver.data.ok ? undefined : "Not saved"}>
@@ -333,15 +334,15 @@ export default function TemplatesPage() {
               <s-text-field ref={newNameRef} label="Name" placeholder="Invoice — Japan"></s-text-field>
               {creator.data && !creator.data.ok ? <s-paragraph tone="critical">{creator.data.message}</s-paragraph> : null}
             </s-stack>
-            <s-button
+            <Btn
               slot="primary-action"
               variant="primary"
               disabled={creator.state !== "idle" || undefined}
               onClick={() => creator.submit({ intent: "create", documentType: newTypeRef.current?.value ?? "INVOICE", name: newNameRef.current?.value ?? "" }, { method: "post" })}
             >
               Create
-            </s-button>
-            <s-button slot="secondary-actions" commandFor="new-template" command="--hide">Cancel</s-button>
+            </Btn>
+            <Btn slot="secondary-actions" commandFor="new-template" command="--hide">Cancel</Btn>
           </>
         ) : (
           <>
@@ -349,8 +350,8 @@ export default function TemplatesPage() {
               Your {data.planName} plan includes one template per document type: one invoice, one packing slip and one pick list.
               Premium and Unlimited add templates per country or tag, so a Japanese invoice or a B2B invoice can print differently.
             </s-paragraph>
-            <s-button slot="primary-action" variant="primary" href="/app/billing">See plans</s-button>
-            <s-button slot="secondary-actions" commandFor="new-template" command="--hide">Not now</s-button>
+            <Btn slot="primary-action" variant="primary" href="/app/billing">See plans</Btn>
+            <Btn slot="secondary-actions" commandFor="new-template" command="--hide">Not now</Btn>
           </>
         )}
       </s-modal>
@@ -374,13 +375,13 @@ export default function TemplatesPage() {
                   <s-table-cell>{v.rule}</s-table-cell>
                   <s-table-cell>
                     <s-stack direction="inline" gap="small">
-                      <s-button variant="tertiary" onClick={() => { previewer.submit({ intent: "previewVersion", templateId: template.id, version: String(v.version), orderId: orderId ?? "" }, { method: "post" }); versionsModalRef.current?.hideOverlay(); }}>
+                      <Btn variant="tertiary" onClick={() => { previewer.submit({ intent: "previewVersion", templateId: template.id, version: String(v.version), orderId: orderId ?? "" }, { method: "post" }); versionsModalRef.current?.hideOverlay(); }}>
                         Preview
-                      </s-button>
+                      </Btn>
                       {v.version !== template.version ? (
-                        <s-button variant="tertiary" disabled={busy || undefined} onClick={() => { saver.submit({ intent: "restore", templateId: template.id, version: String(v.version) }, { method: "post" }); versionsModalRef.current?.hideOverlay(); }}>
+                        <Btn variant="tertiary" disabled={busy || undefined} onClick={() => { saver.submit({ intent: "restore", templateId: template.id, version: String(v.version) }, { method: "post" }); versionsModalRef.current?.hideOverlay(); }}>
                           Restore
-                        </s-button>
+                        </Btn>
                       ) : null}
                     </s-stack>
                   </s-table-cell>
@@ -389,7 +390,7 @@ export default function TemplatesPage() {
             </s-table-body>
           </s-table>
         </s-stack>
-        <s-button slot="secondary-actions" commandFor="versions-modal" command="--hide">Close</s-button>
+        <Btn slot="secondary-actions" commandFor="versions-modal" command="--hide">Close</Btn>
       </s-modal>
 
       {/* Order picker */}
@@ -405,18 +406,18 @@ export default function TemplatesPage() {
             ))}
           </s-choice-list>
         </s-stack>
-        <s-button slot="secondary-actions" commandFor="pick-order-modal" command="--hide">Close</s-button>
+        <Btn slot="secondary-actions" commandFor="pick-order-modal" command="--hide">Close</Btn>
       </s-modal>
 
       {/* Unsaved changes */}
       <s-modal id="leave-modal" heading="Discard unsaved changes?" ref={leaveModalRef}>
         <s-paragraph>You changed {template.name} and did not save. Leave now and those edits are gone.</s-paragraph>
-        <s-button slot="primary-action" variant="primary" tone="critical" onClick={() => { leaveModalRef.current?.hideOverlay(); draft.blocker.proceed?.(); }}>
+        <Btn slot="primary-action" variant="primary" tone="critical" onClick={() => { leaveModalRef.current?.hideOverlay(); draft.blocker.proceed?.(); }}>
           Discard and leave
-        </s-button>
-        <s-button slot="secondary-actions" onClick={() => { leaveModalRef.current?.hideOverlay(); draft.blocker.reset?.(); }}>
+        </Btn>
+        <Btn slot="secondary-actions" onClick={() => { leaveModalRef.current?.hideOverlay(); draft.blocker.reset?.(); }}>
           Keep editing
-        </s-button>
+        </Btn>
       </s-modal>
     </s-page>
   );

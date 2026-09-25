@@ -1,4 +1,5 @@
 import { isRouteErrorResponse, useRouteError } from "react-router";
+import { Btn } from "./ui";
 
 /**
  * A sentence about what happened and what to do, for every admin route.
@@ -17,8 +18,8 @@ export function RouteError() {
       <s-section>
         <s-banner tone="critical"><s-paragraph>{text}</s-paragraph></s-banner>
         <s-stack direction="inline" gap="small">
-          <s-button href="/app">Home</s-button>
-          <s-button href="/app/orders" variant="tertiary">Orders</s-button>
+          <Btn href="/app">Home</Btn>
+          <Btn href="/app/orders" variant="tertiary">Orders</Btn>
         </s-stack>
       </s-section>
     </s-page>

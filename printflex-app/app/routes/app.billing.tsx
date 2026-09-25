@@ -12,6 +12,7 @@ import { getUsage } from "../lib/meter.server";
 import { periodStart } from "../lib/period.server";
 import { PLANS } from "../lib/plans.server";
 import { requireShop } from "../lib/request.server";
+import { Btn } from "../components/ui";
 import type { LimitBehaviour, PlanId } from "../lib/types";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -159,7 +160,7 @@ export default function BillingPage() {
                 ) : current ? (
                   <button type="button" className="pf-btn" disabled={busy} onClick={choose}>{yearly ? "Switch to yearly" : "Switch to monthly"}</button>
                 ) : higher ? (
-                  <button type="button" className="pf-btn pf-btn--p" disabled={busy} onClick={choose}>Upgrade</button>
+                  <Btn variant="primary" disabled={busy} onClick={choose}>Upgrade</Btn>
                 ) : (
                   <button type="button" className="pf-btn" disabled={busy} onClick={choose}>Downgrade</button>
                 )}

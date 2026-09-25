@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useFetcher, useNavigate } from "react-router";
 import type { SavedViewItem } from "../../lib/orders/saved-views.server";
+import { Btn } from "../ui";
 
 interface Props {
   views: SavedViewItem[];
@@ -50,30 +51,30 @@ export function SavedViewsBar({ views, activeQuery, hasFilters, canSave, planNam
         {views.map((view) => {
           const isActive = active?.id === view.id;
           return (
-            <s-button
+            <Btn
               key={view.id}
               href={`/app/orders${view.query ? `?${view.query}` : ""}`}
               variant={isActive ? "secondary" : "tertiary"}
-              accessibilityLabel={isActive ? `${view.name}, current view` : view.name}
+              aria-label={isActive ? `${view.name}, current view` : view.name}
             >
               {view.name}
-            </s-button>
+            </Btn>
           );
         })}
         {active && !active.builtIn ? (
-          <s-button
+          <Btn
             variant="tertiary"
             tone="critical"
             icon="delete"
-            accessibilityLabel={`Delete view ${active.name}`}
+            aria-label={`Delete view ${active.name}`}
             disabled={busy || undefined}
             onClick={() => fetcher.submit({ intent: "deleteView", viewId: active.id }, { method: "post" })}
-          ></s-button>
+          ></Btn>
         ) : null}
         {hasFilters && !active ? (
-          <s-button variant="tertiary" icon="plus" commandFor="save-view-modal" command="--show">
+          <Btn variant="tertiary" icon="plus" commandFor="save-view-modal" command="--show">
             Save this view
-          </s-button>
+          </Btn>
         ) : null}
       </s-stack>
 
@@ -85,12 +86,12 @@ export function SavedViewsBar({ views, activeQuery, hasFilters, canSave, planNam
               <s-text-field ref={nameRef} label="View name" placeholder="Morning batch"></s-text-field>
               {fetcher.data && !fetcher.data.ok ? <s-paragraph tone="critical">{fetcher.data.message}</s-paragraph> : null}
             </s-stack>
-            <s-button slot="primary-action" variant="primary" disabled={busy || undefined} onClick={submitSave}>
+            <Btn slot="primary-action" variant="primary" disabled={busy || undefined} onClick={submitSave}>
               Save view
-            </s-button>
-            <s-button slot="secondary-actions" commandFor="save-view-modal" command="--hide">
+            </Btn>
+            <Btn slot="secondary-actions" commandFor="save-view-modal" command="--hide">
               Cancel
-            </s-button>
+            </Btn>
           </>
         ) : (
           <>
@@ -98,12 +99,12 @@ export function SavedViewsBar({ views, activeQuery, hasFilters, canSave, planNam
               Your {planName} plan includes the four built-in views. Saving your own views is part of Premium and Unlimited. Your current filters stay in the
               page address, so you can bookmark this page in the meantime.
             </s-paragraph>
-            <s-button slot="primary-action" variant="primary" href="/app/billing">
+            <Btn slot="primary-action" variant="primary" href="/app/billing">
               See plans
-            </s-button>
-            <s-button slot="secondary-actions" commandFor="save-view-modal" command="--hide">
+            </Btn>
+            <Btn slot="secondary-actions" commandFor="save-view-modal" command="--hide">
               Not now
-            </s-button>
+            </Btn>
           </>
         )}
       </s-modal>

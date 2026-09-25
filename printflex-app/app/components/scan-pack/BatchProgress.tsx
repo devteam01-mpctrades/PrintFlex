@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Btn } from "../ui";
 
 export interface BatchCounts {
   packed: number;
@@ -27,7 +28,7 @@ export function BatchProgress({ batch }: Props) {
         <div className="pf-panel__b">
           <p>Print a batch and its progress appears here as staff pack it.</p>
           <div style={{ marginTop: 10 }}>
-            <s-button href="/app/orders">Go to Orders</s-button>
+            <Btn href="/app/orders">Go to Orders</Btn>
           </div>
         </div>
       </div>

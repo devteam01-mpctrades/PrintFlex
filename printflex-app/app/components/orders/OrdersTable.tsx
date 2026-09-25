@@ -5,6 +5,7 @@ import { PAGE_SIZE } from "../../lib/orders/constants";
 import type { DocumentType, OrderDocumentStatus } from "../../lib/types";
 import { useNativeEvent } from "./useNativeEvent";
 import { Cell, HeaderCell } from "../TableCells";
+import { Check } from "../ui";
 
 interface Props {
   rows: OrderRow[];
@@ -90,7 +91,7 @@ export function OrdersTable(props: Props) {
     useCallback(
       (event: Event) => {
         const target = event.target as CheckboxElement | null;
-        if (!target || target.tagName.toLowerCase() !== "s-checkbox") return;
+        if (!target || target.tagName.toLowerCase() !== "input") return;
         if (target.value === "__page__") {
           props.onSelectPage(target.checked);
           return;
@@ -115,12 +116,13 @@ export function OrdersTable(props: Props) {
       >
         <s-table-header-row>
           <s-table-header>
-            <s-checkbox
+            <Check
               value="__page__"
-              accessibilityLabel="Select all orders on this page"
-              checked={allOnPageSelected || undefined}
-              indeterminate={(!allOnPageSelected && pageSelectedCount > 0) || undefined}
-            ></s-checkbox>
+              aria-label="Select all orders on this page"
+              checked={allOnPageSelected}
+              indeterminate={!allOnPageSelected && pageSelectedCount > 0}
+              onChange={() => undefined}
+            />
           </s-table-header>
           <HeaderCell width="sm" listSlot="primary">Order</HeaderCell>
           <HeaderCell width="md" listSlot="secondary">Customer</HeaderCell>
@@ -136,11 +138,7 @@ export function OrdersTable(props: Props) {
             return (
               <s-table-row key={row.id}>
                 <s-table-cell>
-                  <s-checkbox
-                    value={row.id}
-                    accessibilityLabel={`Select ${row.orderName}`}
-                    checked={selected || undefined}
-                  ></s-checkbox>
+                  <Check value={row.id} aria-label={`Select ${row.orderName}`} checked={selected} onChange={() => undefined} />
                 </s-table-cell>
                 <Cell width="sm">
                   <s-link href={`shopify://admin/orders/${row.shopifyOrderNumber}`} tone={highlighted ? "auto" : "neutral"}>

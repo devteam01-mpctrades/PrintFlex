@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FetcherWithComponents } from "react-router";
+import { Btn } from "../ui";
 
 export interface DeviceItem {
   id: string;
@@ -77,7 +78,7 @@ export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetche
           <s-text color="subdued">Camera will not cooperate? Send the link instead.</s-text>
           <s-stack direction="inline" gap="small" alignItems="center">
             <span className="pf-code" title={enrolUrl}>{displayUrl(enrolUrl)}</span>
-            <s-button icon={copied ? "check" : "clipboard"} onClick={() => void copy()}>{copied ? "Copied" : "Copy link"}</s-button>
+            <Btn icon={copied ? "check" : "clipboard"} onClick={() => void copy()}>{copied ? "Copied" : "Copy link"}</Btn>
           </s-stack>
         </s-stack>
 
@@ -105,9 +106,9 @@ export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetche
                     <s-text type="strong">{d.name}{d.staffLabel ? ` · ${d.staffLabel}` : ""}</s-text>
                     <s-text color="subdued">{d.stale ? "Signed out by PIN change · " : "Last seen "}{when(d.lastSeenAt)}</s-text>
                   </s-stack>
-                  <s-button variant="tertiary" tone="critical" accessibilityLabel={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
+                  <Btn variant="tertiary" tone="critical" aria-label={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
                     Revoke
-                  </s-button>
+                  </Btn>
                 </s-stack>
               ))}
             </s-stack>

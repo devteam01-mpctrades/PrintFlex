@@ -10,6 +10,7 @@ import { createPrintLink, shouldOfferFallback } from "../lib/render/fallback.ser
 import { batchLabel } from "../lib/render/render-batch.server";
 import { requireShop } from "../lib/request.server";
 import type { DocumentType, JobState } from "../lib/types";
+import { Btn } from "../components/ui";
 
 const DOC_LABEL: Record<DocumentType, string> = {
   INVOICE: "Invoice",
@@ -119,16 +120,16 @@ export default function JobPage() {
 
   return (
     <s-page heading={job.label}>
-      <s-button slot="breadcrumb-actions" href="/app/orders" variant="tertiary">Orders</s-button>
+      <Btn slot="breadcrumb-actions" href="/app/orders" variant="tertiary">Orders</Btn>
       {active ? (
-        <s-button slot="secondary-actions" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "cancel" }, { method: "post" })}>
+        <Btn slot="secondary-actions" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "cancel" }, { method: "post" })}>
           Cancel batch
-        </s-button>
+        </Btn>
       ) : null}
       {job.hasOutput ? (
-        <s-button slot="primary-action" variant="primary" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
+        <Btn slot="primary-action" variant="primary" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
           Download combined PDF
-        </s-button>
+        </Btn>
       ) : null}
 
       {downloadError ? (
@@ -141,9 +142,9 @@ export default function JobPage() {
             Your orders can still ship. Print from the browser now: same documents, same codes, same templates. The
             layout may differ slightly from the PDF, and no order is metered twice.
           </s-paragraph>
-          <s-button slot="secondary-actions" variant="primary" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "fallback" }, { method: "post" })}>
+          <Btn slot="secondary-actions" variant="primary" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "fallback" }, { method: "post" })}>
             Print from browser
-          </s-button>
+          </Btn>
         </s-banner>
       ) : null}
 
@@ -171,14 +172,14 @@ export default function JobPage() {
         <s-section heading="Batch files">
           <s-stack direction="inline" gap="small">
             {job.hasOutput ? (
-              <s-button variant="secondary" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
+              <Btn variant="secondary" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
                 Combined PDF
-              </s-button>
+              </Btn>
             ) : null}
             {job.hasPickList ? (
-              <s-button variant="secondary" onClick={() => void download(`/app/jobs/${job.id}/output?part=picklist`, `${job.label} pick list.pdf`)}>
+              <Btn variant="secondary" onClick={() => void download(`/app/jobs/${job.id}/output?part=picklist`, `${job.label} pick list.pdf`)}>
                 Pick list only
-              </s-button>
+              </Btn>
             ) : null}
           </s-stack>
           <s-paragraph color="subdued">
@@ -208,9 +209,9 @@ export default function JobPage() {
                   <s-table-cell>{DOC_LABEL[doc.type]}</s-table-cell>
                   <s-table-cell><s-text fontVariantNumeric="tabular-nums">{doc.invoiceNumber ?? "—"}</s-text></s-table-cell>
                   <s-table-cell>
-                    <s-button variant="tertiary" onClick={() => void download(`/app/documents/${doc.id}`, `${DOC_LABEL[doc.type]} ${doc.orderName}.pdf`)}>
+                    <Btn variant="tertiary" onClick={() => void download(`/app/documents/${doc.id}`, `${DOC_LABEL[doc.type]} ${doc.orderName}.pdf`)}>
                       Download PDF
-                    </s-button>
+                    </Btn>
                   </s-table-cell>
                 </s-table-row>
               ))}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Btn } from "../ui";
 
 /** CSS pixel width of the rendered sheet (A4 at 96 dpi is 794px; Letter 816px). The iframe renders at this width and is scaled to fit. */
 const SHEET_WIDTH = 900;
@@ -46,12 +47,12 @@ export function PreviewPane({ name, html, loading, orderName, sample, previewLab
             <s-badge tone={dirty ? "warning" : "neutral"}>{dirty ? "Unsaved changes" : previewLabel}</s-badge>
           </s-stack>
           <s-stack direction="inline" gap="small" alignItems="center">
-            <s-button commandFor="pick-order-modal" command="--show" disabled={!hasOrders || undefined}>
+            <Btn commandFor="pick-order-modal" command="--show" disabled={!hasOrders || undefined}>
               Preview another order
-            </s-button>
-            <s-button variant="primary" disabled={!dirty || saving || undefined} loading={saving || undefined} onClick={onSave}>
+            </Btn>
+            <Btn variant="primary" disabled={!dirty || saving || undefined} loading={saving || undefined} onClick={onSave}>
               Save
-            </s-button>
+            </Btn>
           </s-stack>
         </s-stack>
       </s-box>

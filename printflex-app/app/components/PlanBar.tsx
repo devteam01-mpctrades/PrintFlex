@@ -1,3 +1,4 @@
+import { Btn } from "./ui";
 export interface PlanBarProps {
   planId: string;
   planName: string;
@@ -44,7 +45,7 @@ export function PlanBar({ planId, planName, planOptions, pills, used, limit, day
         ) : ratio >= 0.9 ? (
           <span className="pf-badge pf-b-warn">{promptUpgrade ? "90% used · consider upgrading" : "90% used"}</span>
         ) : null}
-        <s-button href="/app/billing">Change plan</s-button>
+        <Btn href="/app/billing">Change plan</Btn>
       </span>
     </div>
   );
