@@ -57,8 +57,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const isTest = await billingTestMode(admin, shop.domain);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
-  const appUrl = (process.env.SHOPIFY_APP_URL ?? "").replace(/\/$/, "");
-  const returnUrl = `${appUrl}/app/billing?changed=1`;
+  // Shopify sends the merchant here after the charge screen. It must be the app *inside the admin*,
+  // not the bare app URL: an embedded app cannot authenticate when loaded at the top level.
+  const store = shop.domain.replace(/\.myshopify\.com$/, "");
+  const returnUrl = `https://admin.shopify.com/store/${store}/apps/${process.env.SHOPIFY_API_KEY}/app/billing?changed=1`;
 
   if (intent === "choose") {
     const plan = String(form.get("plan") ?? "");
