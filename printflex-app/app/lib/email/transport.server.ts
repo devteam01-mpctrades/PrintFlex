@@ -1,3 +1,4 @@
+import { SmtpTransport } from "./smtp-transport.server";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { storageRoot } from "../render/storage.server";
@@ -13,6 +14,8 @@ import { storageRoot } from "../render/storage.server";
 export interface OutgoingEmail {
   to: string;
   from: string;
+  /** Where a customer's reply should land: the merchant, not the app's sending mailbox. */
+  replyTo?: string;
   subject: string;
   text: string;
   attachment: { filename: string; content: Buffer; contentType: string };
@@ -31,6 +34,7 @@ export function toEml(email: OutgoingEmail, messageId: string, date: Date): stri
   const boundary = `pf-${messageId.replace(/[^a-z0-9]/gi, "")}`;
   return [
     `From: ${email.from}`,
+    ...(email.replyTo ? [`Reply-To: ${email.replyTo}`] : []),
     `To: ${email.to}`,
     `Subject: ${email.subject}`,
     `Date: ${date.toUTCString()}`,
@@ -69,7 +73,18 @@ export class OutboxTransport implements EmailTransport {
   }
 }
 
-/** The transport for a shop. A provider is chosen by environment once one is configured. */
+/**
+ * Every email is sent from the app's own mailbox (PRINTFLEX_EMAIL_FROM, "PrintFlex <team@mpctrades.com>"
+ * by default) so the sender is consistent and authenticated; the merchant's address goes in Reply-To.
+ */
+export const EMAIL_FROM = process.env.PRINTFLEX_EMAIL_FROM?.trim() || "PrintFlex <team@mpctrades.com>";
+
+let smtp: EmailTransport | null = null;
+
+/** The transport for a shop: SMTP when PRINTFLEX_SMTP_URL is set, otherwise the .eml outbox. */
 export function transportFor(shopId: string): EmailTransport {
-  return new OutboxTransport(shopId);
+  const url = process.env.PRINTFLEX_SMTP_URL?.trim();
+  if (!url) return new OutboxTransport(shopId);
+  if (!smtp) smtp = new SmtpTransport(url);
+  return smtp;
 }

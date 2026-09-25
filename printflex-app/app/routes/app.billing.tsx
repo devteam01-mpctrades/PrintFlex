@@ -36,7 +36,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       resetLabel: fmt.format(usage.periodEndsAt),
       ordersThisPeriod,
     },
-    justChanged: url.searchParams.get("changed") === "1",
+    // Shopify sends the merchant back here whether they approved or declined; only the synced subscription says which.
+    returned: url.searchParams.get("changed") === "1" ? (state.planId === "FREE" ? "declined" : "approved") : null,
     plans: PLAN_ORDER.map((id) => ({
       id,
       name: PLANS[id].name,
@@ -101,7 +102,7 @@ function billingErrorDetail(error: unknown): string {
 const PLAN_RANK: Record<PlanId, number> = { FREE: 0, PREMIUM: 1, UNLIMITED: 2 };
 
 export default function BillingPage() {
-  const { planId, annual, limitBehaviour, usage, plans, justChanged } = useLoaderData<typeof loader>();
+  const { planId, annual, limitBehaviour, usage, plans, returned } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<{ ok: boolean; message: string }>();
   const [yearly, setYearly] = useState(annual);
   const busy = fetcher.state !== "idle";
@@ -113,7 +114,8 @@ export default function BillingPage() {
 
   return (
     <s-page heading="Plans & billing" inlineSize="large">
-      {justChanged ? <s-banner tone="success"><s-paragraph>Your plan was updated through Shopify.</s-paragraph></s-banner> : null}
+      {returned === "approved" ? <s-banner tone="success"><s-paragraph>Your plan was updated through Shopify.</s-paragraph></s-banner> : null}
+      {returned === "declined" ? <s-banner tone="info"><s-paragraph>No change was made. The charge was not approved on Shopify, so you stay on the Free plan and nothing is billed.</s-paragraph></s-banner> : null}
       {fetcher.data && !busy ? <s-banner tone={fetcher.data.ok ? "success" : "critical"}><s-paragraph>{fetcher.data.message}</s-paragraph></s-banner> : null}
 
       <div className="pf-billing">

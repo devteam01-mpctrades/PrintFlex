@@ -92,6 +92,11 @@ describe("invoice email", () => {
     expect(files).toHaveLength(1);
     const eml = fs.readFileSync(path.join(dir, files[0]), "utf8");
     expect(eml).toContain("To: yuki@example.com");
+    // Sent from the app's mailbox under the app's name; the store name stays in the subject.
+    expect(eml).toContain("From: PrintFlex <team@mpctrades.com>");
+    expect(eml).toContain("from Kool Seoul");
+    expect(eml).not.toContain("Reply-To:"); // the seeded shop has no contact email
+    expect(toEml({ to: "a@b", from: "PrintFlex <team@mpctrades.com>", replyTo: "shop@example.com", subject: "s", text: "t", attachment: { filename: "x.pdf", content: Buffer.from("x"), contentType: "application/pdf" } }, "id", new Date(0))).toContain("Reply-To: shop@example.com");
     expect(eml).toContain('Content-Disposition: attachment; filename="invoice-KS-1.pdf"');
     expect(eml).toContain(Buffer.from("%PDF-1.4 email").toString("base64"));
     expect(toEml({ to: "a@b", from: "c@d", subject: "s", text: "t", attachment: { filename: "x.pdf", content: Buffer.from("x"), contentType: "application/pdf" } }, "id", new Date(0))).toContain("Message-ID: <id>");

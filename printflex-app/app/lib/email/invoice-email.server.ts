@@ -7,7 +7,8 @@ import { renderDocumentForOrder } from "../render/render-order.server";
 import { readDocument } from "../render/storage.server";
 import { parseSettings } from "../settings.server";
 import type { EmailTrigger } from "../templates/templates.server";
-import { transportFor, type EmailTransport } from "./transport.server";
+import { EMAIL_FROM, transportFor, type EmailTransport } from "./transport.server";
+import { fetchOrderDocumentData } from "../render/order-document-data.server";
 
 /**
  * Automatic invoice email. Per INVOICE template: enabled + a trigger. The
@@ -83,12 +84,15 @@ export async function sendInvoiceEmail(input: SendInput, deps: EmailDeps): Promi
     const pdf = document.filePath ? await readDocument(document.filePath) : null;
     if (!pdf) throw new Error("The invoice PDF could not be read after rendering.");
     const transport = deps.transport ?? transportFor(input.shopId);
-    const storeName = shop.domain.replace(".myshopify.com", "");
+    // The store's name and contact email come from Shopify; if that lookup fails the mail still goes out under the domain name.
+    const seller = (await fetchOrderDocumentData(deps.client, order.shopifyOrderId).catch(() => null))?.seller;
+    const storeName = seller?.name || shop.domain.replace(".myshopify.com", "");
     const { messageId } = await transport.send({
       to,
-      from: `${storeName} <no-reply@${shop.domain}>`,
-      subject: `Invoice ${document.invoiceNumber ?? ""} for order ${order.orderName}`.replace(/\s+/g, " "),
-      text: `Thank you for your order ${order.orderName}. Your invoice${document.invoiceNumber ? ` ${document.invoiceNumber}` : ""} is attached as a PDF.`,
+      from: EMAIL_FROM,
+      replyTo: seller?.email || undefined,
+      subject: `Invoice ${document.invoiceNumber ?? ""} for order ${order.orderName} from ${storeName}`.replace(/\s+/g, " "),
+      text: `Thank you for your order ${order.orderName} from ${storeName}. Your invoice${document.invoiceNumber ? ` ${document.invoiceNumber}` : ""} is attached as a PDF.`,
       attachment: { filename: `invoice-${order.orderName.replace(/[^A-Za-z0-9-]+/g, "")}.pdf`, content: pdf, contentType: "application/pdf" },
     });
     await prisma.sendLog.update({ where: { id: log.id }, data: { status: "SENT", provider: transport.name, messageId, documentId: document.id, sentAt: now } });

@@ -8,7 +8,7 @@ application_url = "https://dev.printflex.mpctrades.com"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_orders,write_orders,write_products,write_metaobjects,write_metaobject_definitions"
+scopes = "read_orders,write_orders,read_products"
 
 [webhooks]
 api_version = "2026-10"
