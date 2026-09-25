@@ -137,3 +137,38 @@ export function planPills(planId: PlanId): string[] {
 }
 
 export const PLAN_ORDER: PlanId[] = ["FREE", "PREMIUM", "UNLIMITED"];
+
+/** What the plan cards say. Mirrors the pricing section on printflex's website so both stay in step. */
+export interface PlanCopy {
+  /** Short mono chip under the price, e.g. "500 orders / month". */
+  chip: string;
+  tagline: string;
+  features: string[];
+  /** Small print under the button. */
+  note: string;
+  popular: boolean;
+}
+
+export const PLAN_COPY: Record<PlanId, PlanCopy> = {
+  FREE: {
+    chip: "50 orders / month",
+    tagline: "The whole workflow, including scan mode. Enough for a store shipping a couple of parcels a day.",
+    features: ["All three document types", "Bulk print and combined PDF", "QR, barcode and scan mode", "One template", "Community support"],
+    note: "No payment collected. Free stays $0.",
+    popular: false,
+  },
+  PREMIUM: {
+    chip: "500 orders / month",
+    tagline: "The everyday plan. Roughly what one wrong parcel costs you, for a whole month of not sending one.",
+    features: ["Everything in Free", "Unlimited templates", "Automatic invoice email", "Saved dashboard views", "Email support"],
+    note: "Subscribing happens inside Shopify, via Shopify Billing.",
+    popular: true,
+  },
+  UNLIMITED: {
+    chip: "Unlimited orders",
+    tagline: "For high-volume benches and seasonal peaks, where an order cap is the last thing you want to think about.",
+    features: ["Everything in Premium", "Priority support", "Refund and credit documents", "Per-market template variants", "All future pro features"],
+    note: "Subscribing happens inside Shopify, via Shopify Billing.",
+    popular: false,
+  },
+};

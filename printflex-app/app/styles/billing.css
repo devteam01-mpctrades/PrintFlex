@@ -49,25 +49,36 @@
 .pf-radio .rd { color: var(--pf-sub); font-size: 12.5px; margin-left: 4px; }
 .pf-small { margin: 10px 0 0; font-size: 11.5px; color: var(--pf-sub); }
 
-/* Plans */
-.pf-plans-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.pf-seg { display: inline-flex; background: var(--pf-bg); border-radius: 8px; padding: 3px; gap: 2px; }
-.pf-seg button { border: 0; background: transparent; padding: 4px 12px; border-radius: 6px; font: inherit; font-size: 12px; color: var(--pf-sub); font-weight: 500; cursor: pointer; }
-.pf-seg button.on { background: #fff; box-shadow: var(--pf-shadow); color: var(--pf-text); font-weight: 600; }
-.pf-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-@media (max-width: 900px) { .pf-plans { grid-template-columns: 1fr; } }
-.pf-plancard { background: var(--pf-card); border: 1px solid var(--pf-border); border-radius: var(--pf-r); padding: 16px; box-shadow: var(--pf-shadow); display: flex; flex-direction: column; }
-.pf-plancard.cur { background: var(--pf-brand-soft); border: 2px solid var(--pf-brand); }
-.pf-plancard h3 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-.pf-plancard .pr { font-family: var(--pf-mono); font-size: 28px; font-weight: 600; letter-spacing: -.02em; margin: 14px 0 10px; }
-.pf-plancard .pr small { font-size: 12.5px; color: var(--pf-sub); font-weight: 500; letter-spacing: 0; margin-left: 4px; }
-.pf-plancard ul { list-style: none; margin: 0 0 14px; padding: 0; flex: 1; }
-.pf-plancard li { position: relative; padding: 3px 0 3px 16px; font-size: 12.5px; }
-.pf-plancard li::before { content: ""; position: absolute; left: 0; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--pf-brand); }
-.pf-btn { display: block; width: 100%; border: 1px solid var(--pf-border-2); background: #fff; border-radius: 8px; padding: 9px 13px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--pf-text); box-shadow: var(--pf-shadow); cursor: pointer; text-align: center; }
-.pf-btn:hover { background: var(--pf-card-2); }
-.pf-btn:disabled { cursor: default; color: var(--pf-sub); background: #fff; }
-.pf-btn--p { background: var(--pf-brand); border-color: var(--pf-brand); color: #fff; }
-.pf-btn--p:hover { background: var(--pf-brand-dk); }
-.pf-btn:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: 2px; }
-.pf-foot { margin: 0; font-size: 11.5px; color: var(--pf-sub); }
+/* Plans: the same cards as the pricing section on the website. */
+.pf-plans-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.pf-plans-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.pf-seg { display: inline-flex; background: #fff; border: 1px solid var(--pf-border); border-radius: 999px; padding: 3px; gap: 2px; box-shadow: var(--pf-shadow); }
+.pf-seg button { border: 0; background: transparent; padding: 6px 14px; border-radius: 999px; font: inherit; font-size: 12.5px; color: var(--pf-sub); font-weight: 500; cursor: pointer; }
+.pf-seg button.on { background: #1a1a1a; color: #fff; font-weight: 600; }
+.pf-seg button:focus-visible { outline: 2px solid var(--pf-brand); outline-offset: 2px; }
+.pf-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+@media (max-width: 900px) { .pf-plans { grid-template-columns: minmax(0, 1fr); } }
+.pf-plancard { position: relative; background: var(--pf-card); border: 1px solid var(--pf-border); border-radius: var(--pf-r); padding: 20px 18px 16px; box-shadow: var(--pf-shadow); display: flex; flex-direction: column; }
+.pf-plancard.pop { border: 2px solid var(--pf-brand); }
+.pf-plancard.cur:not(.pop) { border-color: var(--pf-brand-soft-2); background: #fffaf6; }
+.pf-plancard__flag { position: absolute; top: -11px; left: 18px; background: var(--pf-brand); color: #fff; font-family: var(--pf-mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+.pf-plancard__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.pf-plancard h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.pf-plancard .pr { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin: 12px 0 8px; line-height: 1; }
+.pf-plancard .pr small { font-size: 13px; color: var(--pf-sub); font-weight: 500; letter-spacing: 0; margin-left: 5px; }
+.pf-chip { align-self: flex-start; font-family: var(--pf-mono); font-size: 11.5px; color: var(--pf-brand-ink); background: var(--pf-brand-soft); border-radius: 8px; padding: 3px 10px; }
+.pf-plancard .tag { margin: 12px 0 0; padding-bottom: 12px; border-bottom: 1px solid var(--pf-border); color: var(--pf-sub); font-size: 12.5px; line-height: 1.5; }
+.pf-plancard ul { list-style: none; margin: 10px 0 14px; padding: 0; flex: 1; }
+.pf-plancard li { position: relative; padding: 4px 0 4px 16px; font-size: 13px; }
+.pf-plancard li::before { content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; border-radius: 50%; background: var(--pf-brand); }
+.pf-plancard .pf-plancard__cta { width: 100%; padding: 11px 14px; font-size: 13px; border-radius: 999px; }
+.pf-plancard .note { margin: 8px 0 0; font-size: 11.5px; color: var(--pf-sub); line-height: 1.4; }
+
+/* Billed through Shopify */
+.pf-shopify { display: flex; gap: 24px; align-items: center; justify-content: space-between; padding: 16px 18px; flex-wrap: wrap; }
+.pf-shopify > div { flex: 1 1 360px; }
+.pf-shopify h2 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+.pf-shopify p { margin: 0; font-size: 12.5px; color: var(--pf-sub); line-height: 1.5; }
+.pf-shopify ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 18px; flex-wrap: wrap; }
+.pf-shopify li { position: relative; padding-left: 14px; font-size: 12.5px; white-space: nowrap; }
+.pf-shopify li::before { content: ""; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--pf-brand); }

@@ -9,7 +9,8 @@ import { SettingsPane } from "../components/templates/SettingsPane";
 import { TemplateList, type TemplateGroup } from "../components/templates/TemplateList";
 import { useTemplateDraft } from "../components/templates/useTemplateDraft";
 import prisma from "../db.server";
-import { canCreateAnother, getPlan } from "../lib/plans.server";
+import { canCreateAnother, getPlan, hasEntitlement } from "../lib/plans.server";
+import { ruleAllowedOnPlan, rulePlanMessage } from "../lib/templates/rule-plan.server";
 import { requireShop } from "../lib/request.server";
 import { listPreviewOrders, pickPreviewOrder, renderPreview } from "../lib/templates/preview.server";
 import { conflictMessage, findRuleConflict } from "../lib/templates/rule-conflicts.server";
@@ -89,6 +90,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     timezone: shop.timezone,
     planName: getPlan(shop.plan).name,
     canCreate: canCreateAnother(shop.plan, "templates", count),
+    perMarket: hasEntitlement(shop.plan, "perMarketTemplates"),
   };
 };
 
@@ -142,6 +144,7 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<ActionRes
     }
     case "save": {
       const rule = ruleFromForm(form);
+      if (!ruleAllowedOnPlan(shop.plan, rule)) return { ok: false, message: `Not saved: ${rulePlanMessage(shop.plan)}` };
       const conflict = await findRuleConflict(shop.id, type, rule, template.id);
       if (conflict) return { ok: false, message: `Not saved: ${conflictMessage(conflict, rule, typeLabel)}` };
       const saved = await saveTemplate(shop.id, template.id, { name: String(form.get("name") ?? ""), settings: settingsFromForm(form, current), rule });
@@ -314,6 +317,7 @@ export default function TemplatesPage() {
               template={template}
               fonts={data.fonts}
               siblings={siblings}
+              perMarket={data.perMarket}
               onChanged={draft.markChanged}
               busy={busy}
               onDelete={() => saver.submit({ intent: "delete", templateId: template.id }, { method: "post" })}

@@ -28,6 +28,8 @@ interface Props {
   template: SettingsTemplate;
   fonts: readonly string[];
   siblings: Array<RankedTemplate & { name: string }>;
+  /** Whether the plan includes per-market (ships-to-country) rules. */
+  perMarket: boolean;
   /** Called after a change that fires no form event (logo, swatch). */
   onChanged: () => void;
   onDelete: () => void;
@@ -53,7 +55,7 @@ function parseList(value: string): string[] {
  * shown here. Only toggles that drive a branch in this document type's
  * render are shown.
  */
-export function SettingsPane({ template, fonts, siblings, onChanged, onDelete, busy }: Props) {
+export function SettingsPane({ template, fonts, siblings, perMarket, onChanged, onDelete, busy }: Props) {
   const s = template.settings;
   const [logo, setLogo] = useState<string | null>(s.logoUrl);
   const [logoAction, setLogoAction] = useState<"keep" | "set" | "remove">("keep");
@@ -231,10 +233,15 @@ export function SettingsPane({ template, fonts, siblings, onChanged, onDelete, b
           <s-stack gap="small">
             <s-select ref={kindRef} name="rule.kind" label="Assign to" value={kind}>
               <s-option value="all">All orders</s-option>
-              <s-option value="country">Ships to country</s-option>
+              <s-option value="country">{perMarket ? "Ships to country" : "Ships to country · Unlimited plan"}</s-option>
               <s-option value="tag">Orders with a tag</s-option>
-              <s-option value="both">Tag and ships to country</s-option>
+              <s-option value="both">{perMarket ? "Tag and ships to country" : "Tag and ships to country · Unlimited plan"}</s-option>
             </s-select>
+            {(kind === "country" || kind === "both") && !perMarket ? (
+              <s-banner tone="warning">
+                <s-paragraph>Per-market template variants are part of the Unlimited plan. This template will not save with a country rule until you upgrade in <s-link href="/app/billing">Plans &amp; billing</s-link>.</s-paragraph>
+              </s-banner>
+            ) : null}
             {kind === "country" || kind === "both" ? (
               <s-text-field ref={countriesRef} name="rule.countries" label="Countries" value={countries} placeholder="JP, KR" details="Two-letter ISO codes, comma separated."></s-text-field>
             ) : (

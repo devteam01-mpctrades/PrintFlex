@@ -10,7 +10,7 @@ import prisma from "../db.server";
 import { cancelSubscription, requestPlan, setLimitBehaviour, syncSubscription } from "../lib/billing/billing.server";
 import { getUsage } from "../lib/meter.server";
 import { periodStart } from "../lib/period.server";
-import { PLANS } from "../lib/plans.server";
+import { PLAN_COPY, PLAN_ORDER, PLANS } from "../lib/plans.server";
 import { requireShop } from "../lib/request.server";
 import { Btn } from "../components/ui";
 import type { LimitBehaviour, PlanId } from "../lib/types";
@@ -37,12 +37,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       ordersThisPeriod,
     },
     justChanged: url.searchParams.get("changed") === "1",
-    plans: (["FREE", "PREMIUM", "UNLIMITED"] as PlanId[]).map((id) => ({
+    plans: PLAN_ORDER.map((id) => ({
       id,
       name: PLANS[id].name,
       monthly: PLANS[id].monthlyPriceUsd,
       annual: PLANS[id].annualPriceUsd,
       limit: PLANS[id].monthlyOrderLimit,
+      ...PLAN_COPY[id],
     })),
   };
 };
@@ -77,11 +78,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return { ok: false, message: "Unknown action." };
 };
 
-const FEATURES: Record<PlanId, string[]> = {
-  FREE: ["50 metered orders a month", "All three document types", "QR, barcode and scan mode", "One template"],
-  PREMIUM: ["500 metered orders a month", "Unlimited templates", "Automatic invoice email", "Saved views and email support"],
-  UNLIMITED: ["No order cap", "Refund and credit documents", "Per-market template variants", "Priority support"],
-};
 const PLAN_RANK: Record<PlanId, number> = { FREE: 0, PREMIUM: 1, UNLIMITED: 2 };
 
 export default function BillingPage() {
@@ -130,49 +126,59 @@ export default function BillingPage() {
         </div>
 
         <div className="pf-plans-head">
-          <span className="pf-small" style={{ margin: 0 }}>Plans</span>
+          <h2>Plans</h2>
           <div className="pf-seg" role="group" aria-label="Billing interval">
-            <button type="button" className={yearly ? "" : "on"} aria-pressed={!yearly} onClick={() => setYearly(false)}>Billed monthly</button>
-            <button type="button" className={yearly ? "on" : ""} aria-pressed={yearly} onClick={() => setYearly(true)}>Billed yearly · 2 months free</button>
+            <button type="button" className={yearly ? "" : "on"} aria-pressed={!yearly} onClick={() => setYearly(false)}>Monthly</button>
+            <button type="button" className={yearly ? "on" : ""} aria-pressed={yearly} onClick={() => setYearly(true)}>Annual &mdash; 2 months free</button>
           </div>
         </div>
 
         <div className="pf-plans">
           {plans.map((p) => {
             const current = p.id === planId;
-            const currentInterval = current && (p.id === "FREE" || annual === yearly);
+            const sameInterval = current && (p.id === "FREE" || annual === yearly);
             const higher = PLAN_RANK[p.id] > PLAN_RANK[planId];
             const price = p.id === "FREE" ? "$0" : money(yearly ? p.annual : p.monthly);
             const per = p.id === "FREE" ? "forever" : yearly ? "/year" : "/month";
             const choose = () => fetcher.submit({ intent: "choose", plan: p.id, annual: yearly ? "1" : "0" }, { method: "post" });
+            const label = sameInterval ? "Your plan" : current ? (yearly ? "Switch to annual" : "Switch to monthly") : higher ? `Upgrade to ${p.name}` : p.id === "FREE" ? "Downgrade to Free" : `Downgrade to ${p.name}`;
+            const note = sameInterval
+              ? p.id === "FREE" ? "No payment collected. Free stays $0." : `Billed ${annual ? "yearly" : "monthly"} through Shopify. Cancel any time.`
+              : p.id === "FREE" && !current ? "Cancelling is prorated through Shopify. Nothing else to do." : p.note;
             return (
-              <div key={p.id} className={`pf-plancard${current ? " cur" : ""}`}>
-                <h3>
-                  {p.name}
-                  {current ? <span className="pf-badge pf-b-brand">Current{annual ? " · yearly" : ""}</span> : null}
-                </h3>
+              <div key={p.id} className={`pf-plancard${p.popular ? " pop" : ""}${current ? " cur" : ""}`}>
+                {p.popular ? <span className="pf-plancard__flag">Most popular</span> : null}
+                <div className="pf-plancard__top">
+                  <h3>{p.name}</h3>
+                  {current ? <span className="pf-badge pf-b-brand">Current{p.id !== "FREE" ? (annual ? " · annual" : " · monthly") : ""}</span> : null}
+                </div>
                 <div className="pr">{price}<small>{per}</small></div>
+                <span className="pf-chip">{p.chip}</span>
+                <p className="tag">{p.tagline}</p>
                 <ul>
-                  {FEATURES[p.id].map((f) => <li key={f}>{f}</li>)}
+                  {p.features.map((f) => <li key={f}>{f}</li>)}
                 </ul>
-                {currentInterval ? (
-                  <button type="button" className="pf-btn" disabled>Your plan</button>
-                ) : current ? (
-                  <button type="button" className="pf-btn" disabled={busy} onClick={choose}>{yearly ? "Switch to yearly" : "Switch to monthly"}</button>
-                ) : higher ? (
-                  <Btn variant="primary" disabled={busy} onClick={choose}>Upgrade</Btn>
-                ) : (
-                  <button type="button" className="pf-btn" disabled={busy} onClick={choose}>Downgrade</button>
-                )}
+                <Btn variant={sameInterval ? "secondary" : p.popular || higher ? "primary" : "secondary"} className="pf-plancard__cta" disabled={sameInterval || busy} loading={busy && !sameInterval} onClick={choose}>
+                  {label}
+                </Btn>
+                <p className="note">{note}</p>
               </div>
             );
           })}
         </div>
 
-        <p className="pf-foot">
-          All charges are made through Shopify&rsquo;s Billing API and appear on your Shopify invoice. No card or payment detail ever reaches PrintFlex.
-          Uninstalling cancels the subscription the same day.
-        </p>
+        <div className="pf-panel pf-shopify">
+          <div>
+            <h2>Billed through Shopify.</h2>
+            <p>Every paid plan is charged exclusively through Shopify&rsquo;s own Billing API and approved on Shopify&rsquo;s native charge screen. No card or payment detail ever reaches PrintFlex, and uninstalling cancels the subscription the same day.</p>
+          </div>
+          <ul>
+            <li>Cancel any time</li>
+            <li>Change plan instantly</li>
+            <li>Annual saves two months</li>
+          </ul>
+        </div>
+
         <div className="pf-panel">
           <div className="pf-panel__h"><h2>When you reach the limit</h2></div>
           <div className="pf-panel__b">
