@@ -16,6 +16,9 @@ export interface PlanBarProps {
  */
 export function PlanBar({ planId, planName, planOptions, pills, used, limit, daysRemaining, promptUpgrade }: PlanBarProps) {
   const ratio = limit ? used / limit : 0;
+  // The way up: name the next plan so the button says what it does. Unlimited has nowhere to go but the billing page.
+  const index = planOptions.findIndex((option) => option.id === planId);
+  const next = index >= 0 ? planOptions[index + 1] : undefined;
   return (
     <div className="pf-planbar">
       <div>
@@ -45,7 +48,7 @@ export function PlanBar({ planId, planName, planOptions, pills, used, limit, day
         ) : ratio >= 0.9 ? (
           <span className="pf-badge pf-b-warn">{promptUpgrade ? "90% used · consider upgrading" : "90% used"}</span>
         ) : null}
-        <Btn href="/app/billing">Change plan</Btn>
+        <Btn variant={next ? "primary" : "secondary"} href="/app/billing">{next ? `Upgrade to ${next.name}` : "Change plan"}</Btn>
       </span>
     </div>
   );

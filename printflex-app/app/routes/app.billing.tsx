@@ -59,8 +59,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const plan = String(form.get("plan") ?? "");
     const annual = form.get("annual") === "1";
     if (plan === "PREMIUM" || plan === "UNLIMITED") {
-      // Shopify's charge screen. This never returns; it redirects the merchant to approve.
-      return requestPlan(billing, plan, annual, returnUrl);
+      try {
+        // Shopify's charge screen. On success this never returns: it throws the redirect that sends the merchant to approve.
+        return await requestPlan(billing, plan, annual, returnUrl);
+      } catch (error) {
+        if (error instanceof Response) throw error;
+        const detail = billingErrorDetail(error);
+        console.error("Billing request failed", detail);
+        return {
+          ok: false,
+          message: /public distribution/i.test(detail)
+            ? "Shopify refused the subscription because this app is not set to public distribution yet. In the Shopify Dev Dashboard open the app, choose Distribution, select Shopify App Store, then try again. Test charges on a development store need this too."
+            : `Shopify could not start the subscription: ${detail} Nothing was charged. Try again, and if it keeps failing contact support.`,
+        };
+      }
     }
     if (plan === "FREE") {
       const state = await syncSubscription(billing, shop.id);
@@ -77,6 +89,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
   return { ok: false, message: "Unknown action." };
 };
+
+/** The library wraps Shopify's userErrors in errorData; surface them as one sentence. */
+function billingErrorDetail(error: unknown): string {
+  const data = (error as { errorData?: unknown })?.errorData;
+  const messages = Array.isArray(data) ? data.map((e) => (e as { message?: string })?.message).filter(Boolean) : [];
+  if (messages.length) return messages.join(" ");
+  return error instanceof Error && error.message ? error.message : "an unknown error.";
+}
 
 const PLAN_RANK: Record<PlanId, number> = { FREE: 0, PREMIUM: 1, UNLIMITED: 2 };
 
@@ -165,18 +185,6 @@ export default function BillingPage() {
               </div>
             );
           })}
-        </div>
-
-        <div className="pf-panel pf-shopify">
-          <div>
-            <h2>Billed through Shopify.</h2>
-            <p>Every paid plan is charged exclusively through Shopify&rsquo;s own Billing API and approved on Shopify&rsquo;s native charge screen. No card or payment detail ever reaches PrintFlex, and uninstalling cancels the subscription the same day.</p>
-          </div>
-          <ul>
-            <li>Cancel any time</li>
-            <li>Change plan instantly</li>
-            <li>Annual saves two months</li>
-          </ul>
         </div>
 
         <div className="pf-panel">

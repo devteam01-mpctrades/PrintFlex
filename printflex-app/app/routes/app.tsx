@@ -35,12 +35,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function App() {
   const { apiKey, usage } = useLoaderData<typeof loader>();
   const { pathname } = useLocation();
-  // Home has its own plan bar and meter card, so the strip would repeat them.
-  const onHome = pathname.replace(/\/$/, "") === "/app";
+  // Home has its own plan bar and meter card, and Plans & billing is the plan page itself, so neither shows the strip.
+  const path = pathname.replace(/\/$/, "");
+  const hideBar = path === "/app" || path === "/app/billing";
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      {!onHome ? (
+      {!hideBar ? (
         <div className="pf-planbar-wrap">
           <PlanBar
             planId={usage.planId}
