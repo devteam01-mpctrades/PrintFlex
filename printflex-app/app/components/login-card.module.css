@@ -8,9 +8,7 @@
 @media (max-width: 480px) { .card { padding: 26px 20px 22px; } }
 
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
-.mark { display: inline-flex; align-items: flex-end; gap: 3px; width: 34px; height: 34px; padding: 6px; border-radius: 9px; background: #e25b07; }
-.mark i { display: block; width: 6px; background: #fff; border-radius: 2px; }
-.mark i:nth-child(1) { height: 8px; } .mark i:nth-child(2) { height: 14px; } .mark i:nth-child(3) { height: 20px; }
+.mark { display: block; width: 34px; height: 34px; border-radius: 9px; }
 .name { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
 
 .heading { margin: 0 0 10px; font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; }

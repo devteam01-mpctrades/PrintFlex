@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-label="PrintFlex">
+  <rect width="1200" height="1200" rx="270" fill="#1a1109"/>
+  <path d="M360 300H720v122a38 38 0 0 0 38 38h122V900H360l140-300z" fill="#e25b07"/>
+  <path d="M756 320v110h110z" fill="#f8f4ee"/>
+</svg>

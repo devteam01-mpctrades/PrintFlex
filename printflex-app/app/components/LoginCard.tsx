@@ -17,9 +17,7 @@ export function LoginCard({ error, defaultShop = "" }: Props) {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brand}>
-          <span className={styles.mark} aria-hidden="true">
-            <i /><i /><i />
-          </span>
+          <img className={styles.mark} src="/logo.svg" alt="" width="34" height="34" />
           <span className={styles.name}>PrintFlex</span>
         </div>
         <h1 className={styles.heading}>Print, scan and pack every order from one place.</h1>

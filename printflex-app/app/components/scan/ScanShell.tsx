@@ -59,6 +59,8 @@ export const SCAN_CSS = `
 
   /* Preview mode (the merchant's phone frame in the admin): the scanner header stands in for the camera. */
   .preview .wrap { padding: 0 14px 14px; }
+  .top .brand { display: inline-flex; align-items: center; gap: 8px; }
+  .top .brand img { width: 22px; height: 22px; border-radius: 6px; }
   .scanhead { background: #161616; color: #b8b8b8; padding: 22px 16px 14px; margin: 0 -14px 14px; text-align: center; }
   .scanhead .vf { position: relative; width: 104px; height: 104px; margin: 0 auto 12px; display: grid; place-items: center; }
   .scanhead .vf::before, .scanhead .vf::after, .scanhead .vf i::before, .scanhead .vf i::after { content: ""; position: absolute; width: 22px; height: 22px; border: 3px solid var(--brand, #e25b07); }
@@ -127,7 +129,7 @@ export function ScanShell({ title, device, children, preview = false }: Props) {
       <style dangerouslySetInnerHTML={{ __html: SCAN_CSS }} />
       <main className="wrap">
         <div className="top">
-          <strong>PrintFlex scan</strong>
+          <strong className="brand"><img src="/logo.svg" alt="" width="22" height="22" />PrintFlex scan</strong>
           <span className="row" style={{ gap: 8 }}>
             {status.pending > 0 ? (
               <button type="button" className={`pending ${status.online ? "" : "offline"}`} onClick={() => void syncQueue()} style={{ border: 0, font: "inherit", cursor: "pointer" }}>
