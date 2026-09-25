@@ -119,7 +119,7 @@ export default function JobPage() {
     job.startedAt && job.finishedAt ? Math.round((new Date(job.finishedAt).getTime() - new Date(job.startedAt).getTime()) / 100) / 10 : null;
 
   return (
-    <s-page heading={job.label}>
+    <s-page heading={job.label} inlineSize="large">
       <Btn slot="breadcrumb-actions" href="/app/orders" variant="tertiary">Orders</Btn>
       {active ? (
         <Btn slot="secondary-actions" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "cancel" }, { method: "post" })}>

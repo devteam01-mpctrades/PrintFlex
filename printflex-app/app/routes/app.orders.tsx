@@ -255,7 +255,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <s-page heading="Orders">
+    <s-page heading="Orders" inlineSize="large">
       <Btn
         slot="secondary-actions"
         disabled={syncing || undefined}

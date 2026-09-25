@@ -1,0 +1,35 @@
+/* The pre-install landing and login card. Own styles: this page renders outside the embedded admin. */
+.page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 16px; box-sizing: border-box;
+  background: #f6f6f7; color: #303030; font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.5;
+}
+.page * { box-sizing: border-box; }
+.card { width: 100%; max-width: 560px; background: #fff; border: 1px solid #e3e3e3; border-radius: 16px; padding: 36px 36px 28px; box-shadow: 0 1px 0 rgba(0, 0, 0, .05), 0 8px 24px rgba(0, 0, 0, .06); }
+@media (max-width: 480px) { .card { padding: 26px 20px 22px; } }
+
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.mark { display: inline-flex; align-items: flex-end; gap: 3px; width: 34px; height: 34px; padding: 6px; border-radius: 9px; background: #e25b07; }
+.mark i { display: block; width: 6px; background: #fff; border-radius: 2px; }
+.mark i:nth-child(1) { height: 8px; } .mark i:nth-child(2) { height: 14px; } .mark i:nth-child(3) { height: 20px; }
+.name { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+
+.heading { margin: 0 0 10px; font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; }
+.lead { margin: 0 0 18px; color: #616161; font-size: 14.5px; }
+.points { list-style: none; margin: 0 0 24px; padding: 18px 0 0; border-top: 1px solid #e3e3e3; display: grid; gap: 8px; }
+.points li { position: relative; padding-left: 18px; }
+.points li::before { content: ""; position: absolute; left: 0; top: 8px; width: 7px; height: 7px; border-radius: 50%; background: #e25b07; }
+
+.form { display: grid; gap: 8px; }
+.label { font-weight: 600; font-size: 13.5px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.field { flex: 1 1 240px; display: flex; align-items: center; border: 1.5px solid #d2d2d2; border-radius: 10px; background: #fff; overflow: hidden; }
+.field:focus-within { border-color: #e25b07; box-shadow: 0 0 0 3px #f9d9bc; }
+.fieldError { border-color: #c8321e; }
+.input { flex: 1 1 auto; min-width: 0; border: 0; outline: 0; padding: 11px 12px; font: inherit; font-size: 15px; color: #303030; background: transparent; }
+.suffix { padding: 0 12px 0 0; color: #8a8a8a; font-size: 13px; white-space: nowrap; }
+.button { flex: 0 0 auto; border: 0; border-radius: 10px; padding: 11px 18px; font: inherit; font-size: 14px; font-weight: 600; color: #fff; background: #e25b07; cursor: pointer; white-space: nowrap; }
+.button:hover { background: #c9500a; }
+.button:focus-visible { outline: 2px solid #e25b07; outline-offset: 2px; }
+.hint { margin: 2px 0 0; font-size: 12.5px; color: #616161; }
+.error { margin: 2px 0 0; font-size: 12.5px; color: #8e1f0b; font-weight: 500; }
+.foot { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #e3e3e3; font-size: 12px; color: #8a8a8a; text-align: center; }
