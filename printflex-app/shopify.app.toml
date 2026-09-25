@@ -4,7 +4,7 @@ name = "PrintFlex"
 handle = "printflex"
 embedded = true
 client_id = "34363db3a11f246c64f2b24864846aea"
-application_url = "https://example.com"
+application_url = "https://dev.printflex.mpctrades.com"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -30,7 +30,12 @@ api_version = "2026-10"
   uri = "/webhooks/compliance"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+  "https://dev.printflex.mpctrades.com/auth/callback",
+  "https://dev.printflex.mpctrades.com/auth/session-token"
+]
 
 [build]
-automatically_update_urls_on_dev = true
+# Off, so a local `shopify app dev` does not overwrite the dev server URL above. Pass --tunnel-url or
+# answer "no" when the CLI offers to update URLs.
+automatically_update_urls_on_dev = false
