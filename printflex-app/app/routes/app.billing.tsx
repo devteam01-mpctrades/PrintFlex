@@ -8,6 +8,7 @@ import billingStyles from "../styles/billing.css?url";
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: billingStyles }];
 import prisma from "../db.server";
 import { cancelSubscription, requestPlan, setLimitBehaviour, syncSubscription } from "../lib/billing/billing.server";
+import { billingTestMode } from "../lib/billing/test-mode.server";
 import { getUsage } from "../lib/meter.server";
 import { periodStart } from "../lib/period.server";
 import { PLAN_COPY, PLAN_ORDER, PLANS } from "../lib/plans.server";
@@ -16,8 +17,9 @@ import { Btn } from "../components/ui";
 import type { LimitBehaviour, PlanId } from "../lib/types";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { shop, billing } = await requireShop(request);
-  const state = await syncSubscription(billing, shop.id);
+  const { shop, billing, admin } = await requireShop(request);
+  const isTest = await billingTestMode(admin, shop.domain);
+  const state = await syncSubscription(billing, shop.id, isTest);
   const usage = await getUsage(shop.id);
   const start = periodStart(usage.period, shop.timezone);
   const ordersThisPeriod = await prisma.orderIndex.count({ where: { shopId: shop.id, shopifyCreatedAt: { gte: start, lt: usage.periodEndsAt } } });
@@ -38,6 +40,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
     // Shopify sends the merchant back here whether they approved or declined; only the synced subscription says which.
     returned: url.searchParams.get("changed") === "1" ? (state.planId === "FREE" ? "declined" : "approved") : null,
+    testBilling: isTest,
     plans: PLAN_ORDER.map((id) => ({
       id,
       name: PLANS[id].name,
@@ -50,7 +53,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, billing } = await requireShop(request);
+  const { shop, billing, admin } = await requireShop(request);
+  const isTest = await billingTestMode(admin, shop.domain);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
   const appUrl = (process.env.SHOPIFY_APP_URL ?? "").replace(/\/$/, "");
@@ -62,7 +66,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (plan === "PREMIUM" || plan === "UNLIMITED") {
       try {
         // Shopify's charge screen. On success this never returns: it throws the redirect that sends the merchant to approve.
-        return await requestPlan(billing, plan, annual, returnUrl);
+        return await requestPlan(billing, plan, annual, returnUrl, isTest);
       } catch (error) {
         if (error instanceof Response) throw error;
         const detail = billingErrorDetail(error);
@@ -76,8 +80,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
     if (plan === "FREE") {
-      const state = await syncSubscription(billing, shop.id);
-      if (state.subscription) await cancelSubscription(billing, shop.id, state.subscription.id);
+      const state = await syncSubscription(billing, shop.id, isTest);
+      if (state.subscription) await cancelSubscription(billing, shop.id, state.subscription.id, isTest);
       return { ok: true, message: "You are on the Free plan. The subscription was cancelled through Shopify and prorated." };
     }
     return { ok: false, message: "Choose a plan." };
@@ -102,7 +106,7 @@ function billingErrorDetail(error: unknown): string {
 const PLAN_RANK: Record<PlanId, number> = { FREE: 0, PREMIUM: 1, UNLIMITED: 2 };
 
 export default function BillingPage() {
-  const { planId, annual, limitBehaviour, usage, plans, returned } = useLoaderData<typeof loader>();
+  const { planId, annual, limitBehaviour, usage, plans, returned, testBilling } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<{ ok: boolean; message: string }>();
   const [yearly, setYearly] = useState(annual);
   const busy = fetcher.state !== "idle";
@@ -115,6 +119,7 @@ export default function BillingPage() {
   return (
     <s-page heading="Plans & billing" inlineSize="large">
       {returned === "approved" ? <s-banner tone="success"><s-paragraph>Your plan was updated through Shopify.</s-paragraph></s-banner> : null}
+      {testBilling ? <s-banner tone="info"><s-paragraph>This is a development store, so every charge here is a test charge: nothing is billed.</s-paragraph></s-banner> : null}
       {returned === "declined" ? <s-banner tone="info"><s-paragraph>No change was made. The charge was not approved on Shopify, so you stay on the Free plan and nothing is billed.</s-paragraph></s-banner> : null}
       {fetcher.data && !busy ? <s-banner tone={fetcher.data.ok ? "success" : "critical"}><s-paragraph>{fetcher.data.message}</s-paragraph></s-banner> : null}
 

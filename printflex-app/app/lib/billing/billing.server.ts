@@ -2,6 +2,7 @@ import prisma from "../../db.server";
 import { audit } from "../audit.server";
 import type { authenticate } from "../../shopify.server";
 import type { LimitBehaviour, PlanId } from "../types";
+import { FORCE_TEST_BILLING } from "./test-mode.server";
 import { ALL_BILLING_PLANS, BILLING_PLAN_NAMES, isAnnual, planIdForBillingName, type BillingPlanName } from "./plans-config.server";
 
 /**
@@ -20,7 +21,8 @@ export interface ActiveSubscription {
 /** The library's billing context, as returned by authenticate.admin. Tests pass a fake cast to this type. */
 export type BillingApi = Awaited<ReturnType<typeof authenticate.admin>>["billing"];
 
-export const IS_TEST_BILLING = process.env.NODE_ENV !== "production" || process.env.PRINTFLEX_TEST_BILLING === "1";
+/** Baseline: test charges outside production. Per-shop decisions (development stores) come from billingTestMode. */
+export const IS_TEST_BILLING = FORCE_TEST_BILLING;
 
 export interface SubscriptionState {
   planId: PlanId;
@@ -42,8 +44,8 @@ export function stateFromSubscriptions(subscriptions: readonly ActiveSubscriptio
 }
 
 /** Ask Shopify what is active and mirror it onto the shop. */
-export async function syncSubscription(billing: BillingApi, shopId: string): Promise<SubscriptionState> {
-  const { appSubscriptions } = await billing.check({ plans: [...ALL_BILLING_PLANS], isTest: IS_TEST_BILLING });
+export async function syncSubscription(billing: BillingApi, shopId: string, isTest: boolean = IS_TEST_BILLING): Promise<SubscriptionState> {
+  const { appSubscriptions } = await billing.check({ plans: [...ALL_BILLING_PLANS], isTest });
   const state = stateFromSubscriptions(appSubscriptions);
   const before = await prisma.shop.findUniqueOrThrow({ where: { id: shopId }, select: { plan: true } });
   if (before.plan !== state.planId) {
@@ -54,14 +56,20 @@ export async function syncSubscription(billing: BillingApi, shopId: string): Pro
 }
 
 /** Send the merchant to Shopify's charge screen. Never resolves: it redirects. */
-export async function requestPlan(billing: BillingApi, planId: Exclude<PlanId, "FREE">, annual: boolean, returnUrl: string): Promise<never> {
+export async function requestPlan(
+  billing: BillingApi,
+  planId: Exclude<PlanId, "FREE">,
+  annual: boolean,
+  returnUrl: string,
+  isTest: boolean = IS_TEST_BILLING,
+): Promise<never> {
   const name: BillingPlanName = annual ? BILLING_PLAN_NAMES[planId].annual : BILLING_PLAN_NAMES[planId].monthly;
-  return billing.request({ plan: name, isTest: IS_TEST_BILLING, returnUrl });
+  return billing.request({ plan: name, isTest, returnUrl });
 }
 
 /** Cancel through Shopify, then mirror Free. */
-export async function cancelSubscription(billing: BillingApi, shopId: string, subscriptionId: string): Promise<void> {
-  await billing.cancel({ subscriptionId, isTest: IS_TEST_BILLING, prorate: true });
+export async function cancelSubscription(billing: BillingApi, shopId: string, subscriptionId: string, isTest: boolean = IS_TEST_BILLING): Promise<void> {
+  await billing.cancel({ subscriptionId, isTest, prorate: true });
   await prisma.shop.update({ where: { id: shopId }, data: { plan: "FREE" } });
 }
 
