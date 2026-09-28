@@ -143,7 +143,7 @@ export function OrdersTable(props: Props) {
           })}
         </s-table-body>
       </s-table>
-      <s-box paddingInline="base" paddingBlock="small">
+      <s-box paddingInline="base" paddingBlock="base">
         <s-stack direction="inline" gap="small" alignItems="center" justifyContent="end">
           <s-text color="subdued" fontVariantNumeric="tabular-nums">
             Showing {first}–{last} of {total} · select-all matches the filter, not just this page

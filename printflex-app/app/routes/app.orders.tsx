@@ -316,6 +316,7 @@ export default function OrdersPage() {
         </s-banner>
       ) : null}
 
+<div className="pf-orders-card">
       <s-section padding="none" accessibilityLabel="Orders">
         <SavedViewsBar
           views={data.views}
@@ -377,6 +378,7 @@ export default function OrdersPage() {
           />
         )}
       </s-section>
+      </div>
     </s-page>
   );
 }

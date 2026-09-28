@@ -31,3 +31,6 @@
 .pf-bulk__more { margin-left: auto; gap: 14px; }
 .pf-bulk .pf-btn { padding: 7px 12px; }
 @media (max-width: 900px) { .pf-bulk__more { margin-left: 0; } }
+
+/* Breathing room below the orders card, so the pager is not pinned to the bottom edge */
+.pf-orders-card { margin-block-end: 32px; }
