@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -89,14 +88,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function ScanPackPage() {
   const data = useLoaderData<typeof loader>();
   const fetcher = useFetcher<{ ok: boolean; message: string }>();
-  const [showEnrol, setShowEnrol] = useState(false);
   const median =
     data.medianPackSeconds === null
       ? null
       : `${Math.floor(data.medianPackSeconds / 60)}:${String(Math.round(data.medianPackSeconds % 60)).padStart(2, "0")}`;
 
   const stats = <StatCards packedToday={data.packedToday} devicesToday={data.devicesToday} medianLabel={median} needsReview={data.needsReview} />;
-  const staffAccess = <StaffAccess hasPin={data.hasPin} enrolUrl={data.enrolUrl} qrSvg={data.qrSvg} devices={data.devices} timezone={data.timezone} fetcher={fetcher} />;
+  // Once staff are scanning, enrolment folds away inside the same card instead of a second one.
+  const staffAccess = (
+    <StaffAccess hasPin={data.hasPin} enrolUrl={data.enrolUrl} qrSvg={data.qrSvg} devices={data.devices} timezone={data.timezone} fetcher={fetcher} collapsible={data.running} />
+  );
   const packerPreview = <PackerPreview src={data.previewSrc} sample={data.previewIsSample} />;
   const batchProgress = <BatchProgress batch={data.batch} />;
   const scanHistory = <ScanHistory history={data.history} timezone={data.timezone} canExport={data.canExport} planName={data.planName} />;
@@ -124,17 +125,7 @@ export default function ScanPackPage() {
             <div className="pf-scan-col">
               {batchProgress}
               {scanHistory}
-              <div className="pf-panel">
-                <div className="pf-panel__h">
-                  <h2>Enrol another phone</h2>
-                  <div className="right">
-                    <Btn variant="tertiary" icon={showEnrol ? "chevron-up" : "chevron-down"} onClick={() => setShowEnrol((v) => !v)}>
-                      {showEnrol ? "Hide" : "Show"}
-                    </Btn>
-                  </div>
-                </div>
-                <div hidden={!showEnrol}>{staffAccess}</div>
-              </div>
+              {staffAccess}
             </div>
             <div className="pf-scan-col">{packerPreview}</div>
           </div>

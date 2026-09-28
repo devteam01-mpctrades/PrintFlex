@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FetcherWithComponents } from "react-router";
 import { Btn } from "../ui";
+import { DeviceLabel } from "./DeviceAvatar";
 
 export interface DeviceItem {
   id: string;
@@ -18,7 +19,12 @@ interface Props {
   devices: DeviceItem[];
   timezone: string;
   fetcher: FetcherWithComponents<{ ok: boolean; message: string }>;
+  /** Once staff are scanning, enrolment folds away behind a header button. */
+  collapsible?: boolean;
 }
+
+/** Seen in the last 15 minutes counts as on the floor right now. */
+const ACTIVE_MS = 15 * 60_000;
 
 /** "host/scan/AbCd…wxyz": the host stays whole, the token is shortened in the middle. */
 function displayUrl(url: string): string {
@@ -43,8 +49,9 @@ function relative(iso: string): string {
 }
 
 /** Enrol a phone: one QR to scan, a link to fall back on, the PIN state, and who is signed in. */
-export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetcher }: Props) {
+export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetcher, collapsible = false }: Props) {
   const [copied, setCopied] = useState(false);
+  const [showEnrol, setShowEnrol] = useState(!collapsible);
   const busy = fetcher.state !== "idle";
   const copy = async () => {
     try {
@@ -57,65 +64,79 @@ export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetche
   };
   const when = (iso: string) =>
     `${relative(iso)} · ${new Intl.DateTimeFormat("en-GB", { timeZone: timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso))}`;
+  const status = (d: DeviceItem) =>
+    d.stale
+      ? { cls: "pf-b-warn", label: "Signed out by PIN change" }
+      : Date.now() - Date.parse(d.lastSeenAt) < ACTIVE_MS
+        ? { cls: "pf-b-ok", label: "Active" }
+        : { cls: "pf-b-neu", label: "Idle" };
 
   return (
     <div className="pf-panel">
-      <div className="pf-panel__h"><h2>Staff access</h2></div>
-      <div className="pf-panel__b">
-      <s-stack gap="base">
-        <s-stack direction="inline" gap="base" alignItems="start">
-          <div className="pf-qr" dangerouslySetInnerHTML={{ __html: qrSvg }} />
-          <s-stack gap="small-200">
-            <s-text type="strong">Enrol a phone</s-text>
-            <s-text color="subdued">
-              Open the camera on the phone and point it at this code. It asks for the store PIN once and a name for the device, then scan mode is ready.
-              The code is valid for 24 hours; reload this page for a fresh one.
-            </s-text>
-          </s-stack>
-        </s-stack>
-
-        <s-stack gap="small-200">
-          <s-text color="subdued">Camera will not cooperate? Send the link instead.</s-text>
-          <s-stack direction="inline" gap="small" alignItems="center">
-            <span className="pf-code" title={enrolUrl}>{displayUrl(enrolUrl)}</span>
-            <Btn icon={copied ? "check" : "clipboard"} onClick={() => void copy()}>{copied ? "Copied" : "Copy link"}</Btn>
-          </s-stack>
-        </s-stack>
-
-        <s-divider></s-divider>
-
-        <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
-          <s-stack direction="inline" gap="small" alignItems="center">
-            <s-text type="strong">Store PIN</s-text>
-            <s-badge tone={hasPin ? "success" : "critical"}>{hasPin ? "Set" : "Not set"}</s-badge>
-          </s-stack>
-          <s-link href="/app/settings">{hasPin ? "Rotate in Settings" : "Set it in Settings"}</s-link>
-        </s-stack>
-
-        <s-divider></s-divider>
-
-        <s-stack gap="small-200">
-          <s-text type="strong">Devices</s-text>
-          {devices.length === 0 ? (
-            <s-text color="subdued">No devices have signed in yet.</s-text>
-          ) : (
-            <s-stack gap="small-200">
-              {devices.map((d) => (
-                <s-stack key={d.id} direction="inline" gap="small" alignItems="center" justifyContent="space-between">
-                  <s-stack gap="none">
-                    <s-text type="strong">{d.name}{d.staffLabel ? ` · ${d.staffLabel}` : ""}</s-text>
-                    <s-text color="subdued">{d.stale ? "Signed out by PIN change · " : "Last seen "}{when(d.lastSeenAt)}</s-text>
-                  </s-stack>
-                  <Btn variant="tertiary" tone="critical" aria-label={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
-                    Revoke
-                  </Btn>
-                </s-stack>
-              ))}
-            </s-stack>
-          )}
-        </s-stack>
-      </s-stack>
+      <div className="pf-panel__h">
+        <h2>Staff access</h2>
+        <span className="pf-badge pf-b-neu">{devices.length} {devices.length === 1 ? "device" : "devices"}</span>
+        {collapsible ? (
+          <div className="right">
+            <Btn variant={showEnrol ? "tertiary" : "secondary"} icon={showEnrol ? "chevron-up" : "plus"} onClick={() => setShowEnrol((v) => !v)}>
+              {showEnrol ? "Hide" : "Enrol a phone"}
+            </Btn>
+          </div>
+        ) : null}
       </div>
+
+      {showEnrol ? (
+        <div className="pf-panel__b">
+          <div className="pf-enrol">
+            <div className="pf-qr" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+            <div className="pf-enrol__body">
+              <h3>Enrol a phone</h3>
+              <ol className="pf-steps">
+                <li>Open the camera on the phone and point it at this code.</li>
+                <li>Enter the store PIN and give the device a name.</li>
+                <li>Scan mode is ready. No app to install, no Shopify account.</li>
+              </ol>
+              <p className="pf-enrol__note">The code is valid for 24 hours; reload this page for a fresh one.</p>
+            </div>
+          </div>
+          <div className="pf-enrol__link">
+            <span className="pf-enrol__hint">Camera will not cooperate? Send the link instead.</span>
+            <div className="pf-kv">
+              <span className="pf-code" title={enrolUrl}>{displayUrl(enrolUrl)}</span>
+              <Btn icon={copied ? "check" : "clipboard"} onClick={() => void copy()}>{copied ? "Copied" : "Copy link"}</Btn>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="pf-pinrow">
+        <span className="pf-pinrow__label">Store PIN</span>
+        <span className={`pf-badge ${hasPin ? "pf-b-ok" : "pf-b-crit"}`}>{hasPin ? "Set" : "Not set"}</span>
+        <a className="pf-pinrow__action" href="/app/settings">{hasPin ? "Rotate in Settings" : "Set it in Settings"}</a>
+      </div>
+
+      {devices.length === 0 ? (
+        <div className="pf-panel__empty">
+          <strong>No devices yet</strong>
+          Scan the code above with a phone to sign in the first one.
+        </div>
+      ) : (
+        <ul className="pf-devices">
+          {devices.map((d) => {
+            const st = status(d);
+            return (
+              <li key={d.id}>
+                <DeviceLabel name={d.name} staffLabel={d.staffLabel} />
+                <span className="pf-devices__seen">Last seen {when(d.lastSeenAt)}</span>
+                <span className={`pf-badge ${st.cls}`}>{st.label}</span>
+                <Btn variant="tertiary" tone="critical" aria-label={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
+                  Revoke
+                </Btn>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

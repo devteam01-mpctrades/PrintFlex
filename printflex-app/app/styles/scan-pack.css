@@ -106,9 +106,53 @@ table.pf-t .detail { display: block; color: var(--pf-sub); font-size: 11.5px; ma
 .pf-phone__screen { display: block; width: 320px; border: 0; transform: scale(0.6125); transform-origin: top left; }
 .pf-caption { text-align: center; font-size: 12px; color: var(--pf-sub); margin: 0; }
 
-/* Enrolment */
-.pf-qr { display: inline-block; padding: 8px; background: #fff; border: 1px solid var(--pf-border); border-radius: 8px; line-height: 0; }
-.pf-qr svg { display: block; }
+/* Badge with a status dot (scan history outcomes) */
+.pf-badge--dot { display: inline-flex; align-items: center; gap: 6px; }
+.pf-badge--dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .75; }
+
+/* Device chip: tinted initials, bold name, staff label */
+.pf-avatar { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 50%; font-weight: 700; letter-spacing: .02em; }
+.pf-avatar--md { width: 32px; height: 32px; font-size: 11.5px; }
+.pf-avatar--sm { width: 24px; height: 24px; font-size: 10px; }
+.pf-device { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.pf-device__text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.pf-device__name { font-weight: 600; color: var(--pf-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-device__staff { font-size: 11.5px; color: var(--pf-sub); }
+
+/* Scan history */
+table.pf-t--history tbody tr { transition: background-color .12s; }
+table.pf-t--history tbody tr:hover { background: var(--pf-card-2); }
+table.pf-t--history .pf-time { color: var(--pf-sub); }
+.pf-order { font-family: var(--pf-mono); font-weight: 600; color: var(--pf-brand-ink); text-decoration: none; white-space: nowrap; }
+.pf-order:hover { text-decoration: underline; }
+
+/* Enrolment: QR on the left, numbered steps on a soft brand panel */
+.pf-enrol { display: flex; gap: 18px; align-items: center; padding: 16px; border-radius: 10px; background: var(--pf-brand-soft); border: 1px solid var(--pf-brand-soft-2); }
+.pf-enrol__body { min-width: 0; }
+.pf-enrol__body h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--pf-brand-ink); }
+.pf-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; counter-reset: step; }
+.pf-steps li { counter-increment: step; display: flex; gap: 9px; align-items: flex-start; font-size: 12.5px; color: var(--pf-text); }
+.pf-steps li::before { content: counter(step); flex: 0 0 20px; height: 20px; border-radius: 50%; background: var(--pf-brand); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-top: -1px; }
+.pf-panel__b .pf-enrol__note { margin: 10px 0 0; font-size: 11.5px; color: var(--pf-brand-ink); opacity: .85; }
+.pf-enrol__link { margin-top: 14px; display: grid; gap: 6px; }
+.pf-enrol__hint { font-size: 12px; color: var(--pf-sub); }
+.pf-qr { display: inline-block; flex: 0 0 auto; padding: 10px; background: #fff; border: 1px solid var(--pf-brand-soft-2); border-radius: 10px; line-height: 0; box-shadow: var(--pf-shadow); }
+.pf-qr svg { display: block; width: 128px; height: 128px; }
 .pf-kv { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pf-kv .push { margin-left: auto; }
-.pf-code { font-family: var(--pf-mono); font-size: 12px; background: var(--pf-bg); border-radius: 8px; padding: 6px 10px; }
+.pf-code { font-family: var(--pf-mono); font-size: 12px; background: var(--pf-bg); border: 1px solid var(--pf-border); border-radius: 8px; padding: 6px 10px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) {
+  .pf-enrol { flex-direction: column; align-items: flex-start; }
+}
+
+/* Store PIN row and the device list */
+.pf-pinrow { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--pf-border); background: var(--pf-card-2); }
+.pf-pinrow__label { font-weight: 600; }
+.pf-pinrow__action { margin-left: auto; font-size: 12.5px; font-weight: 500; color: var(--pf-brand-ink); text-decoration: none; }
+.pf-pinrow__action:hover { text-decoration: underline; }
+.pf-devices { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--pf-border); }
+.pf-devices li { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--pf-border); flex-wrap: wrap; }
+.pf-devices li:last-child { border-bottom: 0; }
+.pf-devices li:hover { background: var(--pf-card-2); }
+.pf-devices .pf-device { flex: 1 1 160px; }
+.pf-devices__seen { font-size: 12px; color: var(--pf-sub); }

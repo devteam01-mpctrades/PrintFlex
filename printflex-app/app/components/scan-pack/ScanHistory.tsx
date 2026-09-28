@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { downloadFile } from "../download";
 import { Btn } from "../ui";
+import { DeviceLabel } from "./DeviceAvatar";
 
 export interface HistoryItem {
   id: string;
@@ -101,7 +102,7 @@ export function ScanHistory({ history, timezone, canExport, planName }: Props) {
         </div>
       ) : (
         <div className="pf-tscroll">
-          <table className="pf-t">
+          <table className="pf-t pf-t--history">
             <thead>
               <tr>
                 <th>Time</th>
@@ -115,13 +116,13 @@ export function ScanHistory({ history, timezone, canExport, planName }: Props) {
                 const badge = outcomeBadge(h);
                 return (
                   <tr key={h.id}>
-                    <td className="mono">{time(h.occurredAt)}</td>
-                    <td className="mono">
-                      <a className="pf-link" href={`shopify://admin/orders/${h.shopifyOrderNumber}`}>{h.orderName}</a>
-                    </td>
-                    <td>{h.deviceName} · {h.staffLabel ?? "—"}</td>
+                    <td className="mono pf-time">{time(h.occurredAt)}</td>
                     <td>
-                      <span className={`pf-badge ${badge.className}`}>{badge.label}</span>
+                      <a className="pf-order" href={`shopify://admin/orders/${h.shopifyOrderNumber}`}>{h.orderName}</a>
+                    </td>
+                    <td><DeviceLabel name={h.deviceName} staffLabel={h.staffLabel} size="sm" /></td>
+                    <td>
+                      <span className={`pf-badge pf-badge--dot ${badge.className}`}>{badge.label}</span>
                       {badge.detail ? <span className="detail">{badge.detail}</span> : null}
                     </td>
                   </tr>
