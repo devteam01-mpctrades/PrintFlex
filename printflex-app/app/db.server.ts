@@ -7,8 +7,8 @@ declare global {
 
 /**
  * PostgreSQL, addressed by DATABASE_URL (prisma/schema.prisma reads it). Each
- * environment has its own database: .env on the Mac, the server's .env for dev
- * and production, and a throwaway database for the test suite.
+ * place has its own database: .env on the Mac, the server's .env for the live
+ * app, and a throwaway database for the test suite.
  */
 if (process.env.NODE_ENV !== "production") {
   if (!global.prismaGlobal) {

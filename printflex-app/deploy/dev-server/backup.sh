@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Back up the production database. Runs ON the server:
-#   nightly from cron:     bash /home/devteam01/printflex-prod/deploy/production/backup.sh
+# Back up the PrintFlex database (printflex_dev, the live app on dev.printflex.mpctrades.com). Runs ON the server:
+#   nightly from cron:     bash /home/devteam01/printflex/deploy/dev-server/backup.sh
 #   before each deploy:    bash .../backup.sh pre-deploy
 # Writes a compressed pg_dump (custom format, restorable with pg_restore) to
-# /home/devteam01/printflex-prod-data/backups, keeps the newest 14 nightly and 10 pre-deploy dumps,
-# and copies each new dump offsite when PRINTFLEX_BACKUP_REMOTE is set in the production .env.
+# /home/devteam01/printflex-data/backups, keeps the newest 14 nightly and 10 pre-deploy dumps,
+# and copies each new dump offsite when PRINTFLEX_BACKUP_REMOTE is set in the .env.
 set -euo pipefail
 
 KIND="${1:-nightly}"
-ROOT="/home/devteam01/printflex-prod"
-DIR="/home/devteam01/printflex-prod-data/backups"
+ROOT="/home/devteam01/printflex"
+DIR="/home/devteam01/printflex-data/backups"
 KEEP_NIGHTLY=14
 KEEP_PREDEPLOY=10
 
@@ -19,14 +19,14 @@ case "$DATABASE_URL" in postgres*) ;; *) echo "No PostgreSQL DATABASE_URL in $RO
 
 umask 077
 mkdir -p "$DIR"
-file="$DIR/printflex_prod-$KIND-$(date -u +%Y%m%d-%H%M%S).dump"
+file="$DIR/printflex-$KIND-$(date -u +%Y%m%d-%H%M%S).dump"
 pg_dump --format=custom --no-owner --no-privileges --dbname="$DATABASE_URL" --file="$file.partial"
 pg_restore --list "$file.partial" >/dev/null   # a dump that cannot be listed is not a backup
 mv "$file.partial" "$file"
 echo "backup: $file ($(du -h "$file" | cut -f1))"
 
 keep=$KEEP_NIGHTLY; [ "$KIND" = "pre-deploy" ] && keep=$KEEP_PREDEPLOY
-ls -1t "$DIR"/printflex_prod-"$KIND"-*.dump 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -f
+ls -1t "$DIR"/printflex-"$KIND"-*.dump 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -f
 
 if [ -n "$BACKUP_REMOTE" ]; then
   rclone copy "$file" "$BACKUP_REMOTE/" && echo "offsite: $BACKUP_REMOTE/$(basename "$file")"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Shared deploy steps for dev and production. Not run directly: deploy/dev-server/deploy.sh and
-# deploy/production/deploy.sh set the variables below and source this file.
+# The deploy steps. Not run directly: deploy/dev-server/deploy.sh sets the variables below and
+# sources this file, so another environment can reuse the same steps with its own values.
 #   HOST        ssh target
 #   REMOTE      app checkout on the server
 #   ECOSYSTEM   pm2 file, relative to REMOTE
