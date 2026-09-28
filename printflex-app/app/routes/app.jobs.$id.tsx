@@ -218,7 +218,11 @@ export default function JobPage() {
 
   return (
     <s-page heading={job.label} inlineSize="large">
-      <Btn slot="breadcrumb-actions" href="/app/orders" variant="tertiary">Orders</Btn>
+      {/* The admin title bar reads PrintFlex > Home > BATCH-0007; the button below is the visible way back. */}
+      <s-link slot="breadcrumb-actions" href="/app">Home</s-link>
+      <div className="pf-job-back">
+        <Btn variant="tertiary" href="/app">← Back to Home</Btn>
+      </div>
       {active ? (
         <Btn slot="secondary-actions" tone="critical" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "cancel" }, { method: "post" })}>
           Cancel batch
