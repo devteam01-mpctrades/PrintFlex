@@ -75,7 +75,7 @@ export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetche
     <div className="pf-panel">
       <div className="pf-panel__h">
         <h2>Staff access</h2>
-        <span className="pf-badge pf-b-neu">{devices.length} {devices.length === 1 ? "device" : "devices"}</span>
+        <span className="pf-badge pf-b-brand">{devices.length} {devices.length === 1 ? "device" : "devices"}</span>
         {collapsible ? (
           <div className="right">
             <Btn variant={showEnrol ? "tertiary" : "secondary"} icon={showEnrol ? "chevron-up" : "plus"} onClick={() => setShowEnrol((v) => !v)}>
@@ -129,7 +129,7 @@ export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetche
                 <DeviceLabel name={d.name} staffLabel={d.staffLabel} />
                 <span className="pf-devices__seen">Last seen {when(d.lastSeenAt)}</span>
                 <span className={`pf-badge ${st.cls}`}>{st.label}</span>
-                <Btn variant="tertiary" tone="critical" aria-label={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
+                <Btn variant="tertiary" aria-label={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
                   Revoke
                 </Btn>
               </li>

@@ -91,7 +91,7 @@ export function ScanHistory({ history, timezone, canExport, planName }: Props) {
         <div className="pf-panel__b" style={{ paddingBottom: 0 }}>
           <s-banner tone={notice.tone} dismissible onDismiss={() => setNotice(null)}>
             <s-paragraph>{notice.text}</s-paragraph>
-            {notice.tone === "info" ? <Btn slot="secondary-actions" href="/app/billing">See plans</Btn> : null}
+            {notice.tone === "info" ? <Btn slot="secondary-actions" className="pf-btn--brand" href="/app/billing">See plans</Btn> : null}
           </s-banner>
         </div>
       ) : null}

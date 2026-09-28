@@ -110,7 +110,7 @@ export default function ScanPackPage() {
             <s-text type="strong">Set a store PIN to open scan mode</s-text>
             <s-paragraph>Staff sign in on their phone with this PIN and a device name. Nobody needs a Shopify account.</s-paragraph>
           </s-stack>
-          <Btn slot="secondary-actions" href="/app/settings">Set the PIN in Settings</Btn>
+          <Btn slot="secondary-actions" className="pf-btn--brand" href="/app/settings">Set the PIN in Settings</Btn>
         </s-banner>
       ) : null}
       {fetcher.data && fetcher.state === "idle" ? (

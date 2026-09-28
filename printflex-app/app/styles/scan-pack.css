@@ -140,7 +140,7 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 .pf-qr svg { display: block; width: 128px; height: 128px; }
 .pf-kv { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pf-kv .push { margin-left: auto; }
-.pf-code { font-family: var(--pf-mono); font-size: 12px; background: var(--pf-bg); border: 1px solid var(--pf-border); border-radius: 8px; padding: 6px 10px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-code { font-family: var(--pf-mono); font-size: 12px; color: var(--pf-brand-ink); background: var(--pf-brand-soft); border: 1px solid var(--pf-brand-soft-2); border-radius: 8px; padding: 6px 10px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 560px) {
   .pf-enrol { flex-direction: column; align-items: flex-start; }
 }
@@ -156,3 +156,13 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 .pf-devices li:hover { background: var(--pf-card-2); }
 .pf-devices .pf-device { flex: 1 1 160px; }
 .pf-devices__seen { font-size: 12px; color: var(--pf-sub); }
+
+/* Every clickable button on Scan & pack is orange: filled for regular buttons,
+   orange text for the quiet ones. Banner buttons sit outside .pf-scan and opt
+   in with .pf-btn--brand. */
+.pf-scan .pf-btn--secondary, .pf-btn--brand { background: #e25b07; border-color: #e25b07; color: #fff; }
+.pf-scan .pf-btn--secondary:hover, .pf-btn--brand:hover { background: #c9500a; border-color: #c9500a; }
+.pf-scan .pf-btn--secondary .pf-btn__icon, .pf-btn--brand .pf-btn__icon { opacity: 1; }
+.pf-scan .pf-btn--tertiary { color: var(--pf-brand-ink); }
+.pf-scan .pf-btn--tertiary:hover { background: var(--pf-brand-soft); }
+
