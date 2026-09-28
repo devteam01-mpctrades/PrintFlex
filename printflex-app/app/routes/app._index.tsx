@@ -201,7 +201,7 @@ export default function HomePage() {
   );
 
   return (
-    <s-page heading="PrintFlex">
+    <s-page heading="PrintFlex" inlineSize="large">
       {notice && lastIntent !== "resend" ? (
         <s-banner tone={notice.ok ? "success" : "critical"} heading={notice.ok ? undefined : "Nothing printed"}>
           <s-paragraph>{notice.message}</s-paragraph>
