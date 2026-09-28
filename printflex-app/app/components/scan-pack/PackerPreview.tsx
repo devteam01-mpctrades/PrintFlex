@@ -1,8 +1,8 @@
-/** The scan page renders at a narrow phone width and is scaled into the 196px frame so text stays legible. */
+/** The scan page renders at a narrow phone width and is scaled into the 256px frame so text stays legible. */
 const PHONE_WIDTH = 320;
-const SCALE = 196 / PHONE_WIDTH;
+const SCALE = 256 / PHONE_WIDTH;
 /** A fixed screen, like a real phone: long orders scroll inside it instead of stretching the frame. */
-const SCREEN_HEIGHT = 424;
+const SCREEN_HEIGHT = 554;
 
 interface Props {
   /** Same-origin URL of the real scan page in preview mode. */

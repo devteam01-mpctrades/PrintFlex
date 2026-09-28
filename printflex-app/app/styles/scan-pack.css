@@ -32,7 +32,7 @@
 
 /* Layout */
 .pf-scan-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.pf-scan-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--pf-gap); align-items: start; }
+.pf-scan-grid { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: var(--pf-gap); align-items: start; }
 .pf-scan-grid > * { min-width: 0; }
 .pf-scan-col { display: flex; flex-direction: column; gap: var(--pf-gap); }
 @media (max-width: 1100px) {
@@ -100,10 +100,10 @@ table.pf-t .detail { display: block; color: var(--pf-sub); font-size: 11.5px; ma
 
 /* Phone frame around the live scan-mode iframe */
 .pf-phone-wrap { padding: 20px 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.pf-phone { width: 212px; background: #1a1a1a; border-radius: 30px; padding: 12px 8px 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, .18); }
-.pf-phone__notch { width: 70px; height: 14px; margin: -4px auto 6px; background: #1a1a1a; border-radius: 0 0 10px 10px; }
-.pf-phone__viewport { width: 196px; overflow: hidden; border-radius: 20px; background: #f3f4f6; }
-.pf-phone__screen { display: block; width: 320px; border: 0; transform: scale(0.6125); transform-origin: top left; }
+.pf-phone { width: 272px; background: #1a1a1a; border-radius: 38px; padding: 12px 8px 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, .18); }
+.pf-phone__notch { width: 90px; height: 16px; margin: -4px auto 6px; background: #1a1a1a; border-radius: 0 0 10px 10px; }
+.pf-phone__viewport { width: 256px; overflow: hidden; border-radius: 26px; background: #f3f4f6; }
+.pf-phone__screen { display: block; width: 320px; border: 0; transform: scale(0.8); transform-origin: top left; }
 .pf-caption { text-align: center; font-size: 12px; color: var(--pf-sub); margin: 0; }
 
 /* Badge with a status dot (scan history outcomes) */
