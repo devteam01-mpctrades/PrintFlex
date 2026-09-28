@@ -63,6 +63,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       offerFallback: shouldOfferFallback(job, now),
       startedAt: job.startedAt?.toISOString() ?? null,
       finishedAt: job.finishedAt?.toISOString() ?? null,
+      /** Milliseconds since the batch started (or was queued), measured now; the page counts on from here. */
+      elapsedMs: now.getTime() - (job.startedAt ?? job.createdAt).getTime(),
       finishedLabel: job.finishedAt
         ? new Intl.DateTimeFormat("en-GB", { timeZone: shop.timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(job.finishedAt)
         : null,
@@ -216,6 +218,24 @@ export default function JobPage() {
   const seconds =
     job.startedAt && job.finishedAt ? Math.round((new Date(job.finishedAt).getTime() - new Date(job.startedAt).getTime()) / 100) / 10 : null;
 
+  // While the batch renders, the clock ticks every second from the loader's measurement (reset on each poll).
+  const [tick, setTick] = useState(0);
+  useEffect(() => setTick(0), [job.elapsedMs]);
+  useEffect(() => {
+    if (!active) return;
+    const timer = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+  const elapsed = Math.max(0, Math.floor(job.elapsedMs / 1000) + tick);
+  const clock = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
+  const remaining = job.progress > 0 && job.progress < job.total ? Math.round((elapsed / job.progress) * (job.total - job.progress)) : null;
+  const phase =
+    job.state === "QUEUED"
+      ? "Waiting to start…"
+      : job.progress < job.total
+        ? `Fetching orders from Shopify · ${job.progress} of ${job.total}`
+        : "Building the PDF…";
+
   return (
     <s-page heading={job.label} inlineSize="large">
       {/* The admin title bar reads PrintFlex > Home > BATCH-0007; the button below is the visible way back. */}
@@ -255,7 +275,17 @@ export default function JobPage() {
 
       {/* The files first, then progress, side by side; they stack on narrow screens (app/styles/jobs.css). */}
       <div className="pf-job-top">
-        {job.hasOutput || job.hasPickList ? (
+        {active ? (
+          <s-section heading="Batch files">
+            <div className="pf-job-wait" role="status">
+              <span className="pf-spin" aria-hidden="true" />
+              <div>
+                <strong>Preparing your PDF…</strong>
+                <p>The download buttons appear here as soon as it is ready. You can leave this page; the batch keeps rendering.</p>
+              </div>
+            </div>
+          </s-section>
+        ) : job.hasOutput || job.hasPickList ? (
           <s-section heading="Batch files">
             <s-stack gap="base">
               <div className="pf-job-group download">
@@ -296,11 +326,12 @@ export default function JobPage() {
         <s-section heading="Progress">
           <s-stack gap="base">
             <s-stack direction="inline" gap="small" alignItems="center">
+              {active ? <span className="pf-spin pf-spin--sm" aria-hidden="true" /> : null}
               <s-badge tone={state.tone}>{state.label}</s-badge>
               <s-text>{job.documentTypes.map((t) => DOC_LABEL[t]).join(" + ")}</s-text>
             </s-stack>
             <div
-              className={`pf-job-bar${job.state === "SUCCEEDED" ? " done" : job.state === "FAILED" ? " failed" : ""}`}
+              className={`pf-job-bar${job.state === "SUCCEEDED" ? " done" : job.state === "FAILED" ? " failed" : ""}${active && (job.progress === 0 || job.progress >= job.total) ? " busy" : ""}`}
               role="progressbar"
               aria-label="Batch progress"
               aria-valuemin={0}
@@ -318,17 +349,17 @@ export default function JobPage() {
               <div className="time">
                 <b><Icon name="time" /></b>
                 <span>Time</span>
-                <strong>{seconds !== null ? `${seconds}s` : active ? "…" : "—"}</strong>
+                <strong>{active ? clock : seconds !== null ? `${seconds}s` : "—"}</strong>
               </div>
               <div className="size">
                 <b><Icon name="file" /></b>
                 <span>File size</span>
-                <strong>{job.outputBytes ? formatBytes(job.outputBytes) : "—"}</strong>
+                <strong>{!active && job.outputBytes ? formatBytes(job.outputBytes) : "—"}</strong>
               </div>
             </div>
-            <div className={`pf-job-summary${job.state === "SUCCEEDED" ? " ok" : ""}`}>
+            <div className={`pf-job-summary${job.state === "SUCCEEDED" ? " ok" : active ? " busy" : ""}`} role={active ? "status" : undefined}>
               {active
-                ? `${job.progress} of ${job.total} orders fetched so far`
+                ? `${phase}${remaining !== null && remaining > 0 ? ` · about ${remaining < 60 ? `${remaining}s` : `${Math.round(remaining / 60)} min`} left` : ""}`
                 : `${job.state === "SUCCEEDED" ? "✓ " : ""}${job.progress} of ${job.total} orders processed${job.finishedLabel ? ` · Finished ${job.finishedLabel}` : ""}`}
             </div>
             {job.error ? (

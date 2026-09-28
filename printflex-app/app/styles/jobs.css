@@ -32,3 +32,19 @@
 
 /* Way back to Home, top left of the page */
 .pf-job-back { margin: -4px 0 12px -8px; }
+
+/* While a batch renders: spinner, moving bar, and a status line in the brand colour */
+@keyframes pf-spin { to { transform: rotate(360deg); } }
+@keyframes pf-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+.pf-spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid #f9d9bc; border-top-color: #e25b07; animation: pf-spin .8s linear infinite; flex: 0 0 auto; }
+.pf-spin--sm { width: 14px; height: 14px; border-width: 2px; }
+.pf-job-bar.busy { position: relative; }
+.pf-job-bar.busy i { min-width: 0; }
+.pf-job-bar.busy::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: inherit; background: linear-gradient(90deg, transparent, rgba(226, 91, 7, .55), transparent); animation: pf-slide 1.2s ease-in-out infinite; }
+.pf-job-summary.busy { background: #fdefe3; color: #a84206; font-weight: 500; }
+.pf-job-wait { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; background: #fafafa; border: 1px dashed #e0e0e0; }
+.pf-job-wait strong { display: block; font-size: 13.5px; color: #303030; margin-bottom: 2px; }
+.pf-job-wait p { margin: 0; font-size: 12.5px; color: #616161; }
+@media (prefers-reduced-motion: reduce) {
+  .pf-spin, .pf-job-bar.busy::after { animation-duration: 3s; }
+}
