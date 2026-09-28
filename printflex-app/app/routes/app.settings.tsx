@@ -4,6 +4,7 @@ import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useNativeEvent } from "../components/orders/useNativeEvent";
 import { RouteError } from "../components/RouteError";
+import { DeviceLabel } from "../components/scan-pack/DeviceAvatar";
 import { Btn, Check, Switch } from "../components/ui";
 import prisma from "../db.server";
 import { audit } from "../lib/audit.server";
@@ -184,7 +185,7 @@ export default function SettingsPage() {
           {/* Left: the warehouse and how packing behaves */}
           <div className="pf-settings-col">
             <section className="pf-panel" aria-labelledby="h-warehouse">
-              <div className="pf-panel__h"><h2 id="h-warehouse">Warehouse</h2></div>
+              <div className="pf-panel__h"><PanelIcon name="box" /><h2 id="h-warehouse">Warehouse</h2></div>
 
               <div className="pf-panel__b">
                 <form ref={binsRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(binsRef.current, "bins"); }}>
@@ -204,7 +205,7 @@ export default function SettingsPage() {
                     <s-option value="derive">Derive from bin codes: aisle, then shelf, then bin</s-option>
                   </s-select>
                   <div className="pf-actions">
-                    <Btn type="submit" variant="primary" disabled={busy}>Import bin locations</Btn>
+                    <Btn type="submit" variant="secondary" disabled={busy}>Import bin locations</Btn>
                     {warehouse.bins > 0 ? <Btn variant="tertiary" tone="critical" disabled={busy} onClick={() => fetcher.submit({ intent: "clearBins" }, { method: "post" })}>Clear bin locations</Btn> : null}
                   </div>
                 </form>
@@ -224,7 +225,7 @@ export default function SettingsPage() {
                   </div>
                   <s-text-area name="csv" label="Paste CSV" details="One line per component: bundle SKU, component SKU, quantity, component title (optional)." rows={3} placeholder={"KIT-GLASS,PF-001,1,Ginseng Cream\nKIT-GLASS,PF-009,2,Travel Toner"}></s-text-area>
                   <div className="pf-actions">
-                    <Btn type="submit" variant="primary" disabled={busy}>Import bundle map</Btn>
+                    <Btn type="submit" variant="secondary" disabled={busy}>Import bundle map</Btn>
                     {warehouse.bundles > 0 ? <Btn variant="tertiary" tone="critical" disabled={busy} onClick={() => fetcher.submit({ intent: "clearBundles" }, { method: "post" })}>Clear bundle map</Btn> : null}
                   </div>
                 </form>
@@ -232,7 +233,7 @@ export default function SettingsPage() {
             </section>
 
             <section className="pf-panel" aria-labelledby="h-pack">
-              <div className="pf-panel__h"><h2 id="h-pack">Pack behaviour</h2><div className="right"><span className="pf-badge pf-b-brand">Saves on change</span></div></div>
+              <div className="pf-panel__h"><PanelIcon name="check" /><h2 id="h-pack">Pack behaviour</h2><div className="right"><span className="pf-badge pf-b-brand">Saves on change</span></div></div>
               <div className="pf-panel__b">
                 <form ref={packRef} onSubmit={(e) => e.preventDefault()}>
                   <div className="pf-toggles">
@@ -245,7 +246,7 @@ export default function SettingsPage() {
             </section>
 
             <section className="pf-panel" aria-labelledby="h-invoice">
-              <div className="pf-panel__h"><h2 id="h-invoice">Invoice numbering</h2><div className="right"><span className="pf-badge pf-b-brand mono">Next {nextInvoice}</span></div></div>
+              <div className="pf-panel__h"><PanelIcon name="hash" /><h2 id="h-invoice">Invoice numbering</h2><div className="right"><span className="pf-badge pf-b-brand mono">Next {nextInvoice}</span></div></div>
               <div className="pf-panel__b">
                 <form ref={invoiceRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(invoiceRef.current, "invoice"); }}>
                   <p className="pf-sub">Numbers are sequential with no gaps and never reused. The next number can only move forward past numbers already issued.</p>
@@ -263,7 +264,7 @@ export default function SettingsPage() {
           <div className="pf-settings-col">
             <section className="pf-panel" aria-labelledby="h-staff">
               <div className="pf-panel__h">
-                <h2 id="h-staff">Staff access</h2>
+                <PanelIcon name="people" /><h2 id="h-staff">Staff access</h2>
                 <div className="right">
                   <span className={`pf-badge ${data.hasPin ? "pf-b-ok" : "pf-b-crit"}`}>{data.hasPin ? "PIN set" : "No PIN yet"}</span>
                 </div>
@@ -291,11 +292,11 @@ export default function SettingsPage() {
                     <tbody>
                       {devices.map((d) => (
                         <tr key={d.id}>
-                          <td>{d.name}{d.staffLabel ? ` · ${d.staffLabel}` : ""}</td>
+                          <td><DeviceLabel name={d.name} staffLabel={d.staffLabel} /></td>
                           <td className="mono" title={when(d.lastSeenAt)}>{relative(d.lastSeenAt)}</td>
                           <td><span className={`pf-badge ${d.stale ? "pf-b-warn" : "pf-b-ok"}`}>{d.stale ? "Must sign in again" : "Active"}</span></td>
                           <td className="end">
-                            <Btn variant="tertiary" tone="critical" aria-label={`Revoke ${d.name}`} disabled={busy} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>Revoke</Btn>
+                            <Btn variant="tertiary" className="pf-btn--revoke" aria-label={`Revoke ${d.name}`} disabled={busy} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>Revoke</Btn>
                           </td>
                         </tr>
                       ))}
@@ -306,7 +307,7 @@ export default function SettingsPage() {
             </section>
 
             <section className="pf-panel" aria-labelledby="h-tags">
-              <div className="pf-panel__h"><h2 id="h-tags">Tags written to Shopify</h2></div>
+              <div className="pf-panel__h"><PanelIcon name="tag" /><h2 id="h-tags">Tags written to Shopify</h2></div>
               <div className="pf-panel__b">
                 <form ref={tagsRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(tagsRef.current, "tags"); }}>
                   <p className="pf-sub">PrintFlex adds one of these tags to an order when it is printed, packed or flagged. Rename them to fit your own tag scheme.</p>
@@ -319,7 +320,7 @@ export default function SettingsPage() {
             </section>
 
             <section className="pf-panel" aria-labelledby="h-defaults">
-              <div className="pf-panel__h"><h2 id="h-defaults">Defaults</h2></div>
+              <div className="pf-panel__h"><PanelIcon name="sliders" /><h2 id="h-defaults">Defaults</h2></div>
               <div className="pf-panel__b">
                 <form ref={defaultsRef} className="pf-form" onSubmit={(e) => { e.preventDefault(); submitForm(defaultsRef.current, "defaults"); }}>
                   <s-select name="paperSize" label="Default paper size for new templates" value={settings.defaults.paperSize}>
@@ -392,5 +393,23 @@ function CurrentPin({ pin }: { pin: string | null }) {
         <Btn variant="tertiary" icon={copied ? "check" : "clipboard"} onClick={() => void copy()}>{copied ? "Copied" : "Copy"}</Btn>
       </span>
     </div>
+  );
+}
+
+const PANEL_ICONS = {
+  box: <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5zM3 7.5 12 12l9-4.5M12 12v9" />,
+  check: <><rect x="4" y="4" width="16" height="16" rx="3" /><path d="m8.5 12 2.5 2.5 4.5-5" /></>,
+  hash: <path d="M9 4 7 20M17 4l-2 16M4 9h16M3 15h16" />,
+  people: <><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0" /><path d="M16 5.5a3 3 0 0 1 0 5M18 20a5 5 0 0 0-3-4.6" /></>,
+  tag: <><path d="M3 12V4h8l9 9-8 8z" /><circle cx="7.5" cy="8.5" r="1.3" /></>,
+  sliders: <path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" />,
+};
+
+/** Small orange icon beside a panel title, the same treatment as the other pages. */
+function PanelIcon({ name }: { name: keyof typeof PANEL_ICONS }) {
+  return (
+    <span className="pf-panel__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{PANEL_ICONS[name]}</svg>
+    </span>
   );
 }
