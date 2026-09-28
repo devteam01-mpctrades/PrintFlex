@@ -277,62 +277,70 @@ export default function JobPage() {
       ) : null}
 
       <s-section heading="Per-order documents">
-        {mixed && documents.length > 0 ? (
-          <s-stack direction="inline" gap="small-200">
-            <Btn variant={filter === "ALL" ? "primary" : "secondary"} onClick={() => setFilter("ALL")}>All ({documents.length})</Btn>
-            {singleTypes.map((t) => (
-              <Btn key={t} variant={filter === t ? "primary" : "secondary"} onClick={() => setFilter(t)}>
-                {DOC_LABEL[t]}s ({countOf(t)})
-              </Btn>
-            ))}
-          </s-stack>
-        ) : null}
-        {documents.length === 0 ? (
-          <s-paragraph>{active ? "Documents appear here when the batch finishes." : "No documents were produced."}</s-paragraph>
-        ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header listSlot="primary">Order</s-table-header>
-              <s-table-header>Document</s-table-header>
-              <s-table-header>Invoice no.</s-table-header>
-              <s-table-header></s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {shown.map((doc) => (
-                <s-table-row key={doc.id}>
-                  <s-table-cell>
-                    <s-text type="strong" fontVariantNumeric="tabular-nums">{doc.orderName}</s-text>
-                    {doc.customerName ? <s-text color="subdued"> · {doc.customerName}</s-text> : null}
-                  </s-table-cell>
-                  <s-table-cell>
-                    {doc.type === "PICK_LIST" ? (
-                      DOC_LABEL[doc.type]
-                    ) : (
-                      <s-stack gap="none">
-                        <Btn variant="tertiary" icon="chevron-down" aria-label={`Change the template for ${DOC_LABEL[doc.type]} ${doc.orderName}`} onClick={() => openReprint(doc)}>
-                          {DOC_LABEL[doc.type]}
-                        </Btn>
-                        <s-text color="subdued">{doc.templateName}</s-text>
-                      </s-stack>
-                    )}
-                  </s-table-cell>
-                  <s-table-cell><s-text fontVariantNumeric="tabular-nums">{doc.invoiceNumber ?? "—"}</s-text></s-table-cell>
-                  <s-table-cell>
-                    <Btn variant="tertiary" onClick={() => void download(`/app/documents/${doc.id}`, `${DOC_LABEL[doc.type]} ${doc.orderName}.pdf`)}>
-                      Download PDF
-                    </Btn>
-                  </s-table-cell>
-                </s-table-row>
+        <s-stack gap="base">
+          {mixed && documents.length > 0 ? (
+            <s-stack direction="inline" gap="small">
+              <Btn variant={filter === "ALL" ? "primary" : "secondary"} onClick={() => setFilter("ALL")}>All ({documents.length})</Btn>
+              {singleTypes.map((t) => (
+                <Btn key={t} variant={filter === t ? "primary" : "secondary"} onClick={() => setFilter(t)}>
+                  {DOC_LABEL[t]}s ({countOf(t)})
+                </Btn>
               ))}
-            </s-table-body>
-          </s-table>
-        )}
-        {filtered.length > shown.length ? (
-          <s-stack direction="inline" gap="small" alignItems="center">
-            <Btn variant="secondary" onClick={() => setLimit((n) => n + PAGE * 2)}>Show {Math.min(PAGE * 2, filtered.length - shown.length)} more</Btn>
-            <s-text color="subdued">Showing {shown.length} of {filtered.length}</s-text>
-          </s-stack>
-        ) : null}
+            </s-stack>
+          ) : null}
+          {documents.length === 0 ? (
+            <s-paragraph>{active ? "Documents appear here when the batch finishes." : "No documents were produced."}</s-paragraph>
+          ) : (
+            <s-table>
+              <s-table-header-row>
+                <s-table-header listSlot="primary">Order</s-table-header>
+                <s-table-header>Document</s-table-header>
+                <s-table-header>Template</s-table-header>
+                <s-table-header>Invoice no.</s-table-header>
+                <s-table-header></s-table-header>
+              </s-table-header-row>
+              <s-table-body>
+                {shown.map((doc) => (
+                  <s-table-row key={doc.id}>
+                    <s-table-cell>
+                      <s-stack gap="none">
+                        <s-text type="strong" fontVariantNumeric="tabular-nums">{doc.orderName}</s-text>
+                        <s-text color="subdued">{doc.customerName ?? "Guest"}</s-text>
+                      </s-stack>
+                    </s-table-cell>
+                    <s-table-cell>
+                      <s-badge tone={doc.type === "INVOICE" ? "info" : "neutral"}>{DOC_LABEL[doc.type]}</s-badge>
+                    </s-table-cell>
+                    <s-table-cell>
+                      <s-stack direction="inline" gap="small-200" alignItems="center">
+                        <s-text color="subdued">{doc.templateName}</s-text>
+                        {doc.type === "PICK_LIST" ? null : (
+                          <Btn variant="tertiary" aria-label={`Change the template for ${DOC_LABEL[doc.type]} ${doc.orderName}`} onClick={() => openReprint(doc)}>
+                            Change
+                          </Btn>
+                        )}
+                      </s-stack>
+                    </s-table-cell>
+                    <s-table-cell><s-text fontVariantNumeric="tabular-nums">{doc.invoiceNumber ?? "—"}</s-text></s-table-cell>
+                    <s-table-cell>
+                      <s-stack direction="inline" justifyContent="end">
+                        <Btn variant="tertiary" onClick={() => void download(`/app/documents/${doc.id}`, `${DOC_LABEL[doc.type]} ${doc.orderName}.pdf`)}>
+                          Download PDF
+                        </Btn>
+                      </s-stack>
+                    </s-table-cell>
+                  </s-table-row>
+                ))}
+              </s-table-body>
+            </s-table>
+          )}
+          {filtered.length > shown.length ? (
+            <s-stack direction="inline" gap="small" alignItems="center" justifyContent="center">
+              <Btn variant="secondary" onClick={() => setLimit((n) => n + PAGE * 2)}>Show {Math.min(PAGE * 2, filtered.length - shown.length)} more</Btn>
+              <s-text color="subdued">Showing {shown.length} of {filtered.length}</s-text>
+            </s-stack>
+          ) : null}
+        </s-stack>
       </s-section>
 
       <s-modal id="reprint-modal" heading={reprint ? `Re-print ${DOC_LABEL[reprint.type].toLowerCase()} · ${reprint.orderName}` : "Re-print"} ref={reprintModalRef}>
