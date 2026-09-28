@@ -1,5 +1,7 @@
-import path from "node:path";
-
-/** Absolute SQLite URL for the throwaway test database. */
-export const TEST_DB_FILE = path.resolve(process.cwd(), "prisma", "test.sqlite");
-export const TEST_DATABASE_URL = `file:${TEST_DB_FILE}`;
+/**
+ * The throwaway PostgreSQL database the test suite runs against. It is wiped
+ * and rebuilt from the committed migrations on every run, so point it only at
+ * a database that exists for tests. Override with TEST_DATABASE_URL.
+ */
+export const TEST_DATABASE_URL =
+  process.env.TEST_DATABASE_URL ?? "postgresql://mpctradesbackup@127.0.0.1:5433/printflex_test";

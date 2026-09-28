@@ -6,7 +6,7 @@ export default defineConfig({
     include: ["app/**/*.test.ts"],
     globalSetup: ["./test/global-setup.ts"],
     env: { DATABASE_URL: TEST_DATABASE_URL },
-    // The suite shares one SQLite file, so run files one at a time.
+    // The suite shares one database, so run files one at a time.
     fileParallelism: false,
   },
 });

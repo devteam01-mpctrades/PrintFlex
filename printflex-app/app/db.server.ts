@@ -6,21 +6,16 @@ declare global {
 }
 
 /**
- * DATABASE_URL overrides the datasource in prisma/schema.prisma. Left unset
- * in development and production; the test suite points it at a throwaway
- * SQLite file so tests never touch dev data.
+ * PostgreSQL, addressed by DATABASE_URL (prisma/schema.prisma reads it). Each
+ * environment has its own database: .env on the Mac, the server's .env for dev
+ * and production, and a throwaway database for the test suite.
  */
-function createClient(): PrismaClient {
-  const url = process.env.DATABASE_URL;
-  return url ? new PrismaClient({ datasourceUrl: url }) : new PrismaClient();
-}
-
 if (process.env.NODE_ENV !== "production") {
   if (!global.prismaGlobal) {
-    global.prismaGlobal = createClient();
+    global.prismaGlobal = new PrismaClient();
   }
 }
 
-const prisma = global.prismaGlobal ?? createClient();
+const prisma = global.prismaGlobal ?? new PrismaClient();
 
 export default prisma;

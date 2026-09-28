@@ -10,7 +10,7 @@
  *
  * Runs on Node 22.18+ with built-in TypeScript stripping; no extra tooling.
  * Authenticates with the offline access token the app stored in
- * prisma/dev.sqlite, so open the app in the Shopify admin first so the token
+ * the database in DATABASE_URL, so open the app in the Shopify admin first so the token
  * is fresh, then run this from the project root.
  *
  * Dev tooling only. Creating products needs write_products, which the dev
@@ -443,7 +443,7 @@ async function main(): Promise<void> {
   await prisma.$disconnect();
   if (!session) {
     throw new Error(
-      "No offline session found in prisma/dev.sqlite. Run `shopify app dev`, open the app in the admin, then rerun.",
+      "No offline session found in the database (DATABASE_URL). Run `shopify app dev`, open the app in the admin, then rerun.",
     );
   }
 

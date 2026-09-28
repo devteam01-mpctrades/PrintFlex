@@ -85,7 +85,7 @@ export function buildWhere(
   if (filters.shipping) and.push({ shippingMethod: filters.shipping });
   if (filters.tag) {
     // tagsJson is a JSON array of strings, so the quoted tag is a substring.
-    and.push({ tagsJson: { contains: JSON.stringify(filters.tag) } });
+    and.push({ tagsJson: { contains: JSON.stringify(filters.tag), mode: "insensitive" } });
   }
   if (filters.from) and.push({ shopifyCreatedAt: { gte: zonedDayStart(filters.from, timezone) } });
   if (filters.to) and.push({ shopifyCreatedAt: { lt: zonedDayEnd(filters.to, timezone) } });
@@ -94,10 +94,11 @@ export function buildWhere(
     const q = filters.q;
     and.push({
       OR: [
-        ...nameVariants(q).map((name) => ({ orderName: { contains: name } })),
-        { customerName: { contains: q } },
-        { customerEmail: { contains: q } },
-        { lineItems: { some: { sku: { contains: q } } } },
+        // Case-insensitive, as it was on SQLite: "jane" finds "Jane Doe".
+        ...nameVariants(q).map((name) => ({ orderName: { contains: name, mode: "insensitive" as const } })),
+        { customerName: { contains: q, mode: "insensitive" } },
+        { customerEmail: { contains: q, mode: "insensitive" } },
+        { lineItems: { some: { sku: { contains: q, mode: "insensitive" } } } },
       ],
     });
   }

@@ -1,6 +1,6 @@
 /**
  * Allowed values for the String "enum" columns in prisma/schema.prisma.
- * SQLite has no native enums, so these are enforced here and in code, not
+ * The columns are plain strings, so these are enforced here and in code, not
  * by the database.
  */
 

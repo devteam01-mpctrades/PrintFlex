@@ -114,6 +114,12 @@ describe("listOrders", () => {
     const bySku = await listOrders(shop.id, parseFilters(new URLSearchParams("q=PF-002")), shop.timezone);
     expect(bySku.rows.map((r) => r.orderName)).toEqual(["#1003"]);
     expect(bySku.jumpToId).toBeNull();
+
+    // Search ignores case on PostgreSQL too, as it did on SQLite.
+    const lowerSku = await listOrders(shop.id, parseFilters(new URLSearchParams("q=pf-002")), shop.timezone);
+    expect(lowerSku.rows.map((r) => r.orderName)).toEqual(["#1003"]);
+    const upperEmail = await listOrders(shop.id, parseFilters(new URLSearchParams("q=CUSTOMER3@")), shop.timezone);
+    expect(upperEmail.rows.map((r) => r.orderName)).toEqual(["#1003"]);
   });
 
   it("applies the date range in the shop's timezone", async () => {

@@ -9,8 +9,8 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
@@ -36,7 +36,8 @@ model Session {
 // ---------------------------------------------------------------------------
 // PrintFlex
 //
-// SQLite is the dev database, so enums and Json columns are stored as String.
+// Enums and Json columns are stored as String (a holdover from SQLite, kept so
+// the models did not change in the move to PostgreSQL).
 // The allowed values for each String "enum" live in app/lib/types.ts and the
 // JSON columns are suffixed Json and parsed in app/lib.
 // ---------------------------------------------------------------------------
