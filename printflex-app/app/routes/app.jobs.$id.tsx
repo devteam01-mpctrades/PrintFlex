@@ -129,6 +129,22 @@ export const action = async ({ request, params }: ActionFunctionArgs): Promise<A
   return { ok: false, message: "Unknown action." };
 };
 
+/** Small decorative icons for the stat tiles and file groups. */
+const ICON = {
+  orders: <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5zM3 7.5 12 12l9-4.5M12 12v9" />,
+  time: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+  file: <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4M9 13h6M9 17h6" /></>,
+  download: <path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14" />,
+  print: <><path d="M7 8V3h10v5" /><rect x="3" y="8" width="18" height="9" rx="2" /><path d="M7 14h10v7H7z" /></>,
+};
+function Icon({ name }: { name: keyof typeof ICON }) {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {ICON[name]}
+    </svg>
+  );
+}
+
 function formatBytes(bytes: number | null): string {
   if (!bytes) return "";
   return bytes > 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} KB`;
@@ -241,17 +257,29 @@ export default function JobPage() {
               <s-badge tone={state.tone}>{state.label}</s-badge>
               <s-text>{job.documentTypes.map((t) => DOC_LABEL[t]).join(" + ")}</s-text>
             </s-stack>
-            <s-progress value={job.progress} max={Math.max(1, job.total)} tone={state.tone === "critical" ? "critical" : "auto"}></s-progress>
+            <div
+              className={`pf-job-bar${job.state === "SUCCEEDED" ? " done" : job.state === "FAILED" ? " failed" : ""}`}
+              role="progressbar"
+              aria-label="Batch progress"
+              aria-valuemin={0}
+              aria-valuemax={Math.max(1, job.total)}
+              aria-valuenow={job.progress}
+            >
+              <i style={{ width: `${Math.min(100, (job.progress / Math.max(1, job.total)) * 100)}%` }} />
+            </div>
             <div className="pf-job-stats">
-              <div>
+              <div className="orders">
+                <b><Icon name="orders" /></b>
                 <span>Orders</span>
                 <strong>{active ? `${job.progress} / ${job.total}` : job.total}</strong>
               </div>
-              <div>
+              <div className="time">
+                <b><Icon name="time" /></b>
                 <span>Time</span>
                 <strong>{seconds !== null ? `${seconds}s` : active ? "…" : "—"}</strong>
               </div>
-              <div>
+              <div className="size">
+                <b><Icon name="file" /></b>
                 <span>File size</span>
                 <strong>{job.outputBytes ? formatBytes(job.outputBytes) : "—"}</strong>
               </div>
@@ -269,9 +297,9 @@ export default function JobPage() {
 
         {job.hasOutput || job.hasPickList ? (
           <s-section heading="Batch files">
-            <s-stack gap="large">
-              <s-stack gap="small">
-                <s-text type="strong">Download</s-text>
+            <s-stack gap="base">
+              <div className="pf-job-group download">
+                <div className="pf-job-group__title"><b><Icon name="download" /></b>Download</div>
                 <s-stack direction="inline" gap="small">
                   {job.hasOutput ? (
                     <Btn variant="primary" icon="download" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
@@ -284,13 +312,12 @@ export default function JobPage() {
                     </Btn>
                   ) : null}
                 </s-stack>
-                <s-text color="subdued">Each order on a fresh sheet, with its QR code and barcode.</s-text>
-              </s-stack>
+                <p>Each order on a fresh sheet, with its QR code and barcode.</p>
+              </div>
               {mixed && !active ? (
                 <>
-                  <s-divider></s-divider>
-                  <s-stack gap="small">
-                    <s-text type="strong">Print one type again</s-text>
+                  <div className="pf-job-group again">
+                    <div className="pf-job-group__title"><b><Icon name="print" /></b>Print one type again</div>
                     <s-stack direction="inline" gap="small">
                       {singleTypes.map((t) => (
                         <Btn key={t} variant="secondary" icon="print" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "printType", documentType: t }, { method: "post" })}>
@@ -298,8 +325,8 @@ export default function JobPage() {
                         </Btn>
                       ))}
                     </s-stack>
-                    <s-text color="subdued">A separate PDF of just that type. Not metered again this month.</s-text>
-                  </s-stack>
+                    <p>A separate PDF of just that type. Not metered again this month.</p>
+                  </div>
                 </>
               ) : null}
             </s-stack>
