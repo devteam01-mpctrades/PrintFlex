@@ -129,7 +129,7 @@ export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetche
                 <DeviceLabel name={d.name} staffLabel={d.staffLabel} />
                 <span className="pf-devices__seen">Last seen {when(d.lastSeenAt)}</span>
                 <span className={`pf-badge ${st.cls}`}>{st.label}</span>
-                <Btn variant="tertiary" aria-label={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
+                <Btn variant="tertiary" className="pf-btn--revoke" aria-label={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
                   Revoke
                 </Btn>
               </li>

@@ -164,4 +164,6 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 .pf-scan .pf-btn--secondary .pf-btn__icon, .pf-btn--brand .pf-btn__icon { opacity: 1; }
 .pf-scan .pf-btn--tertiary { background: var(--pf-brand-soft); border-color: var(--pf-brand-soft-2); color: var(--pf-brand-ink); padding-inline: 12px; }
 .pf-scan .pf-btn--tertiary:hover { background: var(--pf-brand-soft-2); border-color: #f3c49a; }
-
+/* Revoke removes a device, so it is a small solid orange button rather than a quiet one. */
+.pf-scan .pf-btn--revoke { background: #e25b07; border-color: #e25b07; color: #fff; padding: 4px 10px; font-size: 11.5px; border-radius: 6px; }
+.pf-scan .pf-btn--revoke:hover { background: #c9500a; border-color: #c9500a; }
