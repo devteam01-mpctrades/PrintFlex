@@ -65,7 +65,7 @@ export function StaffAccess({ enrolUrl, qrSvg, devices, timezone, fetcher, colla
     `${relative(iso)} · ${new Intl.DateTimeFormat("en-GB", { timeZone: timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso))}`;
   const status = (d: DeviceItem) =>
     d.stale
-      ? { cls: "pf-b-warn", label: "Signed out", title: "Signed out by a PIN change: sign in again with the new PIN" }
+      ? { cls: "pf-b-warn", label: "Signed out by PIN change", title: "Sign in again on this phone with the new PIN" }
       : Date.now() - Date.parse(d.lastSeenAt) < ACTIVE_MS
         ? { cls: "pf-b-ok", label: "Active", title: "Seen in the last 15 minutes" }
         : { cls: "pf-b-neu", label: "Idle", title: "Not seen in the last 15 minutes" };
