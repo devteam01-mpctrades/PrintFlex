@@ -94,11 +94,8 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
 
   const pick = templatePicker(job.shopId);
   const bins = await loadBins(job.shopId);
-  const data = await fetchOrdersDocumentData(
-    deps.client,
-    ordered.map((o) => o.shopifyOrderId),
-    (fetched) => deps.onProgress?.(fetched, ordered.length),
-  );
+  // Progress counts orders whose documents are prepared (below), one by one; fetching shows as 0.
+  const data = await fetchOrdersDocumentData(deps.client, ordered.map((o) => o.shopifyOrderId));
 
   const perOrderTypes = types.filter((t): t is Exclude<DocumentType, "PICK_LIST"> => t !== "PICK_LIST");
   const fragments: string[] = [];
@@ -110,6 +107,7 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
     const orderData = data.get(order.shopifyOrderId);
     if (!orderData) {
       missing.push(order);
+      deps.onProgress?.(rendered.length + missing.length, ordered.length);
       continue;
     }
     let invoiceNumber: string | null = null;
@@ -126,6 +124,7 @@ export async function buildBatch(jobId: string, deps: BatchDeps): Promise<BuiltB
     }
     rendered.push({ order, invoiceNumber, templates: used });
     renderedData.push(orderData);
+    deps.onProgress?.(rendered.length + missing.length, ordered.length);
   }
 
   const label = batchLabel(job);

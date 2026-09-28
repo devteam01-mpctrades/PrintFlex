@@ -227,14 +227,28 @@ export default function JobPage() {
     return () => clearInterval(timer);
   }, [active]);
   const elapsed = Math.max(0, Math.floor(job.elapsedMs / 1000) + tick);
+  // The server reports every ~1.5 s; count up one by one in between so the number moves like the work does.
+  const [shownProgress, setShownProgress] = useState(job.progress);
+  useEffect(() => {
+    if (!active || job.progress <= shownProgress) {
+      setShownProgress(job.progress);
+      return;
+    }
+    const step = Math.max(1, Math.round(1400 / (job.progress - shownProgress)));
+    const timer = setInterval(() => setShownProgress((n) => (n < job.progress ? n + 1 : n)), Math.min(step, 400));
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the server's number changes
+  }, [job.progress, active]);
   const clock = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
   const remaining = job.progress > 0 && job.progress < job.total ? Math.round((elapsed / job.progress) * (job.total - job.progress)) : null;
   const phase =
     job.state === "QUEUED"
       ? "Waiting to start…"
-      : job.progress < job.total
-        ? `Fetching orders from Shopify · ${job.progress} of ${job.total}`
-        : "Building the PDF…";
+      : job.progress === 0
+        ? "Fetching orders from Shopify…"
+        : job.progress < job.total
+          ? `Preparing documents · ${shownProgress} of ${job.total}`
+          : "Building the PDF…";
 
   return (
     <s-page heading={job.label} inlineSize="large">
@@ -338,13 +352,13 @@ export default function JobPage() {
               aria-valuemax={Math.max(1, job.total)}
               aria-valuenow={job.progress}
             >
-              <i style={{ width: `${Math.min(100, (job.progress / Math.max(1, job.total)) * 100)}%` }} />
+              <i style={{ width: `${Math.min(100, ((active ? shownProgress : job.progress) / Math.max(1, job.total)) * 100)}%` }} />
             </div>
             <div className="pf-job-stats">
               <div className="orders">
                 <b><Icon name="orders" /></b>
                 <span>Orders</span>
-                <strong>{active ? `${job.progress} / ${job.total}` : job.total}</strong>
+                <strong>{active ? `${shownProgress} / ${job.total}` : job.total}</strong>
               </div>
               <div className="time">
                 <b><Icon name="time" /></b>

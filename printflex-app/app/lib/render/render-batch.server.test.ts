@@ -136,10 +136,13 @@ describe("renderBatch", () => {
     const job = await prisma.documentJob.create({
       data: { shopId: shop.id, documentTypesJson: JSON.stringify(["INVOICE"]), orderIdsJson: JSON.stringify([orders[0].id, ghost.id, orders[1].id]), total: 3 },
     });
-    const report = await renderBatch(job.id, fakes());
+    const progress: Array<[number, number]> = [];
+    const report = await renderBatch(job.id, { ...fakes(), onProgress: (done, total) => progress.push([done, total]) });
     expect(report.rendered).toBe(2);
     expect(report.missing).toEqual(["#1999"]);
     expect(await prisma.meterEntry.count({ where: { shopId: shop.id } })).toBe(2);
+    // One step per order as its documents are prepared (vanished ones count as done), so the page can count up.
+    expect(progress).toEqual([[1, 3], [2, 3], [3, 3]]);
   });
 });
 

@@ -26,8 +26,9 @@ export async function runJob(jobId: string, signal: AbortSignal, depsFor: DepsFa
   const deadlineAt = new Date(Date.now() + Math.max(MIN_DEADLINE_SECONDS, total * SECONDS_PER_ORDER) * 1000);
   await transition(jobId, "RUNNING", { progress: 0, total, deadlineAt, error: null });
 
+  // Fire-and-forget writes can land out of order; only ever move the counter forward.
   const onProgress = (done: number) => {
-    void prisma.documentJob.updateMany({ where: { id: jobId, state: "RUNNING" }, data: { progress: done } });
+    void prisma.documentJob.updateMany({ where: { id: jobId, state: "RUNNING", progress: { lt: done } }, data: { progress: done } });
   };
 
   try {
