@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
+import jobsStyles from "../styles/jobs.css?url";
 import { useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { RouteError } from "../components/RouteError";
@@ -14,6 +15,8 @@ import { batchLabel } from "../lib/render/render-batch.server";
 import { requireShop } from "../lib/request.server";
 import type { DocumentType, JobState } from "../lib/types";
 import { Btn } from "../components/ui";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: jobsStyles }];
 
 const DOC_LABEL: Record<DocumentType, string> = {
   INVOICE: "Invoice",
@@ -158,7 +161,6 @@ export default function JobPage() {
     fetcher.submit({ intent: "reprint", documentId: reprint.id, templateId }, { method: "post" });
     reprintModalRef.current?.hideOverlay();
   };
-  const TYPE_PLURAL: Record<Exclude<DocumentType, "PICK_LIST">, string> = { INVOICE: "invoices", PACKING_SLIP: "packing slips" };
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const active = job.state === "QUEUED" || job.state === "RUNNING";
   const busy = fetcher.state !== "idle";
@@ -228,53 +230,74 @@ export default function JobPage() {
         </s-banner>
       ) : null}
 
-      <s-section heading="Progress">
-        <s-stack gap="small">
-          <s-stack direction="inline" gap="small" alignItems="center">
-            <s-badge tone={state.tone}>{state.label}</s-badge>
-            <s-text>
-              {job.documentTypes.map((t) => DOC_LABEL[t]).join(" + ")} for {job.total} {job.total === 1 ? "order" : "orders"}
-              {seconds !== null ? ` · ${seconds}s` : ""}
-              {job.outputBytes ? ` · ${formatBytes(job.outputBytes)}` : ""}
-            </s-text>
-          </s-stack>
-          <s-progress value={job.progress} max={Math.max(1, job.total)} tone={state.tone === "critical" ? "critical" : "auto"}></s-progress>
-          <s-paragraph color="subdued">
-            {active ? `${job.progress} of ${job.total} orders fetched` : `${job.progress} of ${job.total} orders processed`}
-          </s-paragraph>
-          {job.error ? (
-            <s-banner tone={job.state === "FAILED" ? "critical" : "warning"}><s-paragraph>{job.error}</s-paragraph></s-banner>
-          ) : null}
-        </s-stack>
-      </s-section>
-
-      {job.hasOutput || job.hasPickList ? (
-        <s-section heading="Batch files">
-          <s-stack direction="inline" gap="small">
-            {job.hasOutput ? (
-              <Btn variant="secondary" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
-                Combined PDF
-              </Btn>
+      {/* Progress and the files side by side; they stack on narrow screens (app/styles/jobs.css). */}
+      <div className="pf-job-top">
+        <s-section heading="Progress">
+          <s-stack gap="base">
+            <s-stack direction="inline" gap="small" alignItems="center">
+              <s-badge tone={state.tone}>{state.label}</s-badge>
+              <s-text>{job.documentTypes.map((t) => DOC_LABEL[t]).join(" + ")}</s-text>
+            </s-stack>
+            <s-progress value={job.progress} max={Math.max(1, job.total)} tone={state.tone === "critical" ? "critical" : "auto"}></s-progress>
+            <div className="pf-job-stats">
+              <div>
+                <s-text color="subdued">Orders</s-text>
+                <strong>{active ? `${job.progress} / ${job.total}` : job.total}</strong>
+              </div>
+              <div>
+                <s-text color="subdued">Time</s-text>
+                <strong>{seconds !== null ? `${seconds}s` : active ? "…" : "—"}</strong>
+              </div>
+              <div>
+                <s-text color="subdued">File size</s-text>
+                <strong>{job.outputBytes ? formatBytes(job.outputBytes) : "—"}</strong>
+              </div>
+            </div>
+            {job.error ? (
+              <s-banner tone={job.state === "FAILED" ? "critical" : "warning"}><s-paragraph>{job.error}</s-paragraph></s-banner>
             ) : null}
-            {job.hasPickList ? (
-              <Btn variant="secondary" onClick={() => void download(`/app/jobs/${job.id}/output?part=picklist`, `${job.label} pick list.pdf`)}>
-                Pick list only
-              </Btn>
-            ) : null}
-            {mixed && !active
-              ? singleTypes.map((t) => (
-                  <Btn key={t} variant="secondary" icon="print" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "printType", documentType: t }, { method: "post" })}>
-                    Print {TYPE_PLURAL[t]} only
-                  </Btn>
-                ))
-              : null}
           </s-stack>
-          <s-paragraph color="subdued">
-            One file, each order on a fresh sheet, in the order you selected them. Every sheet carries a QR code and a barcode.
-            {mixed ? " Print one type only to get a separate PDF of just the invoices or just the packing slips; it is not metered again this month." : ""}
-          </s-paragraph>
         </s-section>
-      ) : null}
+
+        {job.hasOutput || job.hasPickList ? (
+          <s-section heading="Batch files">
+            <s-stack gap="base">
+              <s-stack gap="small-200">
+                <s-text color="subdued">Download</s-text>
+                <s-stack direction="inline" gap="small">
+                  {job.hasOutput ? (
+                    <Btn variant="primary" icon="download" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
+                      Combined PDF
+                    </Btn>
+                  ) : null}
+                  {job.hasPickList ? (
+                    <Btn variant="secondary" icon="download" onClick={() => void download(`/app/jobs/${job.id}/output?part=picklist`, `${job.label} pick list.pdf`)}>
+                      Pick list only
+                    </Btn>
+                  ) : null}
+                </s-stack>
+                <s-text color="subdued">Each order on a fresh sheet, with its QR code and barcode.</s-text>
+              </s-stack>
+              {mixed && !active ? (
+                <>
+                  <s-divider></s-divider>
+                  <s-stack gap="small-200">
+                    <s-text color="subdued">Print one type again</s-text>
+                    <s-stack direction="inline" gap="small">
+                      {singleTypes.map((t) => (
+                        <Btn key={t} variant="secondary" icon="print" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "printType", documentType: t }, { method: "post" })}>
+                          {DOC_LABEL[t]}s only
+                        </Btn>
+                      ))}
+                    </s-stack>
+                    <s-text color="subdued">A separate PDF of just that type. Not metered again this month.</s-text>
+                  </s-stack>
+                </>
+              ) : null}
+            </s-stack>
+          </s-section>
+        ) : null}
+      </div>
 
       <s-section heading="Per-order documents">
         <s-stack gap="base">

@@ -16,6 +16,7 @@ const ICONS: Record<string, string> = {
   check: "✓",
   clipboard: "⧉",
   print: "⎙",
+  download: "⤓",
 };
 
 export interface BtnProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "variant" | "slot" | "tone" | "command"> {

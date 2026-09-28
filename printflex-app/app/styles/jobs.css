@@ -1,0 +1,9 @@
+/* Batch page layout only; components are Polaris. */
+.pf-job-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.pf-job-top > s-section { height: 100%; }
+@media (max-width: 900px) {
+  .pf-job-top { grid-template-columns: minmax(0, 1fr); }
+}
+.pf-job-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pf-job-stats > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: #f7f7f7; border: 1px solid #ebebeb; }
+.pf-job-stats strong { font-size: 18px; font-weight: 650; color: #303030; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
