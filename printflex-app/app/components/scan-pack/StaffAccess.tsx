@@ -65,10 +65,10 @@ export function StaffAccess({ enrolUrl, qrSvg, devices, timezone, fetcher, colla
     `${relative(iso)} · ${new Intl.DateTimeFormat("en-GB", { timeZone: timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso))}`;
   const status = (d: DeviceItem) =>
     d.stale
-      ? { cls: "pf-b-warn", label: "Signed out by PIN change" }
+      ? { cls: "pf-b-warn", label: "Signed out", title: "Signed out by a PIN change: sign in again with the new PIN" }
       : Date.now() - Date.parse(d.lastSeenAt) < ACTIVE_MS
-        ? { cls: "pf-b-ok", label: "Active" }
-        : { cls: "pf-b-neu", label: "Idle" };
+        ? { cls: "pf-b-ok", label: "Active", title: "Seen in the last 15 minutes" }
+        : { cls: "pf-b-neu", label: "Idle", title: "Not seen in the last 15 minutes" };
 
   return (
     <div className="pf-panel">
@@ -120,8 +120,8 @@ export function StaffAccess({ enrolUrl, qrSvg, devices, timezone, fetcher, colla
             return (
               <li key={d.id}>
                 <DeviceLabel name={d.name} staffLabel={d.staffLabel} />
-                <span className="pf-devices__seen">Last seen {when(d.lastSeenAt)}</span>
-                <span className={`pf-badge ${st.cls}`}>{st.label}</span>
+                <span className="pf-devices__seen" title={`Last seen ${when(d.lastSeenAt)}`}>Last seen {relative(d.lastSeenAt)}</span>
+                <span className={`pf-badge ${st.cls}`} title={st.title}>{st.label}</span>
                 <Btn variant="tertiary" className="pf-btn--revoke" aria-label={`Revoke ${d.name}`} disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "revoke", deviceId: d.id }, { method: "post" })}>
                   Revoke
                 </Btn>

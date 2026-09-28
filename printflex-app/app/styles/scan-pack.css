@@ -147,11 +147,12 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 
 /* Device list */
 .pf-devices { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--pf-border); }
-.pf-devices li { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--pf-border); flex-wrap: wrap; }
+.pf-devices li { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--pf-border); flex-wrap: nowrap; }
 .pf-devices li:last-child { border-bottom: 0; }
 .pf-devices li:hover { background: var(--pf-card-2); }
-.pf-devices .pf-device { flex: 1 1 160px; }
-.pf-devices__seen { font-size: 12px; color: var(--pf-sub); }
+.pf-devices .pf-device { flex: 1 1 auto; min-width: 0; }
+.pf-devices__seen { flex: 0 1 auto; min-width: 0; font-size: 12px; color: var(--pf-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-devices .pf-badge, .pf-devices .pf-btn { flex: 0 0 auto; }
 
 /* Every clickable button on Scan & pack is orange: filled for regular buttons,
    light orange with orange text for the quiet ones (Hide, Revoke, Rotate). Banner buttons sit outside .pf-scan and opt
