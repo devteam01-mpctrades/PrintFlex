@@ -176,7 +176,7 @@ export default function BillingPage() {
               : p.id === "FREE" && !current ? "Cancelling is prorated through Shopify. Nothing else to do." : p.note;
             return (
               <div key={p.id} className={`pf-plancard${p.popular ? " pop" : ""}${current ? " cur" : ""}`}>
-                {p.popular ? <span className="pf-plancard__flag">Most popular</span> : null}
+                {p.popular ? <span className="pf-plancard__flag">Recommended</span> : null}
                 <div className="pf-plancard__top">
                   <h3>{p.name}</h3>
                   {current ? <span className="pf-badge pf-b-brand">Current{p.id !== "FREE" ? (annual ? " · annual" : " · monthly") : ""}</span> : null}

@@ -25,13 +25,6 @@ export function PlanBar({ planId, planName, planOptions, pills, used, limit, day
         <div className="lbl">Your plan</div>
         <div className="val">{planName}</div>
       </div>
-      <div className="pf-seg" role="list" aria-label="Plans">
-        {planOptions.map((option) => (
-          <span key={option.id} role="listitem" className={option.id === planId ? "on" : undefined} aria-current={option.id === planId ? "true" : undefined}>
-            {option.name}
-          </span>
-        ))}
-      </div>
       <div className="pf-pills">
         {pills.map((pill) => (
           <span key={pill} className="pf-pill">{pill}</span>

@@ -310,9 +310,11 @@ export default function HomePage() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="pf-panel__note">
-                    <strong>Printed in fallback</strong> means the render queue was busy, so the batch printed from the browser instead. Nothing was lost and no order was metered twice.
-                  </div>
+                  {batches.some((batch) => batch.state === "PRINTED_IN_FALLBACK") ? (
+                    <div className="pf-panel__note">
+                      <strong>Printed in fallback</strong> means the render queue was busy, so the batch printed from the browser instead. Nothing was lost and no order was metered twice.
+                    </div>
+                  ) : null}
                 </>
               )}
             </div>

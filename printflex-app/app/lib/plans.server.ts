@@ -167,7 +167,7 @@ export const PLAN_COPY: Record<PlanId, PlanCopy> = {
   UNLIMITED: {
     chip: "Unlimited orders",
     tagline: "For high-volume benches and seasonal peaks, where an order cap is the last thing you want to think about.",
-    features: ["Everything in Premium", "Priority support", "Refund and credit documents", "Per-market template variants", "All future pro features"],
+    features: ["Everything in Premium", "Priority support", "Refund and credit documents", "Per-market template variants"],
     note: "Subscribing happens inside Shopify, via Shopify Billing.",
     popular: false,
   },

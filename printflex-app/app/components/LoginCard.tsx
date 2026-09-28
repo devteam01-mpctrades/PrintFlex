@@ -41,6 +41,11 @@ export function LoginCard({ error, defaultShop = "" }: Props) {
           {error ? <p className={styles.error} role="alert">{error}</p> : <p className={styles.hint}>Enter your store name or full domain. You will be asked to approve the app on Shopify.</p>}
         </Form>
         <p className={styles.foot}>Made by MPC Trades · Billed only through Shopify</p>
+        <nav className={styles.links} aria-label="Legal and support">
+          <a href="https://printflex.mpctrades.com/privacy">Privacy policy</a>
+          <a href="https://printflex.mpctrades.com/terms">Terms</a>
+          <a href="https://printflex.mpctrades.com/support">Support</a>
+        </nav>
       </div>
     </div>
   );
