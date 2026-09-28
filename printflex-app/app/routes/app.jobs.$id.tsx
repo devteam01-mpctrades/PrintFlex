@@ -397,9 +397,9 @@ export default function JobPage() {
             </s-table>
           )}
           {filtered.length > shown.length ? (
-            <s-stack direction="inline" gap="small" alignItems="center" justifyContent="center">
-              <Btn variant="secondary" onClick={() => setLimit((n) => n + PAGE * 2)}>Show {Math.min(PAGE * 2, filtered.length - shown.length)} more</Btn>
+            <s-stack direction="inline" gap="small" alignItems="center" justifyContent="end">
               <s-text color="subdued">Showing {shown.length} of {filtered.length}</s-text>
+              <Btn variant="secondary" onClick={() => setLimit((n) => n + PAGE * 2)}>Show {Math.min(PAGE * 2, filtered.length - shown.length)} more</Btn>
             </s-stack>
           ) : null}
         </s-stack>
