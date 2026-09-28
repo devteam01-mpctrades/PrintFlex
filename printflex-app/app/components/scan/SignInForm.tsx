@@ -10,8 +10,9 @@ interface Props {
 export function SignInForm({ shopLabel, error, action }: Props) {
   return (
     <section className="card">
+      <span className="storechip">{shopLabel}</span>
       <h1>Sign in to pack</h1>
-      <p className="muted">Store: {shopLabel}. Enter the store PIN and give this device a name. It stays signed in until the PIN changes or the device is removed.</p>
+      <p className="muted">Enter the store PIN and give this phone a name. It stays signed in until the PIN changes or the phone is removed.</p>
       {error ? <p className="notice bad">{error}</p> : null}
       <Form method="post" action={action}>
         <input type="hidden" name="intent" value="signin" />

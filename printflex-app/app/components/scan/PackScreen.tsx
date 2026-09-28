@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PackLine, PackSheet } from "../../lib/pack/pack.server";
 import { CameraScanner } from "./CameraScanner";
+import { CheckIcon, ScanIcon } from "./icons";
 import { enqueue, markCachedStatus, pendingFor, postEvent, type ApiResult } from "./offline";
 
 /**
@@ -200,11 +201,12 @@ export function PackScreen({ sheet, preview = false }: Props) {
           <p className="big">{order.orderName}</p>
           <span style={{ flex: "0 0 auto" }}>{statusBadge}</span>
         </div>
-        <p className="muted" style={{ marginTop: 4 }}>
-          {order.customerName ?? "Guest"} · {totalUnits} {totalUnits === 1 ? "item" : "items"}
-          {order.destination ? ` · ${order.destination}` : ""}
-          {order.shippingMethod ? ` · ${order.shippingMethod}` : ""}
-        </p>
+        <div className="chips">
+          <span>{order.customerName ?? "Guest"}</span>
+          <span>{totalUnits} {totalUnits === 1 ? "item" : "items"}</span>
+          {order.destination ? <span>{order.destination}</span> : null}
+          {order.shippingMethod ? <span>{order.shippingMethod}</span> : null}
+        </div>
         {sheet.lastEvent ? (
           <p className="hint">
             Last: {sheet.lastEvent.outcome.replaceAll("_", " ").toLowerCase()} by {sheet.lastEvent.deviceName} at{" "}
@@ -214,19 +216,27 @@ export function PackScreen({ sheet, preview = false }: Props) {
         ) : null}
       </section>
 
-      {result && !busy ? (
+      {result && !busy && !(done && result.ok) ? (
         <p className={`notice ${result.ok ? (result.queued || result.outcome === "flagged" ? "" : "ok") : "bad"}`}>{result.message}</p>
       ) : null}
 
       {done ? (
-        <section className="card">
-          <p>{pendingQueued ? "This order is packed on this device and waiting to sync." : "This order is already packed. Scanning it again changes nothing and counts nothing twice."}</p>
-          {preview ? null : <a className="btn secondary" href="/scan">Scan another order</a>}
+        <section className="card hero">
+          <div className="icon ok"><CheckIcon /></div>
+          <h1>{pendingQueued ? "Packed on this phone" : result?.ok ? "Packed" : "Already packed"}</h1>
+          <p>
+            {pendingQueued
+              ? "Saved on this device. It syncs to Shopify as soon as the phone is back online."
+              : result?.ok
+                ? result.message
+                : "Scanning it again changes nothing and counts nothing twice."}
+          </p>
+          {preview ? null : <a className="btn" href="/scan"><ScanIcon />Scan another order</a>}
         </section>
       ) : (
         <>
           {settings.strictMode ? (
-            <section className="card" style={mismatch ? { background: "#fef2f2", outline: "4px solid #b91c1c" } : undefined}>
+            <section className={`card${mismatch ? " mismatch" : ""}`}>
               <h2>Strict mode: scan each item</h2>
               {mismatch ? (
                 <p className="notice bad" style={{ fontSize: 20, fontWeight: 700 }}>
@@ -254,54 +264,48 @@ export function PackScreen({ sheet, preview = false }: Props) {
             </section>
           ) : null}
 
-          <section className="card" style={{ padding: 0 }}>
-            <ul className="list" style={{ padding: "0 6px" }}>
+          <section className="card items">
+            <ul className="list">
               {visibleLines.map((line) => {
                 const count = countFor(line);
                 const flag = progress.flags[line.id];
                 const isDone = count >= line.quantity;
                 return (
-                  <li key={line.id} style={{ padding: 0 }}>
+                  <li key={line.id}>
                     <div
+                      className={`item${flag ? " flag" : isDone ? " done" : ""}${settings.strictMode ? " locked" : ""}`}
                       role={settings.strictMode ? undefined : "button"}
                       tabIndex={settings.strictMode ? -1 : 0}
                       onClick={() => !settings.strictMode && !flag && bump(line, 1)}
                       onKeyDown={(e) => { if (!settings.strictMode && (e.key === "Enter" || e.key === " ")) bump(line, 1); }}
-                      style={{
-                        display: "flex", gap: 12, alignItems: "center", padding: "12px 10px", minHeight: 76, cursor: settings.strictMode ? "default" : "pointer",
-                        background: flag ? "#fffbeb" : isDone ? "#ecfdf5" : "transparent", borderRadius: 10,
-                      }}
                     >
                       {settings.showPhotos ? (
                         line.imageUrl ? (
-                          <img src={line.imageUrl} alt="" width={56} height={56} style={{ borderRadius: 8, objectFit: "cover", flex: "0 0 auto", background: "#eee" }} />
+                          <img src={line.imageUrl} alt="" width={64} height={64} />
                         ) : (
                           <div className="avatar" style={{ background: avatarColour(line.title) }}>{initials(line.title)}</div>
                         )
                       ) : null}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="title" style={{ fontWeight: 600, fontSize: 17, lineHeight: 1.25 }}>{line.title}</div>
+                      <div className="body">
+                        <div className="title">{line.title}</div>
                         {preview ? null : (
-                          <div className="muted" style={{ fontSize: 14 }}>
+                          <div className="sub">
                             {[line.variantTitle, line.sku, line.partOf ? `part of ${line.partOf}` : null].filter(Boolean).join(" · ")}
                           </div>
                         )}
-                        {flag ? <div style={{ fontSize: 14, color: "#b45309", fontWeight: 600 }}>{PROBLEM_LABEL[flag.outcome]}{flag.note ? ` — ${flag.note}` : ""}</div> : null}
+                        {flag ? <div className="problemtxt">{PROBLEM_LABEL[flag.outcome]}{flag.note ? ` — ${flag.note}` : ""}</div> : null}
                       </div>
-                      <div style={{ flex: "0 0 auto", textAlign: "center", minWidth: 64 }}>
-                        <div className="count" style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDone ? "#047857" : "#111827" }}>
-                          {isDone ? "✓" : `${count}/${line.quantity}`}
-                        </div>
-                        {isDone && line.quantity > 1 ? <div className="hint" style={{ marginTop: 0 }}>{line.quantity}/{line.quantity}</div> : null}
+                      <div className="count" aria-label={`${count} of ${line.quantity}`}>
+                        {isDone ? <CheckIcon /> : `${count}/${line.quantity}`}
                       </div>
                     </div>
                     {(!settings.strictMode && count > 0) || flag ? (
-                      <div className="row" style={{ padding: "0 10px 10px", gap: 8 }}>
+                      <div className="itemtools">
                         {!settings.strictMode && count > 0 ? (
-                          <button className="btn ghost" type="button" style={{ marginTop: 0, flex: "0 0 auto" }} onClick={() => bump(line, -1)}>−1</button>
+                          <button className="chipbtn" type="button" onClick={() => bump(line, -1)}>Undo one ({count}/{line.quantity})</button>
                         ) : null}
                         {flag ? (
-                          <button className="btn ghost" type="button" style={{ marginTop: 0 }} onClick={() => setProgress((p) => { const flags = { ...p.flags }; delete flags[line.id]; return { ...p, flags }; })}>Clear problem</button>
+                          <button className="chipbtn" type="button" onClick={() => setProgress((p) => { const flags = { ...p.flags }; delete flags[line.id]; return { ...p, flags }; })}>Clear problem</button>
                         ) : null}
                       </div>
                     ) : null}
@@ -309,8 +313,8 @@ export function PackScreen({ sheet, preview = false }: Props) {
                 );
               })}
               {hiddenLines > 0 ? (
-                <li style={{ padding: "12px 10px" }}>
-                  <span className="muted">+{hiddenLines} more {hiddenLines === 1 ? "item" : "items"}</span>
+                <li className="more">
+                  <span>+{hiddenLines} more {hiddenLines === 1 ? "item" : "items"}</span>
                 </li>
               ) : null}
             </ul>
@@ -347,11 +351,17 @@ export function PackScreen({ sheet, preview = false }: Props) {
 
           <section className="card">
             {/* The button already says how many are left while checking is required; say it once. */}
-            {anyFlag || !settings.requireAllChecked || allDone ? (
-              <p className="muted">
-                {checkedUnits} of {totalUnits} units checked{anyFlag ? ` · ${Object.keys(progress.flags).length} line${Object.keys(progress.flags).length === 1 ? "" : "s"} flagged` : ""}
-              </p>
-            ) : null}
+            <div className="progress">
+              <span>{checkedUnits} of {totalUnits} checked</span>
+              {anyFlag ? (
+                <span className="muted">{Object.keys(progress.flags).length} line{Object.keys(progress.flags).length === 1 ? "" : "s"} flagged</span>
+              ) : allDone ? (
+                <span className="muted">Ready to pack</span>
+              ) : null}
+            </div>
+            <div className={`bar${allDone ? " full" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={totalUnits} aria-valuenow={checkedUnits}>
+              <i style={{ width: `${totalUnits ? Math.min(100, (checkedUnits / totalUnits) * 100) : 0}%` }} />
+            </div>
             {settings.askWeight && !anyFlag ? (
               <>
                 <label htmlFor="weight">Parcel weight (grams)</label>
@@ -359,11 +369,11 @@ export function PackScreen({ sheet, preview = false }: Props) {
               </>
             ) : null}
             {anyFlag ? (
-              <button className="btn" type="button" disabled={busy} onClick={sendForReview} style={{ background: "#b45309" }}>
+              <button className="btn review" type="button" disabled={busy} onClick={sendForReview}>
                 Send for review
               </button>
             ) : (
-              <button className="btn" type="button" disabled={busy || (settings.requireAllChecked && !allDone)} onClick={pack}>
+              <button className={`btn${allDone ? " go" : ""}`} type="button" disabled={busy || (settings.requireAllChecked && !allDone)} onClick={pack}>
                 {busy ? "Saving…" : settings.requireAllChecked && !allDone ? `${totalUnits - checkedUnits} left to check` : "Mark as packed"}
               </button>
             )}

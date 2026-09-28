@@ -2,6 +2,7 @@ import { ScanError } from "../components/scan/ScanError";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Form, useLoaderData, useNavigate, useSubmit } from "react-router";
+import { CameraIcon, ScanIcon } from "../components/scan/icons";
 import { CameraScanner } from "../components/scan/CameraScanner";
 import { ScanShell } from "../components/scan/ScanShell";
 import { getDeviceSession } from "../lib/scan/devices.server";
@@ -60,14 +61,17 @@ export default function ScanHub() {
   if (!session) {
     return (
       <ScanShell title="Not signed in">
-        <section className="card">
+        <section className="card hero">
+          <div className="icon"><ScanIcon /></div>
           <h1>Scan a sheet to begin</h1>
-          <p>
-            Point your phone camera at the QR code PrintFlex printed on any invoice or packing slip. It opens this page for your
-            store and asks for the store PIN once.
-          </p>
-          {from ? <p className="notice">You were sent here because this device is not signed in{from.startsWith("/scan/order") ? " for that order's store" : ""}.</p> : null}
-          <p className="hint">No app to install. No Shopify account needed.</p>
+          <p>Use the QR code PrintFlex prints on every invoice and packing slip.</p>
+          {from ? <p className="notice" style={{ textAlign: "left" }}>You were sent here because this device is not signed in{from.startsWith("/scan/order") ? " for that order's store" : ""}.</p> : null}
+          <ol className="steps">
+            <li>Point your phone camera at the QR code on a sheet</li>
+            <li>Enter the store PIN once</li>
+            <li>Give this phone a name, then start packing</li>
+          </ol>
+          <p className="fine">No app to install. No Shopify account needed.</p>
         </section>
       </ScanShell>
     );
@@ -90,8 +94,17 @@ export default function ScanHub() {
       ) : null}
 
       <section className="card">
+        <span className="storechip">{session.shop}</span>
         <h1>Open an order</h1>
-        <p className="muted">Store {session.shop}. Scan with the camera, use a USB scanner, or type the order number.</p>
+        {camera ? (
+          <>
+            <CameraScanner active={camera} onResult={(text) => { setCamera(false); send(text); }} />
+            <button className="btn ghost" type="button" onClick={() => setCamera(false)}>Stop camera</button>
+          </>
+        ) : (
+          <button className="btn" type="button" onClick={() => setCamera(true)}><CameraIcon />Scan with camera</button>
+        )}
+        <div className="or">or type the order number</div>
         <Form
           method="post"
           action="/scan/lookup"
@@ -107,27 +120,15 @@ export default function ScanHub() {
             name="q"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="#KS-10236"
+            placeholder="#1200"
             autoComplete="off"
             autoCapitalize="characters"
             inputMode="text"
             enterKeyHint="go"
           />
-          <button className="btn" type="submit" disabled={!value.trim()}>Open order</button>
+          <button className="btn secondary" type="submit" disabled={!value.trim()}>Open order</button>
         </Form>
         <p className="hint">A USB scanner types into this field and presses Enter for you.</p>
-      </section>
-
-      <section className="card">
-        <h2>Camera</h2>
-        {camera ? (
-          <>
-            <CameraScanner active={camera} onResult={(text) => { setCamera(false); send(text); }} />
-            <button className="btn ghost" type="button" onClick={() => setCamera(false)}>Stop camera</button>
-          </>
-        ) : (
-          <button className="btn secondary" type="button" onClick={() => setCamera(true)}>Scan with camera</button>
-        )}
       </section>
     </ScanShell>
   );
