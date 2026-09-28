@@ -54,7 +54,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   );
   if (!result.ok) {
     const errors = {
-      "no-pin": "This store has not set a PIN yet. Ask the store owner to set one under Scan & pack in PrintFlex.",
+      "no-pin": "No store PIN is set yet. Ask the store owner to set one in PrintFlex > Settings > Staff access.",
       throttled: "Too many attempts. Wait 15 minutes and try again.",
       "wrong-pin": "That PIN is not right. Try again.",
       name: "Give this device a name so the store can see who packed what.",
