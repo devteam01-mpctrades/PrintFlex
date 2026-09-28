@@ -120,3 +120,22 @@ table.pf-t .num { text-align: right; font-family: var(--pf-mono); font-variant-n
 .pf-planline strong { color: var(--pf-text); }
 .pf-stat.attention { background: var(--pf-brand-soft); border-color: var(--pf-brand-soft-2); }
 .pf-stat.attention .v { color: var(--pf-brand-ink); }
+
+/* Recent batches and Invoice emails: roomier rows, one accent */
+table.pf-t--rows td { padding-top: 13px; padding-bottom: 13px; }
+table.pf-t--rows .pf-muted { color: var(--pf-sub); }
+table.pf-t--rows strong { font-weight: 650; color: var(--pf-text); }
+.pf-row-link { cursor: pointer; }
+.pf-batch { display: inline-flex; align-items: center; gap: 8px; font-family: var(--pf-mono); font-weight: 600; font-size: 12.5px; color: var(--pf-brand-ink); text-decoration: none; }
+.pf-batch:hover { text-decoration: underline; }
+.pf-batch__icon { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--pf-brand-soft); color: var(--pf-brand); flex: 0 0 auto; }
+.pf-chips { display: inline-flex; flex-wrap: wrap; gap: 5px; }
+.pf-chip-doc { display: inline-block; padding: 2px 9px; border-radius: 999px; background: #f3f3f3; border: 1px solid #e6e6e6; color: #4a4a4a; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.pf-badge--dot { display: inline-flex; align-items: center; gap: 6px; }
+.pf-badge--dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .75; }
+.pf-chev { width: 28px; text-align: right; color: #b5b5b5; font-size: 18px; }
+.pf-row-link:hover .pf-chev { color: var(--pf-brand); }
+.pf-detail { display: block; margin-top: 3px; font-size: 11.5px; color: var(--pf-sub); }
+.pf-btn--soft { background: var(--pf-brand-soft); border-color: var(--pf-brand-soft-2); padding-inline: 12px; }
+.pf-btn--soft:hover { background: var(--pf-brand-soft-2); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

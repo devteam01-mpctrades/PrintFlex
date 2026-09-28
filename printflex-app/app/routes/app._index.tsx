@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
-import { Link, useFetcher, useLoaderData } from "react-router";
+import { Link, useFetcher, useLoaderData, useNavigate } from "react-router";
 import homeStyles from "../styles/home.css?url";
 import appStyles from "../styles/app.css?url";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -32,6 +32,8 @@ const DOC_SHORT: Record<DocumentType, string> = {
   PACKING_SLIP: "slip",
   PICK_LIST: "pick list",
 };
+
+const TRIGGER_LABEL: Record<string, string> = { creation: "On creation", payment: "On payment", fulfillment: "On fulfilment", manual: "Sent by hand" };
 
 const STATE_BADGE: Record<JobState, { label: string; className: string }> = {
   QUEUED: { label: "Queued", className: "pf-b-neu" },
@@ -105,6 +107,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       id: job.id,
       label: batchLabel(job),
       documents: describeDocuments(JSON.parse(job.documentTypesJson) as DocumentType[]),
+      types: JSON.parse(job.documentTypesJson) as DocumentType[],
       total: job.total,
       progress: job.progress,
       state: job.state as JobState,
@@ -141,6 +144,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function HomePage() {
   const data = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const { batches, timezone, sends, plan, planOptions, indexed, waiting, oldestWaiting, packedToday, needsReview, devicesActive, documentSet, showAll } = data;
   const fetcher = useFetcher<{ ok: boolean; message: string; jobId?: string }>();
   const busy = fetcher.state !== "idle";
@@ -279,7 +283,7 @@ export default function HomePage() {
               ) : (
                 <>
                   <div className="pf-tscroll">
-                    <table className="pf-t">
+                    <table className="pf-t pf-t--rows">
                       <thead>
                         <tr>
                           <th>Batch</th>
@@ -287,24 +291,35 @@ export default function HomePage() {
                           <th className="num">Orders</th>
                           <th>Created</th>
                           <th>Status</th>
+                          <th><span className="sr-only">Open</span></th>
                         </tr>
                       </thead>
                       <tbody>
                         {batches.map((batch) => (
-                          <tr key={batch.id}>
-                            <td className="pf-mono">
-                              <Link className="pf-link" to={`/app/jobs/${batch.id}`}>{batch.label}</Link>
-                            </td>
-                            <td>{batch.documents}</td>
-                            <td className="num">{batch.total}</td>
-                            <td>{when(batch.createdAt)}</td>
+                          <tr key={batch.id} className="pf-row-link" onClick={() => navigate(`/app/jobs/${batch.id}`)}>
                             <td>
-                              <span className={`pf-badge ${STATE_BADGE[batch.state].className}`}>
+                              <Link className="pf-batch" to={`/app/jobs/${batch.id}`} onClick={(e) => e.stopPropagation()}>
+                                <span className="pf-batch__icon" aria-hidden="true">
+                                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></svg>
+                                </span>
+                                {batch.label}
+                              </Link>
+                            </td>
+                            <td>
+                              <span className="pf-chips">
+                                {batch.types.map((t) => <span key={t} className="pf-chip-doc">{DOC_LABEL[t]}</span>)}
+                              </span>
+                            </td>
+                            <td className="num"><strong>{batch.total}</strong></td>
+                            <td className="pf-muted">{when(batch.createdAt)}</td>
+                            <td>
+                              <span className={`pf-badge pf-badge--dot ${STATE_BADGE[batch.state].className}`}>
                                 {batch.state === "RUNNING"
                                   ? `Rendering ${Math.round((batch.progress / Math.max(1, batch.total)) * 100)}%`
                                   : STATE_BADGE[batch.state].label}
                               </span>
                             </td>
+                            <td className="pf-chev" aria-hidden="true">›</td>
                           </tr>
                         ))}
                       </tbody>
@@ -318,43 +333,58 @@ export default function HomePage() {
                 </>
               )}
             </div>
+
+            {sends.length > 0 ? (
+              <div className="pf-panel">
+                <div className="pf-panel__h">
+                  <h2>Invoice emails</h2>
+                  <span className="pf-badge pf-b-neu">{sends.length}</span>
+                </div>
+                {notice && lastIntent === "resend" ? (
+                  <div className="pf-panel__b tight">
+                    <s-banner tone={notice.ok ? "success" : "critical"}><s-paragraph>{notice.message}</s-paragraph></s-banner>
+                  </div>
+                ) : null}
+                <div className="pf-tscroll">
+                  <table className="pf-t pf-t--rows">
+                    <thead>
+                      <tr>
+                        <th>Order</th>
+                        <th>To</th>
+                        <th>Trigger</th>
+                        <th>When</th>
+                        <th>Status</th>
+                        <th><span className="sr-only">Actions</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sends.map((send) => (
+                        <tr key={send.id}>
+                          <td><strong className="pf-mono">{send.orderName}</strong></td>
+                          <td className="pf-muted">{send.to || "—"}</td>
+                          <td><span className="pf-chip-doc">{TRIGGER_LABEL[send.trigger] ?? send.trigger}</span></td>
+                          <td className="pf-muted">{when(send.sentAt ?? send.createdAt)}</td>
+                          <td>
+                            <span className={`pf-badge pf-badge--dot ${send.status === "SENT" ? "pf-b-ok" : send.status === "FAILED" ? "pf-b-crit" : "pf-b-neu"}`}>
+                              {send.status.charAt(0) + send.status.slice(1).toLowerCase()}
+                            </span>
+                            {send.error ? <span className="pf-detail">{send.error}</span> : null}
+                          </td>
+                          <td className="num">
+                            <Btn variant="tertiary" className="pf-btn--soft" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "resend", orderId: send.orderId }, { method: "post" })}>
+                              Resend
+                            </Btn>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
         </>
       </div>
 
-      {sends.length > 0 ? (
-        <s-section heading="Invoice emails">
-          {notice && lastIntent === "resend" ? <s-banner tone={notice.ok ? "success" : "critical"}><s-paragraph>{notice.message}</s-paragraph></s-banner> : null}
-          <s-table>
-            <s-table-header-row>
-              <s-table-header listSlot="primary">Order</s-table-header>
-              <s-table-header>To</s-table-header>
-              <s-table-header>Trigger</s-table-header>
-              <s-table-header>When</s-table-header>
-              <s-table-header listSlot="kicker">Status</s-table-header>
-              <s-table-header></s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {sends.map((send) => (
-                <s-table-row key={send.id}>
-                  <s-table-cell><s-text fontVariantNumeric="tabular-nums">{send.orderName}</s-text></s-table-cell>
-                  <s-table-cell>{send.to || "—"}</s-table-cell>
-                  <s-table-cell>{send.trigger}</s-table-cell>
-                  <s-table-cell>{when(send.sentAt ?? send.createdAt)}</s-table-cell>
-                  <s-table-cell>
-                    <s-badge tone={send.status === "SENT" ? "success" : send.status === "FAILED" ? "critical" : "neutral"}>{send.status.toLowerCase()}</s-badge>
-                    {send.error ? <s-text color="subdued"> {send.error}</s-text> : null}
-                  </s-table-cell>
-                  <s-table-cell>
-                    <Btn variant="tertiary" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "resend", orderId: send.orderId }, { method: "post" })}>
-                      Resend
-                    </Btn>
-                  </s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
-        </s-section>
-      ) : null}
     </s-page>
   );
 }
