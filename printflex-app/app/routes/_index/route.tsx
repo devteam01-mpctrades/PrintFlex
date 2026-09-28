@@ -1,6 +1,5 @@
-import { redirect, useLoaderData } from "react-router";
+import { redirect } from "react-router";
 import type { LoaderFunctionArgs, MetaFunction } from "react-router";
-import { login } from "../../shopify.server";
 import { LoginCard } from "../../components/LoginCard";
 
 export const meta: MetaFunction = () => [
@@ -19,10 +18,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw redirect(`/app?${url.searchParams.toString()}`);
   }
 
-  return { showForm: Boolean(login) };
+  return null;
 };
 
 export default function App() {
-  const { showForm } = useLoaderData<typeof loader>();
-  return showForm ? <LoginCard /> : null;
+  return <LoginCard />;
 }

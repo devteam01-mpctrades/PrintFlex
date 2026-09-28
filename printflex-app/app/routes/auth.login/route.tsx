@@ -1,32 +1,18 @@
-import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { useActionData, useLoaderData } from "react-router";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { login } from "../../shopify.server";
-import { loginErrorMessage } from "./error.server";
 import { LoginCard } from "../../components/LoginCard";
 
+/**
+ * Where the library sends a request that has no Shopify session. With ?shop=
+ * it starts OAuth for that store (login throws the redirect). Without one it
+ * shows the landing card: merchants never type a shop domain here, they open
+ * PrintFlex from their Shopify admin or install it from the App Store.
+ */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
-
-  return { errors };
-};
-
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
-
-  return {
-    errors,
-  };
+  await login(request);
+  return null;
 };
 
 export default function Auth() {
-  const loaderData = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
-  const { errors } = actionData || loaderData;
-
-  return (
-    <AppProvider embedded={false}>
-      <LoginCard error={errors.shop} />
-    </AppProvider>
-  );
+  return <LoginCard />;
 }

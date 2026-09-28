@@ -1,18 +1,12 @@
-import { Form } from "react-router";
 import styles from "./login-card.module.css";
 
-interface Props {
-  /** Validation message for the shop field, if any. */
-  error?: string;
-  defaultShop?: string;
-}
-
 /**
- * The page a merchant sees before the app is installed or when no session
- * exists: what PrintFlex does, and the shop domain field that starts OAuth.
+ * The page shown at the app URL outside the Shopify admin: what PrintFlex
+ * does and where to get it. There is deliberately no shop domain field;
+ * installs start from the App Store and sessions from the Shopify admin.
  * Shared by the landing route and the login route so both look the same.
  */
-export function LoginCard({ error, defaultShop = "" }: Props) {
+export function LoginCard() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
@@ -29,17 +23,9 @@ export function LoginCard({ error, defaultShop = "" }: Props) {
           <li>Scan the printed sheet to open, check off and mark packed</li>
           <li>Only orders you actually print count towards your plan</li>
         </ul>
-        <Form className={styles.form} method="post" action="/auth/login">
-          <label className={styles.label} htmlFor="shop">Your Shopify store</label>
-          <div className={styles.row}>
-            <div className={`${styles.field}${error ? ` ${styles.fieldError}` : ""}`}>
-              <input id="shop" className={styles.input} type="text" name="shop" defaultValue={defaultShop} placeholder="my-store" autoComplete="on" autoCapitalize="off" spellCheck={false} />
-              <span className={styles.suffix}>.myshopify.com</span>
-            </div>
-            <button className={styles.button} type="submit">Continue with Shopify</button>
-          </div>
-          {error ? <p className={styles.error} role="alert">{error}</p> : <p className={styles.hint}>Enter your store name or full domain. You will be asked to approve the app on Shopify.</p>}
-        </Form>
+        <p className={styles.install}>
+          Install PrintFlex from the Shopify App Store. Already installed? Open it from <strong>Apps</strong> in your Shopify admin.
+        </p>
         <p className={styles.foot}>Made by MPC Trades · Billed only through Shopify</p>
         <nav className={styles.links} aria-label="Legal and support">
           <a href="https://printflex.mpctrades.com/privacy">Privacy policy</a>
