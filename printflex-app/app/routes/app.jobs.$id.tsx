@@ -253,8 +253,46 @@ export default function JobPage() {
         </s-banner>
       ) : null}
 
-      {/* Progress and the files side by side; they stack on narrow screens (app/styles/jobs.css). */}
+      {/* The files first, then progress, side by side; they stack on narrow screens (app/styles/jobs.css). */}
       <div className="pf-job-top">
+        {job.hasOutput || job.hasPickList ? (
+          <s-section heading="Batch files">
+            <s-stack gap="base">
+              <div className="pf-job-group download">
+                <div className="pf-job-group__title"><b><Icon name="download" /></b>Download</div>
+                <s-stack direction="inline" gap="small">
+                  {job.hasOutput ? (
+                    <Btn variant="primary" icon="download" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
+                      Combined PDF
+                    </Btn>
+                  ) : null}
+                  {job.hasPickList ? (
+                    <Btn variant="secondary" icon="download" onClick={() => void download(`/app/jobs/${job.id}/output?part=picklist`, `${job.label} pick list.pdf`)}>
+                      Pick list only
+                    </Btn>
+                  ) : null}
+                </s-stack>
+                <p>Each order on a fresh sheet, with its QR code and barcode.</p>
+              </div>
+              {mixed && !active ? (
+                <>
+                  <div className="pf-job-group again">
+                    <div className="pf-job-group__title"><b><Icon name="print" /></b>Print one type again</div>
+                    <s-stack direction="inline" gap="small">
+                      {singleTypes.map((t) => (
+                        <Btn key={t} variant="secondary" icon="print" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "printType", documentType: t }, { method: "post" })}>
+                          {DOC_LABEL[t]}s only
+                        </Btn>
+                      ))}
+                    </s-stack>
+                    <p>A separate PDF of just that type. Not metered again this month.</p>
+                  </div>
+                </>
+              ) : null}
+            </s-stack>
+          </s-section>
+        ) : null}
+
         <s-section heading="Progress">
           <s-stack gap="base">
             <s-stack direction="inline" gap="small" alignItems="center">
@@ -298,44 +336,6 @@ export default function JobPage() {
             ) : null}
           </s-stack>
         </s-section>
-
-        {job.hasOutput || job.hasPickList ? (
-          <s-section heading="Batch files">
-            <s-stack gap="base">
-              <div className="pf-job-group download">
-                <div className="pf-job-group__title"><b><Icon name="download" /></b>Download</div>
-                <s-stack direction="inline" gap="small">
-                  {job.hasOutput ? (
-                    <Btn variant="primary" icon="download" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
-                      Combined PDF
-                    </Btn>
-                  ) : null}
-                  {job.hasPickList ? (
-                    <Btn variant="secondary" icon="download" onClick={() => void download(`/app/jobs/${job.id}/output?part=picklist`, `${job.label} pick list.pdf`)}>
-                      Pick list only
-                    </Btn>
-                  ) : null}
-                </s-stack>
-                <p>Each order on a fresh sheet, with its QR code and barcode.</p>
-              </div>
-              {mixed && !active ? (
-                <>
-                  <div className="pf-job-group again">
-                    <div className="pf-job-group__title"><b><Icon name="print" /></b>Print one type again</div>
-                    <s-stack direction="inline" gap="small">
-                      {singleTypes.map((t) => (
-                        <Btn key={t} variant="secondary" icon="print" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "printType", documentType: t }, { method: "post" })}>
-                          {DOC_LABEL[t]}s only
-                        </Btn>
-                      ))}
-                    </s-stack>
-                    <p>A separate PDF of just that type. Not metered again this month.</p>
-                  </div>
-                </>
-              ) : null}
-            </s-stack>
-          </s-section>
-        ) : null}
       </div>
 
       <s-section heading="Per-order documents">
