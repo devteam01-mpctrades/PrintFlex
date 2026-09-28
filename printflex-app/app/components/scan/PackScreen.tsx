@@ -281,7 +281,7 @@ export function PackScreen({ sheet, preview = false }: Props) {
                     >
                       {settings.showPhotos ? (
                         line.imageUrl ? (
-                          <img src={line.imageUrl} alt="" width={64} height={64} />
+                          <img src={line.imageUrl} alt="" width={50} height={50} />
                         ) : (
                           <div className="avatar" style={{ background: avatarColour(line.title) }}>{initials(line.title)}</div>
                         )
