@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import prisma from "../../db.server";
 import { deviceCookie, getDeviceSession, listDevices, revokeDevice, signInDevice } from "./devices.server";
 import { lookupOrder, tokenFromScan } from "./lookup.server";
-import { setStorePin } from "./pin.server";
+import { decryptPin, encryptPin, getStorePin, setStorePin } from "./pin.server";
 
 async function shop() {
   return prisma.shop.create({ data: { domain: `scan-${Math.random().toString(36).slice(2)}.myshopify.com` } });
@@ -90,5 +90,41 @@ describe("lookupOrder", () => {
     // Another shop cannot see these orders.
     const other = await shop();
     expect(await lookupOrder(other.id, "#KS-10236")).toEqual({ kind: "none" });
+  });
+
+  it("shows the merchant the PIN again, and re-entering the same PIN keeps devices signed in", async () => {
+    const s = await shop();
+    expect(await getStorePin(s.id)).toEqual({ hasPin: false, pin: null });
+
+    const first = await setStorePin(s.id, "482193");
+    expect(first).toMatchObject({ ok: true, unchanged: false });
+    expect(await getStorePin(s.id)).toEqual({ hasPin: true, pin: "482193" });
+    const stored = await prisma.shop.findUniqueOrThrow({ where: { id: s.id }, select: { pinEncrypted: true, pinVersion: true } });
+    expect(stored.pinEncrypted).not.toContain("482193");
+
+    const device = await signInDevice(s.id, "482193", "Bench 1", "ip");
+    if (!device.ok) throw new Error("expected sign-in");
+
+    // Same PIN again (e.g. a PIN set before it could be displayed): saved for display, nobody signed out.
+    await prisma.shop.update({ where: { id: s.id }, data: { pinEncrypted: null } });
+    expect(await getStorePin(s.id)).toEqual({ hasPin: true, pin: null });
+    expect(await setStorePin(s.id, "482193")).toEqual({ ok: true, pinVersion: stored.pinVersion, unchanged: true });
+    expect(await getStorePin(s.id)).toEqual({ hasPin: true, pin: "482193" });
+    expect(await getDeviceSession(requestWith(device.setCookie))).not.toBeNull();
+
+    // A different PIN still signs every device out.
+    expect(await setStorePin(s.id, "7777")).toMatchObject({ ok: true, unchanged: false });
+    expect(await getStorePin(s.id)).toEqual({ hasPin: true, pin: "7777" });
+    expect(await getDeviceSession(requestWith(device.setCookie))).toBeNull();
+  });
+
+  it("encrypts the display copy and rejects anything tampered with", () => {
+    const a = encryptPin("1234");
+    expect(a).not.toBe(encryptPin("1234"));
+    expect(decryptPin(a)).toBe("1234");
+    const [v, iv, tag, data] = a.split(".");
+    expect(decryptPin([v, iv, tag, data.slice(0, -2) + "AA"].join("."))).toBeNull();
+    expect(decryptPin("garbage")).toBeNull();
+    expect(decryptPin(null)).toBeNull();
   });
 });

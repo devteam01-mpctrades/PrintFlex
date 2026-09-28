@@ -70,3 +70,11 @@ table.pf-t .mono { font-family: var(--pf-mono); font-variant-numeric: tabular-nu
 table.pf-t .end { text-align: right; }
 .pf-link { color: var(--pf-brand-ink); font-weight: 600; text-decoration: none; }
 .pf-link:hover { text-decoration: underline; }
+
+/* Current store PIN: masked until the merchant presses Show */
+.pf-pin { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: #fdefe3; border: 1px solid #f9d9bc; }
+.pf-pin__label { font-size: 12.5px; font-weight: 600; color: #a84206; }
+.pf-pin__value { font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 18px; font-weight: 600; letter-spacing: .2em; color: #303030; font-variant-numeric: tabular-nums; }
+.pf-pin__actions { margin-left: auto; display: flex; gap: 6px; }
+.pf-pin--unknown { align-items: flex-start; flex-direction: column; gap: 4px; }
+.pf-pin__note { font-size: 12.5px; color: #616161; }

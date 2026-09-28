@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -10,7 +10,7 @@ import { audit } from "../lib/audit.server";
 import { configureInvoiceNumbering } from "../lib/invoices/invoice-number.server";
 import { requireShop } from "../lib/request.server";
 import { listDevices, revokeDevice } from "../lib/scan/devices.server";
-import { hasStorePin, setStorePin } from "../lib/scan/pin.server";
+import { getStorePin, setStorePin } from "../lib/scan/pin.server";
 import { DEFAULT_TAG_NAMES, parseSettings, updateShopSettings, type PackSettings } from "../lib/settings.server";
 import { clearBins, clearBundles, importBins, importBundles, warehouseSummary } from "../lib/warehouse/warehouse.server";
 import { DOCUMENT_TYPES } from "../lib/types";
@@ -31,12 +31,14 @@ const DOC_LABEL = { INVOICE: "Invoice", PACKING_SLIP: "Packing slip", PICK_LIST:
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await requireShop(request);
   const settings = parseSettings(shop.settingsJson);
-  const [hasPin, devices, warehouse] = await Promise.all([hasStorePin(shop.id), listDevices(shop.id), warehouseSummary(shop.id)]);
+  const [storePin, devices, warehouse] = await Promise.all([getStorePin(shop.id), listDevices(shop.id), warehouseSummary(shop.id)]);
   return {
     timezone: shop.timezone,
     timezones: Intl.supportedValuesOf("timeZone"),
     settings,
-    hasPin,
+    hasPin: storePin.hasPin,
+    /** Shown to the merchant (masked until they press Show); null if it was set before it could be displayed. */
+    pin: storePin.pin,
     devices: devices.map((d) => ({ ...d, lastSeenAt: d.lastSeenAt.toISOString(), createdAt: d.createdAt.toISOString() })),
     warehouse,
     invoice: { prefix: shop.invoicePrefix, nextNumber: shop.invoiceNextNumber },
@@ -77,7 +79,13 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<Result> =
     }
     case "setPin": {
       const result = await setStorePin(shop.id, str("pin"));
-      return result.ok ? { ok: true, message: "PIN saved. Every device must sign in again with the new PIN." } : { ok: false, message: "The PIN must be 4 to 8 digits." };
+      if (!result.ok) return { ok: false, message: "The PIN must be 4 to 8 digits." };
+      return {
+        ok: true,
+        message: result.unchanged
+          ? "PIN saved. It is the same as the current PIN, so every phone stays signed in."
+          : "PIN saved. Every phone must sign in again with the new PIN.",
+      };
     }
     case "revoke": {
       const revoked = await revokeDevice(shop.id, str("deviceId"));
@@ -257,6 +265,7 @@ export default function SettingsPage() {
                       ? "Staff sign in on their phones with this PIN plus a device name. Changing it signs every device out."
                       : "No store PIN yet, so nobody can open scan mode. Set one to let staff sign in on their phones."}
                   </p>
+                  {data.hasPin ? <CurrentPin pin={data.pin} /> : null}
                   <div className="pf-row">
                     <s-text-field name="pin" label={data.hasPin ? "New store PIN" : "Store PIN"} placeholder="4 to 8 digits" autocomplete="off"></s-text-field>
                     <Btn type="submit" variant="primary" disabled={busy}>{data.hasPin ? "Rotate PIN" : "Set PIN"}</Btn>
@@ -339,4 +348,39 @@ export const headers: HeadersFunction = (headersArgs) => boundary.headers(header
 
 export function ErrorBoundary() {
   return <RouteError />;
+}
+
+/** The current PIN, masked until the merchant asks to see it, so a forgotten PIN is never lost. */
+function CurrentPin({ pin }: { pin: string | null }) {
+  const [shown, setShown] = useState(false);
+  const [copied, setCopied] = useState(false);
+  if (!pin) {
+    return (
+      <div className="pf-pin pf-pin--unknown">
+        <span className="pf-pin__label">Current PIN</span>
+        <span className="pf-pin__note">
+          This PIN was set before PrintFlex could display it. Type it again below and press Rotate PIN to save it; if it is the same PIN, every phone stays signed in.
+        </span>
+      </div>
+    );
+  }
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(pin);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setShown(true);
+    }
+  };
+  return (
+    <div className="pf-pin">
+      <span className="pf-pin__label">Current PIN</span>
+      <span className="pf-pin__value" aria-live="polite">{shown ? pin : "•".repeat(pin.length)}</span>
+      <span className="pf-pin__actions">
+        <Btn variant="tertiary" onClick={() => setShown((v) => !v)}>{shown ? "Hide" : "Show"}</Btn>
+        <Btn variant="tertiary" icon={copied ? "check" : "clipboard"} onClick={() => void copy()}>{copied ? "Copied" : "Copy"}</Btn>
+      </span>
+    </div>
+  );
 }

@@ -50,6 +50,8 @@ model Shop {
   meterPeriodStart   DateTime?
   timezone           String    @default("UTC")
   pinHash            String?
+  /** The same PIN, AES-256-GCM encrypted, so the merchant can see it again in Settings. Sign-in checks pinHash. */
+  pinEncrypted       String?
   pinVersion         Int       @default(0)
   scanSecret         String?
   settingsJson       String    @default("{}")
