@@ -140,7 +140,7 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 .pf-qr svg { display: block; width: 128px; height: 128px; }
 .pf-kv { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pf-kv .push { margin-left: auto; }
-.pf-code { font-family: var(--pf-mono); font-size: 12px; color: var(--pf-brand-ink); background: var(--pf-brand-soft); border: 1px solid var(--pf-brand-soft-2); border-radius: 8px; padding: 6px 10px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-code { font-family: var(--pf-mono); font-size: 12px; color: #0c5132; background: #ecfdf3; border: 1px solid #b7ebc9; border-radius: 8px; padding: 6px 10px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 560px) {
   .pf-enrol { flex-direction: column; align-items: flex-start; }
 }
