@@ -112,7 +112,7 @@ export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetche
       <div className="pf-pinrow">
         <span className="pf-pinrow__label">Store PIN</span>
         <span className={`pf-badge ${hasPin ? "pf-b-ok" : "pf-b-crit"}`}>{hasPin ? "Set" : "Not set"}</span>
-        <a className="pf-pinrow__action" href="/app/settings">{hasPin ? "Rotate in Settings" : "Set it in Settings"}</a>
+        <Btn variant="tertiary" className="pf-pinrow__action" href="/app/settings">{hasPin ? "Rotate in Settings" : "Set it in Settings"}</Btn>
       </div>
 
       {devices.length === 0 ? (

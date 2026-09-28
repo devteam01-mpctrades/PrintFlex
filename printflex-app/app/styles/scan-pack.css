@@ -148,8 +148,7 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 /* Store PIN row and the device list */
 .pf-pinrow { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--pf-border); background: var(--pf-card-2); }
 .pf-pinrow__label { font-weight: 600; }
-.pf-pinrow__action { margin-left: auto; font-size: 12.5px; font-weight: 500; color: var(--pf-brand-ink); text-decoration: none; }
-.pf-pinrow__action:hover { text-decoration: underline; }
+.pf-pinrow__action { margin-left: auto; }
 .pf-devices { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--pf-border); }
 .pf-devices li { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--pf-border); flex-wrap: wrap; }
 .pf-devices li:last-child { border-bottom: 0; }
@@ -158,11 +157,11 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 .pf-devices__seen { font-size: 12px; color: var(--pf-sub); }
 
 /* Every clickable button on Scan & pack is orange: filled for regular buttons,
-   orange text for the quiet ones. Banner buttons sit outside .pf-scan and opt
+   light orange with orange text for the quiet ones (Hide, Revoke, Rotate). Banner buttons sit outside .pf-scan and opt
    in with .pf-btn--brand. */
 .pf-scan .pf-btn--secondary, .pf-btn--brand { background: #e25b07; border-color: #e25b07; color: #fff; }
 .pf-scan .pf-btn--secondary:hover, .pf-btn--brand:hover { background: #c9500a; border-color: #c9500a; }
 .pf-scan .pf-btn--secondary .pf-btn__icon, .pf-btn--brand .pf-btn__icon { opacity: 1; }
-.pf-scan .pf-btn--tertiary { color: var(--pf-brand-ink); }
-.pf-scan .pf-btn--tertiary:hover { background: var(--pf-brand-soft); }
+.pf-scan .pf-btn--tertiary { background: var(--pf-brand-soft); border-color: var(--pf-brand-soft-2); color: var(--pf-brand-ink); padding-inline: 12px; }
+.pf-scan .pf-btn--tertiary:hover { background: var(--pf-brand-soft-2); border-color: #f3c49a; }
 
