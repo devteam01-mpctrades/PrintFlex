@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LinksFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -140,8 +140,18 @@ export default function SettingsPage() {
     form.set("intent", "pack");
     fetcher.submit(form, { method: "post" });
   });
+  // After a PIN is saved the field starts empty again (remounted), so the old digits never linger on screen.
+  const [pinFieldKey, setPinFieldKey] = useState(0);
+  const lastIntent = useRef<string | null>(null);
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.ok && lastIntent.current === "setPin") {
+      lastIntent.current = null;
+      setPinFieldKey((k) => k + 1);
+    }
+  }, [fetcher.state, fetcher.data]);
   const submitForm = (ref: HTMLFormElement | null, intent: string) => {
     if (!ref) return;
+    lastIntent.current = intent;
     const form = new FormData(ref);
     form.set("intent", intent);
     fetcher.submit(form, { method: "post" });
@@ -267,7 +277,7 @@ export default function SettingsPage() {
                   </p>
                   {data.hasPin ? <CurrentPin pin={data.pin} /> : null}
                   <div className="pf-row">
-                    <s-text-field name="pin" label={data.hasPin ? "New store PIN" : "Store PIN"} placeholder="4 to 8 digits" autocomplete="off"></s-text-field>
+                    <s-text-field key={pinFieldKey} name="pin" label={data.hasPin ? "New store PIN" : "Store PIN"} placeholder={data.hasPin ? "Enter new store PIN" : "Enter a store PIN (4 to 8 digits)"} autocomplete="off"></s-text-field>
                     <Btn type="submit" variant="primary" disabled={busy}>{data.hasPin ? "Rotate PIN" : "Set PIN"}</Btn>
                   </div>
                 </form>
