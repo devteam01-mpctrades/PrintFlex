@@ -63,6 +63,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       offerFallback: shouldOfferFallback(job, now),
       startedAt: job.startedAt?.toISOString() ?? null,
       finishedAt: job.finishedAt?.toISOString() ?? null,
+      finishedLabel: job.finishedAt
+        ? new Intl.DateTimeFormat("en-GB", { timeZone: shop.timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(job.finishedAt)
+        : null,
     },
     // A re-print adds a document to the batch; list only the newest per order and type.
     documents: latestPerOrderAndType(
@@ -241,17 +244,22 @@ export default function JobPage() {
             <s-progress value={job.progress} max={Math.max(1, job.total)} tone={state.tone === "critical" ? "critical" : "auto"}></s-progress>
             <div className="pf-job-stats">
               <div>
-                <s-text color="subdued">Orders</s-text>
+                <span>Orders</span>
                 <strong>{active ? `${job.progress} / ${job.total}` : job.total}</strong>
               </div>
               <div>
-                <s-text color="subdued">Time</s-text>
+                <span>Time</span>
                 <strong>{seconds !== null ? `${seconds}s` : active ? "…" : "—"}</strong>
               </div>
               <div>
-                <s-text color="subdued">File size</s-text>
+                <span>File size</span>
                 <strong>{job.outputBytes ? formatBytes(job.outputBytes) : "—"}</strong>
               </div>
+            </div>
+            <div className={`pf-job-summary${job.state === "SUCCEEDED" ? " ok" : ""}`}>
+              {active
+                ? `${job.progress} of ${job.total} orders fetched so far`
+                : `${job.state === "SUCCEEDED" ? "✓ " : ""}${job.progress} of ${job.total} orders processed${job.finishedLabel ? ` · Finished ${job.finishedLabel}` : ""}`}
             </div>
             {job.error ? (
               <s-banner tone={job.state === "FAILED" ? "critical" : "warning"}><s-paragraph>{job.error}</s-paragraph></s-banner>
@@ -261,9 +269,9 @@ export default function JobPage() {
 
         {job.hasOutput || job.hasPickList ? (
           <s-section heading="Batch files">
-            <s-stack gap="base">
-              <s-stack gap="small-200">
-                <s-text color="subdued">Download</s-text>
+            <s-stack gap="large">
+              <s-stack gap="small">
+                <s-text type="strong">Download</s-text>
                 <s-stack direction="inline" gap="small">
                   {job.hasOutput ? (
                     <Btn variant="primary" icon="download" onClick={() => void download(`/app/jobs/${job.id}/output`, `${job.label}.pdf`)}>
@@ -281,8 +289,8 @@ export default function JobPage() {
               {mixed && !active ? (
                 <>
                   <s-divider></s-divider>
-                  <s-stack gap="small-200">
-                    <s-text color="subdued">Print one type again</s-text>
+                  <s-stack gap="small">
+                    <s-text type="strong">Print one type again</s-text>
                     <s-stack direction="inline" gap="small">
                       {singleTypes.map((t) => (
                         <Btn key={t} variant="secondary" icon="print" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "printType", documentType: t }, { method: "post" })}>

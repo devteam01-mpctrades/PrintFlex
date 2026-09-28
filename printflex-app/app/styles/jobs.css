@@ -1,9 +1,16 @@
 /* Batch page layout only; components are Polaris. */
-.pf-job-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.pf-job-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; margin-block-end: 16px; }
 .pf-job-top > s-section { height: 100%; }
 @media (max-width: 900px) {
   .pf-job-top { grid-template-columns: minmax(0, 1fr); }
 }
-.pf-job-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.pf-job-stats > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: #f7f7f7; border: 1px solid #ebebeb; }
-.pf-job-stats strong { font-size: 18px; font-weight: 650; color: #303030; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+
+/* Three figures under the progress bar */
+.pf-job-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.pf-job-stats > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: #fff; border: 1px solid #e3e3e3; box-shadow: 0 1px 0 rgba(0, 0, 0, .04); }
+.pf-job-stats span { font-size: 12px; font-weight: 500; color: #616161; }
+.pf-job-stats strong { font-size: 20px; font-weight: 650; color: #303030; font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1.2; }
+
+/* One line under the figures: how it went and when */
+.pf-job-summary { padding: 10px 12px; border-radius: 10px; background: #f7f7f7; color: #616161; font-size: 13px; }
+.pf-job-summary.ok { background: #ecfdf3; color: #0c5132; font-weight: 500; }
