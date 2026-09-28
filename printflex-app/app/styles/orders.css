@@ -34,3 +34,22 @@
 
 /* Breathing room below the orders card, so the pager is not pinned to the bottom edge */
 .pf-orders-card { margin-block-end: 32px; }
+
+/* View tabs: a count pill beside each name */
+.pf-views__tab { display: inline-flex; align-items: center; gap: 7px; }
+.pf-views__count { display: inline-block; min-width: 20px; padding: 1px 7px; border-radius: 999px; background: #f1f1f1; color: #616161; font-size: 11px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.pf-views__tab[aria-current="page"] .pf-views__count { background: #fdefe3; color: #a84206; }
+.pf-views__count.is-alert { background: #fdefe3; color: #a84206; }
+
+/* Table cells */
+.pf-order-link { font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 650; color: #a84206; text-decoration: none; font-variant-numeric: tabular-nums; }
+.pf-order-link:hover { text-decoration: underline; }
+.pf-order-link.is-hit { background: #fdefe3; border-radius: 4px; padding: 1px 4px; margin: -1px -4px; }
+.pf-cust { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.pf-cust__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-cc { flex: 0 0 auto; padding: 1px 6px; border-radius: 5px; background: #f3f3f3; border: 1px solid #e6e6e6; color: #616161; font-size: 10.5px; font-weight: 600; letter-spacing: .03em; }
+.pf-money { display: inline-flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pf-money strong { font-weight: 600; color: #303030; }
+.pf-money span { font-size: 11px; font-weight: 500; color: #8a8a8a; }
+.pf-docchips { display: inline-flex; gap: 4px; }
+.pf-docchip { padding: 1px 7px; border-radius: 999px; background: #f3f3f3; border: 1px solid #e6e6e6; color: #4a4a4a; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; }

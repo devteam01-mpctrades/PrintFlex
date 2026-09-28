@@ -18,6 +18,7 @@ import { getQueue } from "../lib/jobs/worker.server";
 import { createPrintLink } from "../lib/render/fallback.server";
 import { capacityMessage, checkCapacity } from "../lib/meter.server";
 import {
+  countViews,
   filterQueryString,
   hasActiveFilters,
   listOrders,
@@ -46,6 +47,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     latestSyncRun(shop.id),
     prisma.orderIndex.count({ where: { shopId: shop.id } }),
   ]);
+  const viewCounts = await countViews(shop.id, views, shop.timezone);
 
   return {
     shopId: shop.id,
@@ -59,6 +61,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     list,
     facets,
     views,
+    viewCounts,
     canSave,
   };
 };
@@ -320,6 +323,7 @@ export default function OrdersPage() {
       <s-section padding="none" accessibilityLabel="Orders">
         <SavedViewsBar
           views={data.views}
+          counts={data.viewCounts}
           activeQuery={queryString}
           hasFilters={data.hasFilters}
           canSave={data.canSave}

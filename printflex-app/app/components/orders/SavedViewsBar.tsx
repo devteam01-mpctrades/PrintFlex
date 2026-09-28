@@ -5,6 +5,8 @@ import { Btn } from "../ui";
 
 interface Props {
   views: SavedViewItem[];
+  /** Orders matching each view, by view id. */
+  counts: Record<string, number>;
   activeQuery: string;
   hasFilters: boolean;
   canSave: boolean;
@@ -23,7 +25,7 @@ interface SaveResult {
  * "Save this view" appears once filters differ from every saved view; the
  * plan limit is explained only when the merchant reaches for it.
  */
-export function SavedViewsBar({ views, activeQuery, hasFilters, canSave, planName }: Props) {
+export function SavedViewsBar({ views, counts, activeQuery, hasFilters, canSave, planName }: Props) {
   const navigate = useNavigate();
   const fetcher = useFetcher<SaveResult>();
   const nameRef = useRef<HTMLElementTagNameMap["s-text-field"]>(null);
@@ -58,6 +60,9 @@ export function SavedViewsBar({ views, activeQuery, hasFilters, canSave, planNam
               aria-current={isActive ? "page" : undefined}
             >
               {view.name}
+              {counts[view.id] !== undefined ? (
+                <span className={`pf-views__count${view.id === "builtin:needs-review" && counts[view.id] > 0 ? " is-alert" : ""}`}>{counts[view.id]}</span>
+              ) : null}
             </Link>
           );
         })}

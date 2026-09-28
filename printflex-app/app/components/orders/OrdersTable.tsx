@@ -112,27 +112,30 @@ export function OrdersTable(props: Props) {
                   <Check value={row.id} aria-label={`Select ${row.orderName}`} checked={selected} onChange={(event) => props.onToggle(index, event.target.checked, shiftRef.current)} />
                 </s-table-cell>
                 <Cell width="sm">
-                  <s-link href={`shopify://admin/orders/${row.shopifyOrderNumber}`} tone={highlighted ? "auto" : "neutral"}>
-                    <s-text type="strong" fontVariantNumeric="tabular-nums">{row.orderName}</s-text>
-                  </s-link>
+                  <a className={`pf-order-link${highlighted ? " is-hit" : ""}`} href={`shopify://admin/orders/${row.shopifyOrderNumber}`}>{row.orderName}</a>
                 </Cell>
                 <Cell width="md">
-                  {row.customerName ?? "Guest"}
-                  {row.countryCode ? ` · ${row.countryCode}` : ""}
+                  <span className="pf-cust">
+                    <span className="pf-cust__name">{row.customerName ?? "Guest"}</span>
+                    {row.countryCode ? <span className="pf-cc">{row.countryCode}</span> : null}
+                  </span>
                 </Cell>
                 <Cell width="xs" align="end">
                   <s-text fontVariantNumeric="tabular-nums">{row.itemCount}</s-text>
                 </Cell>
                 <Cell width="md" align="end">
-                  <s-text fontVariantNumeric="tabular-nums">
-                    {row.totalAmount} {row.currency}
-                  </s-text>
+                  <span className="pf-money">
+                    <strong>{row.totalAmount}</strong>
+                    <span>{row.currency}</span>
+                  </span>
                 </Cell>
                 <Cell width="xs">
                   {row.documents.length === 0 ? (
                     <s-text color="subdued">—</s-text>
                   ) : (
-                    <s-text color="subdued" fontVariantNumeric="tabular-nums">{documentsLabel(row.documents)}</s-text>
+                    <span className="pf-docchips" aria-label={documentsLabel(row.documents)}>
+                      {DOC_ORDER.filter((d) => row.documents.includes(d)).map((d) => <span key={d} className="pf-docchip">{DOC_LABEL[d]}</span>)}
+                    </span>
                   )}
                 </Cell>
                 <Cell>

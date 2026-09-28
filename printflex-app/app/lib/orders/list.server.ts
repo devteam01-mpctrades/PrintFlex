@@ -299,3 +299,11 @@ export async function resolveSelection(
     truncated,
   };
 }
+
+/** How many orders each saved view matches right now, for the count pills on the view tabs. */
+export async function countViews(shopId: string, views: ReadonlyArray<{ id: string; query: string }>, timezone: string): Promise<Record<string, number>> {
+  const counts = await Promise.all(
+    views.map((v) => prisma.orderIndex.count({ where: buildWhere(shopId, parseFilters(new URLSearchParams(v.query)), timezone) })),
+  );
+  return Object.fromEntries(views.map((v, i) => [v.id, counts[i]]));
+}
