@@ -10,11 +10,17 @@ import { pinAttemptAllowed, resetPinAttempts, verifyPinHash } from "./pin.server
  * matches the shop's current one.
  */
 
-export const deviceCookie = createCookie("pf_device", {
+/**
+ * Path "/", not "/scan": the scan page's client-side data request is
+ * /scan.data, which a cookie scoped to /scan never reaches, so a phone that
+ * had just signed in landed on "Not signed in". Renamed from pf_device so an
+ * old /scan-scoped cookie still on a phone cannot shadow the new one.
+ */
+export const deviceCookie = createCookie("pf_scan_device", {
   httpOnly: true,
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
-  path: "/scan",
+  path: "/",
   maxAge: 180 * 24 * 3600,
 });
 

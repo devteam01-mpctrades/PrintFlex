@@ -29,8 +29,10 @@ describe("store PIN and devices", () => {
     expect(await signInDevice(s.id, "4821", "   ", "ip")).toEqual({ ok: false, reason: "name" });
     const signedIn = await signInDevice(s.id, "4821", "Bench 1", "ip", new Date(), "Sila");
     if (!signedIn.ok) throw new Error("expected sign-in");
-    expect(signedIn.setCookie).toMatch(/^pf_device=/);
+    expect(signedIn.setCookie).toMatch(/^pf_scan_device=/);
     expect(signedIn.setCookie).toMatch(/HttpOnly/);
+    // Path=/ so the scan page's own data request (/scan.data) carries the cookie; Path=/scan would not.
+    expect(signedIn.setCookie).toMatch(/; Path=\/(;|$)/);
 
     const session = await getDeviceSession(requestWith(signedIn.setCookie));
     expect(session).toMatchObject({ shopId: s.id, name: "Bench 1", staffLabel: "Sila" });
