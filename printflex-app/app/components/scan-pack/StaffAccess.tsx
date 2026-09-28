@@ -12,7 +12,6 @@ export interface DeviceItem {
 }
 
 interface Props {
-  hasPin: boolean;
   enrolUrl: string;
   /** Server-rendered SVG from the qrcode library. */
   qrSvg: string;
@@ -48,8 +47,8 @@ function relative(iso: string): string {
   return `${Math.round(hours / 24)} days ago`;
 }
 
-/** Enrol a phone: one QR to scan, a link to fall back on, the PIN state, and who is signed in. */
-export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetcher, collapsible = false }: Props) {
+/** Enrol a phone: one QR to scan, a link to fall back on, and who is signed in. (The PIN lives in Settings.) */
+export function StaffAccess({ enrolUrl, qrSvg, devices, timezone, fetcher, collapsible = false }: Props) {
   const [copied, setCopied] = useState(false);
   const [showEnrol, setShowEnrol] = useState(!collapsible);
   const busy = fetcher.state !== "idle";
@@ -108,12 +107,6 @@ export function StaffAccess({ hasPin, enrolUrl, qrSvg, devices, timezone, fetche
           </div>
         </div>
       ) : null}
-
-      <div className="pf-pinrow">
-        <span className="pf-pinrow__label">Store PIN</span>
-        <span className={`pf-badge ${hasPin ? "pf-b-ok" : "pf-b-crit"}`}>{hasPin ? "Set" : "Not set"}</span>
-        <Btn variant="tertiary" className="pf-pinrow__action" href="/app/settings">{hasPin ? "Rotate in Settings" : "Set it in Settings"}</Btn>
-      </div>
 
       {devices.length === 0 ? (
         <div className="pf-panel__empty">

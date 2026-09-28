@@ -96,7 +96,7 @@ export default function ScanPackPage() {
   const stats = <StatCards packedToday={data.packedToday} devicesToday={data.devicesToday} medianLabel={median} needsReview={data.needsReview} />;
   // Once staff are scanning, enrolment folds away inside the same card instead of a second one.
   const staffAccess = (
-    <StaffAccess hasPin={data.hasPin} enrolUrl={data.enrolUrl} qrSvg={data.qrSvg} devices={data.devices} timezone={data.timezone} fetcher={fetcher} collapsible={data.running} />
+    <StaffAccess enrolUrl={data.enrolUrl} qrSvg={data.qrSvg} devices={data.devices} timezone={data.timezone} fetcher={fetcher} collapsible={data.running} />
   );
   const packerPreview = <PackerPreview src={data.previewSrc} sample={data.previewIsSample} />;
   const batchProgress = <BatchProgress batch={data.batch} />;

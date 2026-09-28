@@ -145,10 +145,7 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
   .pf-enrol { flex-direction: column; align-items: flex-start; }
 }
 
-/* Store PIN row and the device list */
-.pf-pinrow { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--pf-border); background: var(--pf-card-2); }
-.pf-pinrow__label { font-weight: 600; }
-.pf-pinrow__action { margin-left: auto; }
+/* Device list */
 .pf-devices { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--pf-border); }
 .pf-devices li { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--pf-border); flex-wrap: wrap; }
 .pf-devices li:last-child { border-bottom: 0; }
