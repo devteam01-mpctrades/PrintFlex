@@ -132,25 +132,45 @@ export default function BillingPage() {
             <div className="right"><span className="pf-badge pf-b-brand">{usage.periodLabel}</span></div>
           </div>
           <div className="pf-panel__b">
-            <div className="pf-usage">
-              <span className={`n${ratio >= 1 ? " crit" : ""}`}>{usage.used}</span>
-              <span className="t">
-                {usage.limit === null
-                  ? "metered orders used · no cap on this plan"
-                  : `of ${usage.limit} metered orders used · ${usage.daysRemaining} ${usage.daysRemaining === 1 ? "day" : "days"} remaining`}
-              </span>
-            </div>
-            {usage.limit !== null ? (
-              <div className={`pf-meterbar${ratio >= 1 ? " crit" : ""}`} role="progressbar" aria-label="Metered orders used" aria-valuemin={0} aria-valuemax={usage.limit} aria-valuenow={usage.used}>
-                <i style={{ width: `${Math.min(100, ratio * 100)}%` }} />
+            <div className="pf-period">
+              <div className="pf-period__main">
+                <div className="pf-usage">
+                  <span className={`n${ratio >= 1 ? " crit" : ""}`}>{usage.used}</span>
+                  {usage.limit !== null ? <span className="of">/ {usage.limit}</span> : null}
+                  <span className="t">metered orders</span>
+                </div>
+                {usage.limit !== null ? (
+                  <div className={`pf-meterbar${ratio >= 1 ? " crit" : ""}`} role="progressbar" aria-label="Metered orders used" aria-valuemin={0} aria-valuemax={usage.limit} aria-valuenow={usage.used}>
+                    <i style={{ width: `${Math.min(100, ratio * 100)}%` }} />
+                  </div>
+                ) : null}
+                <p className="pf-period__sub">
+                  {usage.limit === null
+                    ? `No cap on this plan · resets ${usage.resetLabel}`
+                    : `${Math.max(0, usage.limit - usage.used)} left · resets ${usage.resetLabel} (${usage.daysRemaining} ${usage.daysRemaining === 1 ? "day" : "days"})`}
+                </p>
               </div>
-            ) : null}
-            <div className="pf-note">
-              <b>What counts as one order.</b> One unit is one order for which at least one PrintFlex document was generated this calendar month, in your
-              store&rsquo;s timezone. Reprinting the same order this month is free. A pick list covering 40 orders counts those 40 once. A failed render
-              counts nothing. <b>Orders you never print are never counted</b> &mdash; your store received {usage.ordersThisPeriod.toLocaleString("en-US")} orders
-              this month and {usage.used} of them used the app.
+              <div className="pf-period__stats">
+                <div>
+                  <span>Orders received</span>
+                  <strong>{usage.ordersThisPeriod.toLocaleString("en-US")}</strong>
+                </div>
+                <div className="counted">
+                  <span>Counted</span>
+                  <strong>{usage.used.toLocaleString("en-US")}</strong>
+                </div>
+                <div className="free">
+                  <span>Free, never printed</span>
+                  <strong>{Math.max(0, usage.ordersThisPeriod - usage.used).toLocaleString("en-US")}</strong>
+                </div>
+              </div>
             </div>
+            <ul className="pf-rules" aria-label="What counts as one order">
+              <li>One order counts once a month</li>
+              <li>Reprints are free</li>
+              <li>A pick list counts each order once</li>
+              <li>Failed prints never count</li>
+            </ul>
           </div>
         </div>
 
