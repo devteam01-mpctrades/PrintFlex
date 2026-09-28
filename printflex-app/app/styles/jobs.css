@@ -6,32 +6,26 @@
 }
 
 /* Progress bar: orange while rendering, green when done */
-.pf-job-bar { height: 10px; border-radius: 999px; background: #f1ebe5; overflow: hidden; }
-.pf-job-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f59e0b, #e25b07); transition: width .3s; }
-.pf-job-bar.done i { background: linear-gradient(90deg, #34d399, #15803d); }
+.pf-job-bar { height: 8px; border-radius: 999px; background: #efefef; overflow: hidden; }
+.pf-job-bar i { display: block; height: 100%; border-radius: inherit; background: #e25b07; transition: width .3s; }
+.pf-job-bar.done i { background: #1a7f4b; }
 .pf-job-bar.failed i { background: #c8321e; }
 
-/* Three figures, each with its own colour and icon */
+/* Three figures: neutral tiles, one accent (the icon) */
 .pf-job-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.pf-job-stats > div { --tone: #e25b07; --soft: #fdefe3; --ink: #a84206; position: relative; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 12px 14px; border-radius: 12px; background: linear-gradient(180deg, var(--soft), #fff 85%); border: 1px solid color-mix(in srgb, var(--tone) 22%, #fff); overflow: hidden; }
-.pf-job-stats > div::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--tone); }
-.pf-job-stats > div.time { --tone: #2563eb; --soft: #e8f0ff; --ink: #1d4ed8; }
-.pf-job-stats > div.size { --tone: #7c3aed; --soft: #f1e8ff; --ink: #5b21b6; }
-.pf-job-stats b { grid-row: 1 / span 2; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--tone); box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 25%, #fff); }
-.pf-job-stats span { font-size: 12px; font-weight: 600; color: var(--ink); }
-.pf-job-stats strong { font-size: 20px; font-weight: 700; color: #1f1f1f; font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1.15; }
+.pf-job-stats > div { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 12px 14px; border-radius: 12px; background: #fff; border: 1px solid #e3e3e3; }
+.pf-job-stats b { grid-row: 1 / span 2; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #f4f4f4; color: #e25b07; }
+.pf-job-stats span { font-size: 12px; font-weight: 500; color: #616161; }
+.pf-job-stats strong { font-size: 20px; font-weight: 650; color: #303030; font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1.15; }
 
 /* How it went and when */
 .pf-job-summary { padding: 10px 12px; border-radius: 10px; background: #f7f7f7; color: #616161; font-size: 13px; }
-.pf-job-summary.ok { background: #ecfdf3; color: #0c5132; font-weight: 600; border: 1px solid #b7ebc9; }
+.pf-job-summary.ok { background: #f1f8f4; color: #0c5132; font-weight: 500; }
 
-/* File groups: soft tinted panels with an icon beside the title */
-.pf-job-group { --tone: #e25b07; --soft: #fdefe3; --rule: #f9d9bc; --ink: #a84206; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--soft); border: 1px solid var(--rule); }
-.pf-job-group.again { --tone: #2563eb; --soft: #eef4ff; --rule: #cddcfb; --ink: #1d4ed8; }
-.pf-job-group__title { display: flex; align-items: center; gap: 8px; font-weight: 650; font-size: 13px; color: var(--ink); }
-.pf-job-group__title b { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #fff; color: var(--tone); }
+/* File groups: quiet grey panels, orange icon beside the title */
+.pf-job-group { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #fafafa; border: 1px solid #ebebeb; }
+.pf-job-group__title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; color: #303030; }
+.pf-job-group__title b { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #fff; border: 1px solid #ebebeb; color: #e25b07; }
 .pf-job-group__title b svg { width: 15px; height: 15px; }
 .pf-job-group > s-stack { display: block; }
 .pf-job-group p { margin: 0; font-size: 12.5px; color: #616161; }
-.pf-job-group .pf-btn--secondary { background: #fff; border-color: var(--rule); color: var(--ink); }
-.pf-job-group .pf-btn--secondary:hover { background: color-mix(in srgb, var(--soft) 60%, #fff); }
