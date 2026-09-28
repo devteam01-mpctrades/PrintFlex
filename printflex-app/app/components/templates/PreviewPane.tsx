@@ -43,7 +43,6 @@ export function PreviewPane({ name, html, loading, orderName, sample, previewLab
         <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
           <s-stack direction="inline" gap="small" alignItems="center">
             <s-heading>{name}</s-heading>
-            {loading ? <s-spinner size="base" accessibilityLabel="Rendering preview"></s-spinner> : null}
             <s-badge tone={dirty ? "warning" : "neutral"}>{dirty ? "Unsaved changes" : previewLabel}</s-badge>
           </s-stack>
           <s-stack direction="inline" gap="small" alignItems="center">
@@ -64,8 +63,14 @@ export function PreviewPane({ name, html, loading, orderName, sample, previewLab
           </s-banner>
         </s-box>
       ) : null}
-      <s-box padding="base" background="subdued">
-        <div ref={frameRef} style={{ width: "100%", height: Math.round(SHEET_HEIGHT * scale), overflow: "hidden", position: "relative" }}>
+      <div className="pf-canvas">
+        <div ref={frameRef} className="pf-canvas__sheet" style={{ height: Math.round(SHEET_HEIGHT * scale) }}>
+          {loading || !html ? (
+            <div className="pf-canvas__loading" role="status">
+              <span className="pf-canvas__spin" aria-hidden="true" />
+              <span>Rendering preview{orderName && !sample ? ` of ${orderName}` : ""}…</span>
+            </div>
+          ) : null}
           <iframe
             title={`Preview of ${name}${orderName ? ` on ${orderName}` : ""}`}
             srcDoc={html}
@@ -74,16 +79,15 @@ export function PreviewPane({ name, html, loading, orderName, sample, previewLab
               width: SHEET_WIDTH,
               height: SHEET_HEIGHT,
               border: 0,
-              borderRadius: 8,
-              background: "#e5e7eb",
+              background: "#fff",
               transform: `scale(${scale})`,
               transformOrigin: "top left",
-              opacity: loading ? 0.6 : 1,
+              opacity: loading || !html ? 0.35 : 1,
               transition: "opacity .15s",
             }}
           />
         </div>
-      </s-box>
+      </div>
       <s-divider></s-divider>
       <s-box padding="base">
         <s-text color="subdued">

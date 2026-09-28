@@ -1,3 +1,4 @@
+import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNativeEvent } from "../orders/useNativeEvent";
 import { describeRank, previewRank, type AssignmentRule, type RankedTemplate } from "../../lib/templates/rules";
@@ -47,6 +48,28 @@ function kindOf(rule: AssignmentRule): RuleKind {
 
 function parseList(value: string): string[] {
   return [...new Set(value.split(/[,\n]/).map((s) => s.trim()).filter(Boolean))];
+}
+
+const GROUP_ICON = {
+  basics: <><path d="M4 7h16M4 12h16M4 17h10" /></>,
+  brand: <><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 0 0 16c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h1a4 4 0 0 0 4-4 6 6 0 0 0-8-6" /></>,
+  rule: <><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0M16 8h5M18.5 5.5v5" /></>,
+  content: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>,
+};
+
+/** One titled block of settings with a small icon, so the pane reads in sections rather than as one long list. */
+function Group({ icon, title, children }: { icon: keyof typeof GROUP_ICON; title: string; children: React.ReactNode }) {
+  return (
+    <div className="pf-sgroup">
+      <div className="pf-sgroup__title">
+        <span className="pf-sgroup__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{GROUP_ICON[icon]}</svg>
+        </span>
+        {title}
+      </div>
+      {children}
+    </div>
+  );
 }
 
 /**
@@ -143,8 +166,17 @@ export function SettingsPane({ template, fonts, siblings, perMarket, onChanged, 
       <s-divider></s-divider>
       <s-box padding="base">
         <s-stack gap="large">
-          <s-text-field name="name" label="Template name" value={template.name}></s-text-field>
+          <Group icon="basics" title="Basics">
+            <s-text-field name="name" label="Template name" value={template.name}></s-text-field>
+            <s-select name="paperSize" label="Paper size" value={s.paperSize}>
+              <s-option value="A4">A4</s-option>
+              <s-option value="LETTER">US Letter</s-option>
+            </s-select>
+          </Group>
 
+          <s-divider></s-divider>
+
+          <Group icon="brand" title="Branding">
           {/* Logo */}
           <s-stack gap="small">
             <input type="hidden" name="logoAction" value={logoAction} />
@@ -223,12 +255,11 @@ export function SettingsPane({ template, fonts, siblings, perMarket, onChanged, 
             <s-color-field ref={colorRef} name="accentColor" label="Custom colour" labelAccessibilityVisibility="exclusive" value={s.accentColor}></s-color-field>
             <s-text color="subdued">Used for headings and rules on the printed document only.</s-text>
           </s-stack>
+          </Group>
 
-          <s-select name="paperSize" label="Paper size" value={s.paperSize}>
-            <s-option value="A4">A4</s-option>
-            <s-option value="LETTER">US Letter</s-option>
-          </s-select>
+          <s-divider></s-divider>
 
+          <Group icon="rule" title="Who gets this template">
           {/* Assign to */}
           <s-stack gap="small">
             <s-select ref={kindRef} name="rule.kind" label="Assign to" value={kind}>
@@ -260,16 +291,22 @@ export function SettingsPane({ template, fonts, siblings, perMarket, onChanged, 
               <s-text color="subdued">{describeRank(rank, template.typeLabel)}</s-text>
             )}
           </s-stack>
+          </Group>
 
+          <s-divider></s-divider>
+
+          <Group icon="content" title="What’s on the document">
           {/* Toggles */}
           <s-stack gap="small">
-            <s-text type="strong">Show on this document</s-text>
             {toggles.map((t) =>
               t.kind === "field"
                 ? toggle(`field.${t.key}`, s.fields[t.key], t.label)
                 : toggle(`codes.${t.key}`, s.codes[t.key], t.label, t.key === "qr" ? "Opens the order in scan mode" : "Code 128 of the order number"),
             )}
           </s-stack>
+          </Group>
+
+          <s-divider></s-divider>
 
           {/* Advanced */}
           <s-stack gap="small">
@@ -326,11 +363,12 @@ export function SettingsPane({ template, fonts, siblings, perMarket, onChanged, 
           </s-stack>
 
           {template.canDelete ? (
-            <s-box paddingBlockStart="small">
-              <Btn variant="tertiary" tone="critical" disabled={busy || undefined} onClick={onDelete}>
+            <>
+              <s-divider></s-divider>
+              <Btn variant="tertiary" tone="critical" icon="delete" disabled={busy || undefined} onClick={onDelete}>
                 Delete this template
               </Btn>
-            </s-box>
+            </>
           ) : null}
         </s-stack>
       </s-box>

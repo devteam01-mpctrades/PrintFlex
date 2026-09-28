@@ -78,3 +78,27 @@
 .pf-logo__hint { font-size: 12px; color: #616161; }
 .pf-logo__actions { flex: 1 1 100%; display: flex; gap: 8px; }
 .pf-logo__actions .pf-btn { flex: 1 1 0; }
+
+/* ---------------------------------------------------------------- Preview canvas
+ * The sheet sits on a quiet canvas with a paper shadow; while it renders, a
+ * centred spinner says so instead of an empty grey box.
+ */
+.pf-canvas { padding: 20px; background: #f1f1f1; }
+.pf-canvas__sheet { position: relative; width: 100%; overflow: hidden; border-radius: 4px; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 8px 24px rgba(0, 0, 0, .08); }
+.pf-canvas__loading { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 500; color: #616161; background: rgba(255, 255, 255, .55); }
+.pf-canvas__spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid #f9d9bc; border-top-color: #e25b07; animation: pf-canvas-spin .8s linear infinite; }
+@keyframes pf-canvas-spin { to { transform: rotate(360deg); } }
+
+/* Template list: header action, group icons and counts */
+.pf-tlist__h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pf-tlist__new { padding: 5px 10px; font-size: 12px; }
+.pf-tlist__kicker { display: flex; align-items: center; gap: 7px; }
+.pf-tlist__icon { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; background: #f4f4f4; color: var(--pf-brand); flex: 0 0 auto; }
+.pf-tlist__count { margin-left: auto; font-family: var(--pf-mono); font-size: 10.5px; color: var(--pf-sub); letter-spacing: 0; }
+.pf-tlist__row { padding-block: 9px; }
+.pf-tlist__groups { gap: 10px; padding: 10px 8px 8px; }
+
+/* Settings: grouped sections with a small icon and title */
+.pf-sgroup { display: flex; flex-direction: column; gap: 12px; }
+.pf-sgroup__title { display: flex; align-items: center; gap: 8px; font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 650; color: #303030; }
+.pf-sgroup__icon { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; background: #f4f4f4; color: #e25b07; flex: 0 0 auto; }

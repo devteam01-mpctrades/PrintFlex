@@ -34,6 +34,28 @@ export interface BtnProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
 }
 
 export function Btn({ variant = "secondary", tone, href, target, loading, icon, type = "button", commandFor, command, className, children, disabled, ...rest }: BtnProps) {
+  // Slotted buttons (modal footers, banner and page actions) must be Polaris <s-button>: the host components
+  // only render s-button children in those slots, so a plain <button> there silently disappears.
+  if (rest.slot) {
+    const { slot, onClick, "aria-label": ariaLabel } = rest as { slot: string; onClick?: () => void; "aria-label"?: string };
+    return (
+      <s-button
+        slot={slot as Lowercase<string>}
+        variant={variant}
+        tone={tone === "critical" ? "critical" : undefined}
+        href={href && !disabled ? href : undefined}
+        target={target as "_blank" | "_self" | "_parent" | "_top" | "auto" | undefined}
+        commandFor={commandFor}
+        command={command as "--show" | "--hide" | "--toggle" | "--auto" | undefined}
+        disabled={disabled || undefined}
+        loading={loading || undefined}
+        accessibilityLabel={ariaLabel}
+        onClick={onClick ? () => onClick() : undefined}
+      >
+        {children}
+      </s-button>
+    );
+  }
   const cls = ["pf-btn", `pf-btn--${variant === "auto" ? "secondary" : variant}`, tone === "critical" ? "pf-btn--critical" : "", className ?? ""].filter(Boolean).join(" ");
   const glyph = icon && ICONS[icon] ? <span className="pf-btn__icon" aria-hidden="true">{ICONS[icon]}</span> : null;
   const body = (

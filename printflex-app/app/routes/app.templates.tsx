@@ -278,10 +278,6 @@ export default function TemplatesPage() {
 
   return (
     <s-page heading="Templates" inlineSize="large">
-      <Btn slot="primary-action" variant="primary" commandFor="new-template" command="--show">
-        New template
-      </Btn>
-
       {saver.data?.message && saver.state === "idle" ? (
         <s-banner tone={saver.data.ok ? "success" : "critical"} heading={saver.data.ok ? undefined : "Not saved"}>
           <s-paragraph>{saver.data.message}</s-paragraph>
@@ -299,6 +295,7 @@ export default function TemplatesPage() {
             savedLabel={relativeTime(template.updatedAt)}
             hasHistory={versions.length > 1}
             onRestore={() => versionsModalRef.current?.showOverlay()}
+            onNew={() => newModalRef.current?.showOverlay()}
           />
           <PreviewPane
             name={template.name}
