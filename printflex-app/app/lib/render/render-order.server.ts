@@ -55,6 +55,8 @@ export async function renderDocumentForOrder(
   documentType: DocumentType,
   deps: RenderDeps,
   jobId?: string,
+  /** Render with this template instead of the one the assignment rules pick (a re-print from the batch page). */
+  options: { templateId?: string } = {},
 ): Promise<RenderOutcome> {
   assertSingleType(documentType);
   const now = deps.now?.() ?? new Date();
@@ -66,7 +68,9 @@ export async function renderDocumentForOrder(
     }),
   ]);
   if (order.shopId !== shopId) throw new Error("Order does not belong to this shop");
-  const resolved = await templatePicker(shopId)(documentType, orderContext(order));
+  const resolved = options.templateId
+    ? await chosenTemplate(shopId, documentType, options.templateId)
+    : await templatePicker(shopId)(documentType, orderContext(order));
 
   const cached = await prisma.document.findFirst({
     where: { shopId, orderId, documentType, templateId: resolved.template.id, templateVersion: resolved.template.version },
@@ -99,6 +103,20 @@ export async function renderDocumentForOrder(
 
   await afterGeneration(shop, [order], deps.client, now);
   return { document, cached: false };
+}
+
+export class TemplateNotUsableError extends Error {
+  constructor() {
+    super("That template is not available for this document. Pick another one, or reload the page to see your current templates.");
+    this.name = "TemplateNotUsableError";
+  }
+}
+
+/** A template the merchant picked by hand: must be theirs, active, and for this document type. */
+async function chosenTemplate(shopId: string, documentType: DocumentType, templateId: string) {
+  const template = await prisma.template.findFirst({ where: { id: templateId, shopId, documentType, active: true } });
+  if (!template) throw new TemplateNotUsableError();
+  return { template, settings: parseTemplateSettings(template.settingsJson) };
 }
 
 /** Insert the Document row. The invoice number moves to the newest row for the order. */

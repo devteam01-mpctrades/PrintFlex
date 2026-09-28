@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useFetcher, useLoaderData, useRevalidator } from "react-router";
+import { useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { RouteError } from "../components/RouteError";
 import { downloadFile } from "../components/download";
 import prisma from "../db.server";
 import { getQueue } from "../lib/jobs/worker.server";
+import { latestPerOrderAndType, printTypeFromBatch, reprintDocument } from "../lib/jobs/reprint.server";
 import { createPrintLink, shouldOfferFallback } from "../lib/render/fallback.server";
+import { puppeteerRenderer } from "../lib/render/pdf.server";
+import { templatesForType } from "../lib/templates/templates.server";
 import { batchLabel } from "../lib/render/render-batch.server";
 import { requireShop } from "../lib/request.server";
 import type { DocumentType, JobState } from "../lib/types";
@@ -32,11 +35,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const job = await prisma.documentJob.findFirst({
     where: { id: params.id, shopId: shop.id },
     include: {
-      documents: { orderBy: { renderedAt: "asc" }, include: { order: { select: { orderName: true, customerName: true } } } },
+      documents: {
+        orderBy: { renderedAt: "asc" },
+        include: { order: { select: { orderName: true, customerName: true } }, template: { select: { name: true } } },
+      },
     },
   });
   if (!job) throw new Response("This batch does not exist.", { status: 404 });
   const now = new Date();
+  const [invoiceTemplates, slipTemplates] = await Promise.all([templatesForType(shop.id, "INVOICE"), templatesForType(shop.id, "PACKING_SLIP")]);
+  const pick = (t: { id: string; name: string }) => ({ id: t.id, name: t.name });
   return {
     job: {
       id: job.id,
@@ -53,27 +61,60 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       startedAt: job.startedAt?.toISOString() ?? null,
       finishedAt: job.finishedAt?.toISOString() ?? null,
     },
-    documents: job.documents.map((d) => ({
-      id: d.id,
-      type: d.documentType as DocumentType,
-      orderName: d.order.orderName,
-      customerName: d.order.customerName,
-      invoiceNumber: d.invoiceNumber,
-    })),
+    // A re-print adds a document to the batch; list only the newest per order and type.
+    documents: latestPerOrderAndType(
+      job.documents.map((d) => ({
+        id: d.id,
+        orderId: d.orderId,
+        type: d.documentType as DocumentType,
+        orderName: d.order.orderName,
+        customerName: d.order.customerName,
+        invoiceNumber: d.invoiceNumber,
+        templateId: d.templateId,
+        templateName: d.template.name,
+        renderedAt: d.renderedAt.toISOString(),
+      })),
+    ),
+    templates: { INVOICE: invoiceTemplates.map(pick), PACKING_SLIP: slipTemplates.map(pick) } as Partial<Record<DocumentType, Array<{ id: string; name: string }>>>,
   };
 };
 
-type ActionResult = { ok: boolean; message: string; printUrl?: string };
+type ActionResult = { ok: boolean; message: string; printUrl?: string; jobId?: string };
 
 export const action = async ({ request, params }: ActionFunctionArgs): Promise<ActionResult> => {
-  const { shop } = await requireShop(request);
+  const { shop, admin } = await requireShop(request);
   const job = await prisma.documentJob.findFirst({ where: { id: params.id, shopId: shop.id } });
   if (!job) throw new Response("This batch does not exist.", { status: 404 });
-  const intent = String((await request.formData()).get("intent") ?? "");
+  const form = await request.formData();
+  const intent = String(form.get("intent") ?? "");
 
   if (intent === "cancel") {
     const cancelled = await getQueue().cancel(job.id);
     return { ok: cancelled, message: cancelled ? "Cancelling…" : "This batch has already finished." };
+  }
+  if (intent === "printType") {
+    const type = String(form.get("documentType") ?? "") as DocumentType;
+    const created = await printTypeFromBatch(shop.id, job.id, type);
+    if (!created.ok) return { ok: false, message: created.message };
+    try {
+      await getQueue().enqueue(created.jobId);
+    } catch (error) {
+      // Printing is never blocked: hand the merchant the browser print view instead.
+      console.error(`Queue unavailable for ${created.label}`, error);
+      return {
+        ok: true,
+        jobId: created.jobId,
+        printUrl: await createPrintLink(shop.id, created.jobId),
+        message: `The render queue is unavailable, so ${created.label} will print from your browser instead.`,
+      };
+    }
+    return { ok: true, jobId: created.jobId, message: `Rendering ${created.count} ${created.count === 1 ? "order" : "orders"} as ${created.label}.` };
+  }
+  if (intent === "reprint") {
+    const result = await reprintDocument(shop.id, String(form.get("documentId") ?? ""), String(form.get("templateId") ?? ""), { client: admin, pdf: puppeteerRenderer });
+    return result.ok
+      ? { ok: true, message: `${result.orderName} re-printed with ${result.templateName}. Download it below; the combined PDF still has the earlier version.` }
+      : { ok: false, message: result.message };
   }
   if (intent === "fallback") {
     const printUrl = await createPrintLink(shop.id, job.id);
@@ -88,9 +129,36 @@ function formatBytes(bytes: number | null): string {
 }
 
 export default function JobPage() {
-  const { job, documents } = useLoaderData<typeof loader>();
+  const { job, documents, templates } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
+  const navigate = useNavigate();
   const fetcher = useFetcher<ActionResult>();
+  // Mixed batches (invoice + packing slip) can be filtered and split by type.
+  const singleTypes = job.documentTypes.filter((t): t is Exclude<DocumentType, "PICK_LIST"> => t !== "PICK_LIST");
+  const mixed = singleTypes.length > 1;
+  const [filter, setFilter] = useState<"ALL" | DocumentType>("ALL");
+  const filtered = useMemo(() => (filter === "ALL" ? documents : documents.filter((d) => d.type === filter)), [documents, filter]);
+  // A 90-order batch has 180 rows; rendering them all as Polaris table rows kept the page unclickable for ~30s.
+  const PAGE = 25;
+  const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [filter]);
+  const shown = filtered.slice(0, limit);
+  const countOf = (t: DocumentType) => documents.filter((d) => d.type === t).length;
+  // Re-print one document with another template.
+  const [reprint, setReprint] = useState<(typeof documents)[number] | null>(null);
+  const reprintModalRef = useRef<HTMLElementTagNameMap["s-modal"]>(null);
+  const templateChoiceRef = useRef<HTMLElementTagNameMap["s-choice-list"]>(null);
+  const openReprint = (doc: (typeof documents)[number]) => {
+    setReprint(doc);
+    reprintModalRef.current?.showOverlay();
+  };
+  const submitReprint = () => {
+    const templateId = templateChoiceRef.current?.values?.[0];
+    if (!reprint || !templateId) return;
+    fetcher.submit({ intent: "reprint", documentId: reprint.id, templateId }, { method: "post" });
+    reprintModalRef.current?.hideOverlay();
+  };
+  const TYPE_PLURAL: Record<Exclude<DocumentType, "PICK_LIST">, string> = { INVOICE: "invoices", PACKING_SLIP: "packing slips" };
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const active = job.state === "QUEUED" || job.state === "RUNNING";
   const busy = fetcher.state !== "idle";
@@ -110,6 +178,15 @@ export default function JobPage() {
       fetcher.data.printUrl = undefined;
     }
   }, [fetcher.state, fetcher.data]);
+
+  // "Print invoices only" makes a new batch: go and watch it render.
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.ok && fetcher.data.jobId && !fetcher.data.printUrl) {
+      const next = fetcher.data.jobId;
+      fetcher.data.jobId = undefined;
+      navigate(`/app/jobs/${next}`);
+    }
+  }, [fetcher.state, fetcher.data, navigate]);
 
   const state = STATE[job.state];
   const download = async (url: string, name: string) => {
@@ -132,6 +209,9 @@ export default function JobPage() {
         </Btn>
       ) : null}
 
+      {fetcher.data && fetcher.state === "idle" && fetcher.data.message ? (
+        <s-banner tone={fetcher.data.ok ? "success" : "critical"}><s-paragraph>{fetcher.data.message}</s-paragraph></s-banner>
+      ) : null}
       {downloadError ? (
         <s-banner tone="critical"><s-paragraph>{downloadError}</s-paragraph></s-banner>
       ) : null}
@@ -181,14 +261,32 @@ export default function JobPage() {
                 Pick list only
               </Btn>
             ) : null}
+            {mixed && !active
+              ? singleTypes.map((t) => (
+                  <Btn key={t} variant="secondary" icon="print" disabled={busy || undefined} onClick={() => fetcher.submit({ intent: "printType", documentType: t }, { method: "post" })}>
+                    Print {TYPE_PLURAL[t]} only
+                  </Btn>
+                ))
+              : null}
           </s-stack>
           <s-paragraph color="subdued">
             One file, each order on a fresh sheet, in the order you selected them. Every sheet carries a QR code and a barcode.
+            {mixed ? " Print one type only to get a separate PDF of just the invoices or just the packing slips; it is not metered again this month." : ""}
           </s-paragraph>
         </s-section>
       ) : null}
 
       <s-section heading="Per-order documents">
+        {mixed && documents.length > 0 ? (
+          <s-stack direction="inline" gap="small-200">
+            <Btn variant={filter === "ALL" ? "primary" : "secondary"} onClick={() => setFilter("ALL")}>All ({documents.length})</Btn>
+            {singleTypes.map((t) => (
+              <Btn key={t} variant={filter === t ? "primary" : "secondary"} onClick={() => setFilter(t)}>
+                {DOC_LABEL[t]}s ({countOf(t)})
+              </Btn>
+            ))}
+          </s-stack>
+        ) : null}
         {documents.length === 0 ? (
           <s-paragraph>{active ? "Documents appear here when the batch finishes." : "No documents were produced."}</s-paragraph>
         ) : (
@@ -200,13 +298,24 @@ export default function JobPage() {
               <s-table-header></s-table-header>
             </s-table-header-row>
             <s-table-body>
-              {documents.map((doc) => (
+              {shown.map((doc) => (
                 <s-table-row key={doc.id}>
                   <s-table-cell>
                     <s-text type="strong" fontVariantNumeric="tabular-nums">{doc.orderName}</s-text>
                     {doc.customerName ? <s-text color="subdued"> · {doc.customerName}</s-text> : null}
                   </s-table-cell>
-                  <s-table-cell>{DOC_LABEL[doc.type]}</s-table-cell>
+                  <s-table-cell>
+                    {doc.type === "PICK_LIST" ? (
+                      DOC_LABEL[doc.type]
+                    ) : (
+                      <s-stack gap="none">
+                        <Btn variant="tertiary" icon="chevron-down" aria-label={`Change the template for ${DOC_LABEL[doc.type]} ${doc.orderName}`} onClick={() => openReprint(doc)}>
+                          {DOC_LABEL[doc.type]}
+                        </Btn>
+                        <s-text color="subdued">{doc.templateName}</s-text>
+                      </s-stack>
+                    )}
+                  </s-table-cell>
                   <s-table-cell><s-text fontVariantNumeric="tabular-nums">{doc.invoiceNumber ?? "—"}</s-text></s-table-cell>
                   <s-table-cell>
                     <Btn variant="tertiary" onClick={() => void download(`/app/documents/${doc.id}`, `${DOC_LABEL[doc.type]} ${doc.orderName}.pdf`)}>
@@ -218,7 +327,48 @@ export default function JobPage() {
             </s-table-body>
           </s-table>
         )}
+        {filtered.length > shown.length ? (
+          <s-stack direction="inline" gap="small" alignItems="center">
+            <Btn variant="secondary" onClick={() => setLimit((n) => n + PAGE * 2)}>Show {Math.min(PAGE * 2, filtered.length - shown.length)} more</Btn>
+            <s-text color="subdued">Showing {shown.length} of {filtered.length}</s-text>
+          </s-stack>
+        ) : null}
       </s-section>
+
+      <s-modal id="reprint-modal" heading={reprint ? `Re-print ${DOC_LABEL[reprint.type].toLowerCase()} · ${reprint.orderName}` : "Re-print"} ref={reprintModalRef}>
+        <s-stack gap="base">
+        {reprint ? (
+          (templates[reprint.type] ?? []).length > 1 ? (
+            <s-stack gap="small">
+              <s-paragraph color="subdued">
+                Pick the template to print this order with. The invoice number stays the same and the order is not metered again this month.
+              </s-paragraph>
+              <s-choice-list key={reprint.id} ref={templateChoiceRef} label="Template" labelAccessibilityVisibility="exclusive" values={[reprint.templateId]}>
+                {(templates[reprint.type] ?? []).map((t) => (
+                  <s-choice key={t.id} value={t.id}>
+                    {t.name}
+                    {t.id === reprint.templateId ? <s-text slot="details">Used for this batch</s-text> : null}
+                  </s-choice>
+                ))}
+              </s-choice-list>
+            </s-stack>
+          ) : (
+            <s-paragraph>
+              You have one {DOC_LABEL[reprint.type].toLowerCase()} template, so there is nothing else to print it with yet. Create another in Templates (for
+              example a gift invoice or a version per market), then come back to re-print this order with it.
+            </s-paragraph>
+          )
+        ) : null}
+        <s-stack direction="inline" gap="small" justifyContent="end">
+          <Btn onClick={() => reprintModalRef.current?.hideOverlay()}>Cancel</Btn>
+          {reprint && (templates[reprint.type] ?? []).length > 1 ? (
+            <Btn variant="primary" icon="print" disabled={busy || undefined} onClick={submitReprint}>Re-print</Btn>
+          ) : (
+            <Btn variant="primary" href="/app/templates">Go to Templates</Btn>
+          )}
+        </s-stack>
+        </s-stack>
+      </s-modal>
     </s-page>
   );
 }
