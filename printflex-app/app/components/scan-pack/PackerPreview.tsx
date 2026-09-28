@@ -13,7 +13,7 @@ interface Props {
 /** The live scan page, framed like a phone, rendered against a real order. */
 export function PackerPreview({ src, sample }: Props) {
   return (
-    <div className="pf-panel">
+    <div className="pf-panel" id="packer-preview">
       <div className="pf-panel__h"><h2>What the packer sees</h2></div>
       <div className="pf-phone-wrap">
         <div className="pf-phone" aria-label="Preview of scan mode on a phone">

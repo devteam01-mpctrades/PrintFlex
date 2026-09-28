@@ -80,7 +80,7 @@ export function ScanHistory({ history, timezone, canExport, planName }: Props) {
   };
 
   return (
-    <div className="pf-panel">
+    <div className="pf-panel" id="scan-history">
       <div className="pf-panel__h">
         <h2>Scan history</h2>
         <div className="right">

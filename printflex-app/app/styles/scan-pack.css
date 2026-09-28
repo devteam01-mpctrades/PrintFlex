@@ -164,3 +164,14 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 /* Revoke removes a device, so it is a small solid red button: the one exception to the orange buttons. */
 .pf-scan .pf-btn--revoke { background: #dc2626; border-color: #dc2626; color: #fff; padding: 4px 10px; font-size: 11.5px; border-radius: 6px; }
 .pf-scan .pf-btn--revoke:hover { background: #b91c1c; border-color: #b91c1c; }
+
+/* Stat tiles: icon at the top right, an action at the bottom */
+.pf-stat { display: flex; flex-direction: column; }
+.pf-stat__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.pf-stat__icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #f4f4f4; color: var(--pf-brand); flex: 0 0 auto; margin: -4px -4px 0 0; }
+.pf-stat.hero .pf-stat__icon { background: #fff; }
+.pf-stat .v { margin-top: 2px; }
+.pf-stat__action { margin-top: auto; padding-top: 12px; }
+.pf-stat__action .pf-btn { margin-left: -8px; }
+.pf-stat.hero .pf-stat__action .pf-btn--tertiary { background: #fff; }
+.pf-stat__clear { display: inline-block; font-size: 12.5px; font-weight: 600; color: var(--pf-ok-tx); padding: 6px 0; }
