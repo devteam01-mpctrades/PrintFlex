@@ -126,17 +126,17 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 .pf-order { font-family: var(--pf-mono); font-weight: 600; color: var(--pf-brand-ink); text-decoration: none; white-space: nowrap; }
 .pf-order:hover { text-decoration: underline; }
 
-/* Enrolment: QR on the left, numbered steps on a soft brand panel */
-.pf-enrol { display: flex; gap: 18px; align-items: center; padding: 16px; border-radius: 10px; background: var(--pf-brand-soft); border: 1px solid var(--pf-brand-soft-2); }
+/* Enrolment: QR on the left, numbered steps on a soft green panel */
+.pf-enrol { display: flex; gap: 18px; align-items: center; padding: 16px; border-radius: 10px; background: #ecfdf3; border: 1px solid #b7ebc9; }
 .pf-enrol__body { min-width: 0; }
-.pf-enrol__body h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--pf-brand-ink); }
+.pf-enrol__body h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #0c5132; }
 .pf-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; counter-reset: step; }
 .pf-steps li { counter-increment: step; display: flex; gap: 9px; align-items: flex-start; font-size: 12.5px; color: var(--pf-text); }
-.pf-steps li::before { content: counter(step); flex: 0 0 20px; height: 20px; border-radius: 50%; background: var(--pf-brand); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-top: -1px; }
-.pf-panel__b .pf-enrol__note { margin: 10px 0 0; font-size: 11.5px; color: var(--pf-brand-ink); opacity: .85; }
+.pf-steps li::before { content: counter(step); flex: 0 0 20px; height: 20px; border-radius: 50%; background: #1a7f4b; color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-top: -1px; }
+.pf-panel__b .pf-enrol__note { margin: 10px 0 0; font-size: 11.5px; color: #1a7f4b; }
 .pf-enrol__link { margin-top: 14px; display: grid; gap: 6px; }
 .pf-enrol__hint { font-size: 12px; color: var(--pf-sub); }
-.pf-qr { display: inline-block; flex: 0 0 auto; padding: 10px; background: #fff; border: 1px solid var(--pf-brand-soft-2); border-radius: 10px; line-height: 0; box-shadow: var(--pf-shadow); }
+.pf-qr { display: inline-block; flex: 0 0 auto; padding: 10px; background: #fff; border: 1px solid #b7ebc9; border-radius: 10px; line-height: 0; box-shadow: var(--pf-shadow); }
 .pf-qr svg { display: block; width: 128px; height: 128px; }
 .pf-kv { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pf-kv .push { margin-left: auto; }
