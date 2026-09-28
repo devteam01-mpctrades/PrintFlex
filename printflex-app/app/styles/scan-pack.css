@@ -180,3 +180,6 @@ table.pf-t--history .pf-time { color: var(--pf-sub); }
 .pf-devices .pf-badge { white-space: nowrap; }
 /* Scan history: Outcome sits against the right edge, under Export CSV */
 table.pf-t--history th:last-child, table.pf-t--history td:last-child { text-align: right; }
+/* Scan history: more room between Time, Order and Device */
+table.pf-t--history th:nth-child(2), table.pf-t--history td:nth-child(2),
+table.pf-t--history th:nth-child(3), table.pf-t--history td:nth-child(3) { padding-left: 36px; }
