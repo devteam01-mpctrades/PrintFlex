@@ -5,7 +5,7 @@ import { PAGE_SIZE } from "../../lib/orders/constants";
 import type { DocumentType, OrderDocumentStatus } from "../../lib/types";
 import { useNativeEvent } from "./useNativeEvent";
 import { Cell, HeaderCell } from "../TableCells";
-import { Check } from "../ui";
+import { Btn, Check } from "../ui";
 
 interface Props {
   rows: OrderRow[];
@@ -67,8 +67,6 @@ export function OrdersTable(props: Props) {
     [navigate, queryString],
   );
 
-  useNativeEvent(tableRef, "nextpage", useCallback(() => goToPage(page + 1), [goToPage, page]));
-  useNativeEvent(tableRef, "previouspage", useCallback(() => goToPage(page - 1), [goToPage, page]));
 
   // Remember whether shift was held on the click that produced the change.
   useNativeEvent<MouseEvent>(
@@ -85,12 +83,8 @@ export function OrdersTable(props: Props) {
 
   return (
     <>
-      <s-table
-        ref={tableRef}
-        paginate
-        hasPreviousPage={page > 1 || undefined}
-        hasNextPage={page < pageCount || undefined}
-      >
+      {/* Paging lives in the footer below (with the count), not in the table's own arrows. */}
+      <s-table ref={tableRef}>
         <s-table-header-row>
           <s-table-header>
             <Check
@@ -150,9 +144,15 @@ export function OrdersTable(props: Props) {
         </s-table-body>
       </s-table>
       <s-box paddingInline="base" paddingBlock="small">
-        <s-text color="subdued" fontVariantNumeric="tabular-nums">
-          Showing {first}–{last} of {total} · select-all matches the filter, not just this page
-        </s-text>
+        <s-stack direction="inline" gap="small" alignItems="center" justifyContent="end">
+          <s-text color="subdued" fontVariantNumeric="tabular-nums">
+            Showing {first}–{last} of {total} · select-all matches the filter, not just this page
+          </s-text>
+          <s-stack direction="inline" gap="small-300">
+            <Btn aria-label="Previous page" disabled={page <= 1} onClick={() => goToPage(page - 1)}>‹</Btn>
+            <Btn aria-label="Next page" disabled={page >= pageCount} onClick={() => goToPage(page + 1)}>›</Btn>
+          </s-stack>
+        </s-stack>
       </s-box>
     </>
   );
