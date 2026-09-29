@@ -28,8 +28,12 @@ echo "backup: $file ($(du -h "$file" | cut -f1))"
 keep=$KEEP_NIGHTLY; [ "$KIND" = "pre-deploy" ] && keep=$KEEP_PREDEPLOY
 ls -1t "$DIR"/printflex-"$KIND"-*.dump 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -f
 
+# rclone lives in ~/bin (installed per user, not system-wide); cron's PATH does not include it.
+RCLONE="${RCLONE:-/home/devteam01/bin/rclone}"
 if [ -n "$BACKUP_REMOTE" ]; then
-  rclone copy "$file" "$BACKUP_REMOTE/" && echo "offsite: $BACKUP_REMOTE/$(basename "$file")"
+  # A failed upload never fails the backup: the local dump above is already safe.
+  "$RCLONE" copy "$file" "$BACKUP_REMOTE/" && echo "offsite: $BACKUP_REMOTE/$(basename "$file")" \
+    || echo "offsite: FAILED to copy to $BACKUP_REMOTE (the local backup is fine)"
 else
   echo "offsite: skipped (PRINTFLEX_BACKUP_REMOTE is not set)"
 fi
