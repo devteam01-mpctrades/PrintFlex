@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /app
+Disallow: /scan
+Disallow: /auth
+Disallow: /webhooks
