@@ -102,8 +102,9 @@ The site is intended to live on its own subdomain alongside `shuffly.mpctrades.c
    sudo nginx -t && sudo systemctl reload nginx
    ```
 
-`try_files ... $uri.html` lets `/privacy` resolve to `privacy.html`, so the privacy policy URL
-submitted to the Shopify App Store can be either form.
+`try_files ... $uri.html` lets `/privacy` resolve to `privacy.html`. The canonical privacy URL is
+`https://printflex.mpctrades.com/privacy`; the server block also has
+`location = /privacy.html { return 301 /privacy; }` so old links redirect there.
 
 ## Before App Store submission
 

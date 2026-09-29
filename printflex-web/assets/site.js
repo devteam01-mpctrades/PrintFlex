@@ -633,6 +633,31 @@
   }
 
   /* ------------------------------------------------------------------------
+     Legal page table of contents — highlights the section being read, and
+     starts collapsed on narrow screens.
+     ------------------------------------------------------------------------ */
+  function initLegalToc() {
+    var toc = document.querySelector(".legal-toc");
+    if (!toc) return;
+    var details = toc.querySelector("details");
+    if (details && window.matchMedia("(max-width: 980px)").matches) details.open = false;
+    var links = [].slice.call(toc.querySelectorAll("a[href^='#']"));
+    if (!("IntersectionObserver" in window)) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle("is-active", a.getAttribute("href") === "#" + entry.target.id);
+        });
+      });
+    }, { rootMargin: "-20% 0px -70% 0px", threshold: 0 });
+    links.forEach(function (a) {
+      var sec = document.getElementById(a.getAttribute("href").slice(1));
+      if (sec) io.observe(sec);
+    });
+  }
+
+  /* ------------------------------------------------------------------------
      Boot
      ------------------------------------------------------------------------ */
   function init() {
@@ -643,6 +668,7 @@
     initHow();
     initReveal();
     initScrollSpy();
+    initLegalToc();
 
     var mq = window.matchMedia("(prefers-color-scheme: dark)");
     if (mq && mq.addEventListener) {
