@@ -11,7 +11,7 @@
   <meta property="og:description" content="Plan definitions, the order meter, Shopify billing, cancellation, acceptable use and liability for the PrintFlex Shopify app.">
   <meta property="og:site_name" content="PrintFlex">
   <meta property="og:image" content="https://printflex.mpctrades.com/assets/logo.png">
-  <link rel="canonical" href="https://printflex.mpctrades.com/terms.html">
+  <link rel="canonical" href="https://printflex.mpctrades.com/terms">
   <link rel="icon" href="assets/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,73 +40,172 @@
       <a class="btn btn--primary" href="index.html#contact">Get early access <span aria-hidden="true">→</span></a>
     </nav>
   </header>
-  <main id="main" class="page">
+  <main id="main" class="page legal">
     <div class="container">
-      <article class="prose">
+      <header class="legal-hero">
         <span class="eyebrow">Legal</span>
         <h1>Terms of Service</h1>
-        <p class="updated">Last updated: 28 September 2026</p>
-
-        <p>These terms govern your use of the PrintFlex Shopify app ("PrintFlex", "the app"), made by MPC Trades, Phnom Penh, Cambodia ("we", "us"). By installing the app on your Shopify store you agree to them. PrintFlex is currently in development and available to early-access stores; it is not yet listed on the Shopify App Store.</p>
+        <p class="legal-hero__lede">These terms govern your use of the PrintFlex Shopify app ("PrintFlex", "the app"), made by MPC Trades, Phnom Penh, Cambodia ("we", "us"). By installing the app on your Shopify store you agree to them.</p>
         <!-- TODO: replace "MPC Trades" with the registered legal entity name once confirmed by counsel. -->
+        <dl class="legal-meta">
+          <div><dt>Last updated</dt><dd>28 September 2026</dd></div>
+          <div><dt>Applies to</dt><dd>PrintFlex Shopify app</dd></div>
+          <div><dt>Contact</dt><dd><a href="mailto:team@mpctrades.com">team@mpctrades.com</a></dd></div>
+        </dl>
+        <p class="draft-banner">PrintFlex is currently in development and available to early-access stores; it is not yet listed on the Shopify App Store.</p>
+      </header>
 
-        <h2>The service</h2>
-        <p>PrintFlex generates PDF invoices, packing slips and pick lists from your Shopify orders, prints a QR code and barcode on those documents, and provides a scan page where staff can check items off and mark an order packed, which writes a tag back to the order in Shopify. Features described on our website as planned or "V2" are not part of the service until they ship.</p>
-
-        <h2>Plans and the order meter</h2>
-        <p>PrintFlex is offered on three plans:</p>
-        <table>
-          <thead><tr><th scope="col">Plan</th><th scope="col">Price</th><th scope="col">Included orders</th></tr></thead>
-          <tbody>
-            <tr><td>Free</td><td><span class="mono">$0</span></td><td>50 orders per calendar month</td></tr>
-            <tr><td>Premium</td><td><span class="mono">$4.99</span> per month, or <span class="mono">$49.90</span> per year</td><td>500 orders per calendar month</td></tr>
-            <tr><td>Unlimited</td><td><span class="mono">$9.99</span> per month, or <span class="mono">$99.90</span> per year</td><td>Unlimited</td></tr>
-          </tbody>
-        </table>
-        <p><strong>What the meter counts.</strong> An order counts once, in the calendar month in which the first document of any type is generated for it. Reprinting or generating further documents for the same order in that month does not count again. Orders for which no document is generated never count. The meter resets on the first day of each calendar month in UTC.</p>
-        <p>When a Free or Premium store reaches its monthly limit, further document generation is paused until the next month or until the plan is upgraded. Scan mode and reprints of already-generated documents continue to work.</p>
-
-        <h2>Billing</h2>
-        <p><strong>All charges are made exclusively through Shopify's Billing API.</strong> When you choose a paid plan, Shopify shows you its own charge approval screen; nothing is billed until you approve it there. Charges appear on your Shopify invoice. We never collect payment details on this website or in the app, and no one from MPC Trades will ask you for card details.</p>
-        <p>Prices are in US dollars and exclusive of any taxes Shopify may apply. Annual plans are billed once a year in advance.</p>
-
-        <h2>Cancellation and plan changes</h2>
-        <p>You can change plan at any time from the app. You approve every paid plan on Shopify's own charge screen. A change between paid plans usually takes effect immediately, with Shopify prorating the charge; moving from an annual plan to a cheaper annual plan, or from annual to monthly, takes effect at the start of your next billing cycle, as Shopify shows on that screen. Switching to the Free plan cancels your subscription immediately, and Shopify credits the unused part of the current period to your Shopify bill. Uninstalling the app cancels any subscription; Shopify does not charge again after uninstall. Apart from those Shopify credits, we do not offer refunds except where applicable law requires it.</p>
-
-        <h2>Free plan</h2>
-        <p>The Free plan is free and we intend to keep a free plan available. We may change its limits with 30 days' notice through the app. No payment is ever collected for the Free plan.</p>
-
-        <h2>Your responsibilities</h2>
-        <ul>
-          <li>You are responsible for the content of your documents, including the legal completeness of your invoices in the jurisdictions you sell to. PrintFlex provides the fields and toggles; you decide what to show.</li>
-          <li>You keep your store PIN confidential and share it only with staff who should be able to mark orders packed.</li>
-          <li>You have the right to process the customer data in your store under your own privacy policy, and you are the data controller for it. Our handling of that data is described in the <a href="/privacy">Privacy Policy</a>.</li>
+      <section class="legal-glance" aria-labelledby="glance-title">
+        <h2 id="glance-title" class="legal-glance__title">At a glance</h2>
+        <ul class="legal-glance__grid">
+          <li class="card"><strong>Billed only by Shopify</strong><span>Every charge goes through Shopify's own approval screen and your Shopify invoice.</span></li>
+          <li class="card"><strong>A free plan, always</strong><span>50 orders a month at no cost. Limits change only with 30 days' notice.</span></li>
+          <li class="card"><strong>Cancel any time</strong><span>Switch plans in the app or uninstall; Shopify stops charging straight away.</span></li>
+          <li class="card"><strong>Your documents are yours</strong><span>Generated PDFs, your logo and your template settings belong to you.</span></li>
         </ul>
+      </section>
 
-        <h2>Acceptable use</h2>
-        <p>You agree not to use PrintFlex to generate documents for orders you have no right to process, to attempt to access another store's data or scan pages, to reverse-engineer or resell the service, to send unsolicited email through the automatic invoice feature, or to place load on the service far beyond ordinary printing of your own orders. We may suspend a store that does any of these after notice, or immediately where necessary to protect other merchants.</p>
+      <div class="legal-layout">
+        <nav class="legal-toc" aria-label="On this page">
+          <details open>
+            <summary>On this page</summary>
+            <ol>
+              <li><a href="#service">The service</a></li>
+              <li><a href="#plans">Plans and the order meter</a></li>
+              <li><a href="#billing">Billing</a></li>
+              <li><a href="#cancellation">Cancellation and plan changes</a></li>
+              <li><a href="#free-plan">Free plan</a></li>
+              <li><a href="#responsibilities">Your responsibilities</a></li>
+              <li><a href="#acceptable-use">Acceptable use</a></li>
+              <li><a href="#availability">Availability and support</a></li>
+              <li><a href="#ip">Intellectual property</a></li>
+              <li><a href="#liability">Limitation of liability</a></li>
+              <li><a href="#termination">Termination</a></li>
+              <li><a href="#changes">Changes to these terms</a></li>
+              <li><a href="#law">Governing law</a></li>
+              <li><a href="#contact-us">Contact</a></li>
+            </ol>
+          </details>
+        </nav>
 
-        <h2>Availability and support</h2>
-        <p>We aim to keep PrintFlex available around the clock and to answer support emails within one business day, but the service is provided "as is" and <strong>we offer no service-level agreement or uptime guarantee on any plan during the early-access period, and none on the Free plan at any time</strong>. We may take the service down for maintenance, and we will try to give notice through the app when we do. Cached PDFs are a convenience; the source of truth for your orders is always Shopify.</p>
+        <article class="prose legal-body">
+          <section id="service">
+            <h2><span class="legal-num">01</span>The service</h2>
+            <p>PrintFlex generates PDF invoices, packing slips and pick lists from your Shopify orders, prints a QR code and barcode on those documents, and provides a scan page where staff can check items off and mark an order packed, which writes a tag back to the order in Shopify.</p>
+            <p class="legal-note">Features described on our website as planned or "V2" are not part of the service until they ship.</p>
+          </section>
 
-        <h2>Intellectual property</h2>
-        <p>The app, its templates and its website belong to MPC Trades. The documents the app generates from your data, your logo and your template settings belong to you. You grant us the limited right to process your data as needed to provide the service.</p>
+          <section id="plans">
+            <h2><span class="legal-num">02</span>Plans and the order meter</h2>
+            <p>PrintFlex is offered on three plans:</p>
+            <div class="legal-table">
+              <table>
+                <thead><tr><th scope="col">Plan</th><th scope="col">Price</th><th scope="col">Included orders</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Free</strong></td><td><span class="mono">$0</span></td><td>50 orders per calendar month</td></tr>
+                  <tr><td><strong>Premium</strong></td><td><span class="mono">$4.99</span> per month, or <span class="mono">$49.90</span> per year</td><td>500 orders per calendar month</td></tr>
+                  <tr><td><strong>Unlimited</strong></td><td><span class="mono">$9.99</span> per month, or <span class="mono">$99.90</span> per year</td><td>Unlimited</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <h3>What the meter counts</h3>
+            <p>An order counts once, in the calendar month in which the first document of any type is generated for it. Reprinting or generating further documents for the same order in that month does not count again. Orders for which no document is generated never count. The meter resets on the first day of each calendar month in UTC.</p>
+            <p class="legal-callout">When a Free or Premium store reaches its monthly limit, further document generation is paused until the next month or until the plan is upgraded. <strong>Scan mode and reprints of already-generated documents continue to work.</strong></p>
+          </section>
 
-        <h2>Limitation of liability</h2>
-        <p>To the fullest extent permitted by law, MPC Trades is not liable for indirect or consequential losses, including lost profits, refunds or reshipping costs arising from a mis-packed parcel, a document that was not generated, or a delay in the service. Our total liability to you for any claim relating to PrintFlex is limited to the amount you paid us through Shopify in the twelve months before the claim. Nothing in these terms limits liability that cannot be limited under applicable law.</p>
+          <section id="billing">
+            <h2><span class="legal-num">03</span>Billing</h2>
+            <p><strong>All charges are made exclusively through Shopify's Billing API.</strong> When you choose a paid plan, Shopify shows you its own charge approval screen; nothing is billed until you approve it there. Charges appear on your Shopify invoice.</p>
+            <p class="legal-callout">We never collect payment details on this website or in the app, and no one from MPC Trades will ask you for card details.</p>
+            <p>Prices are in US dollars and exclusive of any taxes Shopify may apply. Annual plans are billed once a year in advance.</p>
+          </section>
 
-        <h2>Termination</h2>
-        <p>You may stop using PrintFlex at any time by uninstalling it. We may terminate or suspend your access if you breach these terms, or discontinue the service with at least 30 days' notice. On termination your data is deleted as described in the Privacy Policy.</p>
+          <section id="cancellation">
+            <h2><span class="legal-num">04</span>Cancellation and plan changes</h2>
+            <p>You can change plan at any time from the app. You approve every paid plan on Shopify's own charge screen.</p>
+            <div class="legal-table">
+              <table>
+                <thead><tr><th scope="col">Change</th><th scope="col">What happens</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Between paid plans</strong></td><td>Usually takes effect immediately, with Shopify prorating the charge.</td></tr>
+                  <tr><td><strong>Annual to a cheaper annual plan, or annual to monthly</strong></td><td>Takes effect at the start of your next billing cycle, as Shopify shows on that screen.</td></tr>
+                  <tr><td><strong>To the Free plan</strong></td><td>Cancels your subscription immediately, and Shopify credits the unused part of the current period to your Shopify bill.</td></tr>
+                  <tr><td><strong>Uninstalling the app</strong></td><td>Cancels any subscription; Shopify does not charge again after uninstall.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Apart from those Shopify credits, we do not offer refunds except where applicable law requires it.</p>
+          </section>
 
-        <h2>Changes to these terms</h2>
-        <p>We may update these terms. Material changes will be announced in the app at least 30 days before they take effect, and the date at the top of this page will change. Continuing to use the app after that date means you accept the new terms.</p>
+          <section id="free-plan">
+            <h2><span class="legal-num">05</span>Free plan</h2>
+            <p>The Free plan is free and we intend to keep a free plan available. We may change its limits with 30 days' notice through the app. No payment is ever collected for the Free plan.</p>
+          </section>
 
-        <h2>Governing law</h2>
-        <p>These terms are governed by the laws of <!-- TODO: legal review to set the governing law and venue; placeholder below must be replaced before submission. -->[jurisdiction to be confirmed], and any dispute will be brought in the courts of that jurisdiction, without prejudice to any mandatory consumer protections in your own country.</p>
+          <section id="responsibilities">
+            <h2><span class="legal-num">06</span>Your responsibilities</h2>
+            <ul class="legal-steps">
+              <li class="card"><strong>Your documents</strong><p>You are responsible for the content of your documents, including the legal completeness of your invoices in the jurisdictions you sell to. PrintFlex provides the fields and toggles; you decide what to show.</p></li>
+              <li class="card"><strong>Your store PIN</strong><p>You keep your store PIN confidential and share it only with staff who should be able to mark orders packed.</p></li>
+              <li class="card"><strong>Your customers' data</strong><p>You have the right to process the customer data in your store under your own privacy policy, and you are the data controller for it. Our handling of that data is described in the <a href="/privacy">Privacy Policy</a>.</p></li>
+            </ul>
+          </section>
 
-        <h2>Contact</h2>
-        <p>Questions about these terms: <a href="mailto:team@mpctrades.com">team@mpctrades.com</a>.</p>
-      </article>
+          <section id="acceptable-use">
+            <h2><span class="legal-num">07</span>Acceptable use</h2>
+            <p>You agree not to use PrintFlex to:</p>
+            <ul>
+              <li>generate documents for orders you have no right to process;</li>
+              <li>attempt to access another store's data or scan pages;</li>
+              <li>reverse-engineer or resell the service;</li>
+              <li>send unsolicited email through the automatic invoice feature;</li>
+              <li>place load on the service far beyond ordinary printing of your own orders.</li>
+            </ul>
+            <p>We may suspend a store that does any of these after notice, or immediately where necessary to protect other merchants.</p>
+          </section>
+
+          <section id="availability">
+            <h2><span class="legal-num">08</span>Availability and support</h2>
+            <p>We aim to keep PrintFlex available around the clock and to answer support emails within one business day, but the service is provided "as is".</p>
+            <p class="legal-callout"><strong>We offer no service-level agreement or uptime guarantee on any plan during the early-access period, and none on the Free plan at any time.</strong></p>
+            <p>We may take the service down for maintenance, and we will try to give notice through the app when we do. Cached PDFs are a convenience; the source of truth for your orders is always Shopify.</p>
+          </section>
+
+          <section id="ip">
+            <h2><span class="legal-num">09</span>Intellectual property</h2>
+            <p>The app, its templates and its website belong to MPC Trades. The documents the app generates from your data, your logo and your template settings belong to you. You grant us the limited right to process your data as needed to provide the service.</p>
+          </section>
+
+          <section id="liability">
+            <h2><span class="legal-num">10</span>Limitation of liability</h2>
+            <p>To the fullest extent permitted by law, MPC Trades is not liable for indirect or consequential losses, including lost profits, refunds or reshipping costs arising from a mis-packed parcel, a document that was not generated, or a delay in the service.</p>
+            <p>Our total liability to you for any claim relating to PrintFlex is limited to the amount you paid us through Shopify in the twelve months before the claim. Nothing in these terms limits liability that cannot be limited under applicable law.</p>
+          </section>
+
+          <section id="termination">
+            <h2><span class="legal-num">11</span>Termination</h2>
+            <p>You may stop using PrintFlex at any time by uninstalling it. We may terminate or suspend your access if you breach these terms, or discontinue the service with at least 30 days' notice. On termination your data is deleted as described in the <a href="/privacy">Privacy Policy</a>.</p>
+          </section>
+
+          <section id="changes">
+            <h2><span class="legal-num">12</span>Changes to these terms</h2>
+            <p>We may update these terms. Material changes will be announced in the app at least 30 days before they take effect, and the date at the top of this page will change. Continuing to use the app after that date means you accept the new terms.</p>
+          </section>
+
+          <section id="law">
+            <h2><span class="legal-num">13</span>Governing law</h2>
+            <p>These terms are governed by the laws of <!-- TODO: legal review to set the governing law and venue; placeholder below must be replaced before submission. -->[jurisdiction to be confirmed], and any dispute will be brought in the courts of that jurisdiction, without prejudice to any mandatory consumer protections in your own country.</p>
+          </section>
+
+          <section id="contact-us">
+            <h2><span class="legal-num">14</span>Contact</h2>
+            <div class="legal-contact card">
+              <p>Questions about these terms? Email us and a person who builds the app will reply.</p>
+              <a class="btn btn--primary" href="mailto:team@mpctrades.com">team@mpctrades.com</a>
+            </div>
+          </section>
+        </article>
+      </div>
     </div>
   </main>
 
@@ -138,13 +237,13 @@
             <span class="footer-col__title">Legal</span>
             <ul>
               <li><a href="/privacy">Privacy</a></li>
-              <li><a href="terms.html">Terms</a></li>
+              <li><a href="/terms">Terms</a></li>
             </ul>
           </div>
           <div class="footer-col">
             <span class="footer-col__title">Company</span>
             <ul>
-              <li><a href="support.html">Support</a></li>
+              <li><a href="/support">Support</a></li>
               <li><a href="index.html#contact">Contact</a></li>
               <li><a href="mailto:team@mpctrades.com">team@mpctrades.com</a></li>
             </ul>
