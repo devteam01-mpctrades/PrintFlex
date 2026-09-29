@@ -153,7 +153,7 @@ export const PLAN_COPY: Record<PlanId, PlanCopy> = {
   FREE: {
     chip: "50 orders / month",
     tagline: "The whole workflow, including scan mode. Enough for a store shipping a couple of parcels a day.",
-    features: ["All three document types", "Bulk print and combined PDF", "QR, barcode and scan mode", "One template", "Community support"],
+    features: ["All three document types", "Bulk print and combined PDF", "QR, barcode and scan mode", "One template", "Email support (best effort)"],
     note: "No payment collected. Free stays $0.",
     popular: false,
   },

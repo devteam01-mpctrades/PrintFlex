@@ -193,7 +193,7 @@ export default function BillingPage() {
             const label = sameInterval ? "Your plan" : current ? (yearly ? "Switch to annual" : "Switch to monthly") : higher ? `Upgrade to ${p.name}` : p.id === "FREE" ? "Downgrade to Free" : `Downgrade to ${p.name}`;
             const note = sameInterval
               ? p.id === "FREE" ? "No payment collected. Free stays $0." : `Billed ${annual ? "yearly" : "monthly"} through Shopify. Cancel any time.`
-              : p.id === "FREE" && !current ? "Cancelling is prorated through Shopify. Nothing else to do." : p.note;
+              : p.id === "FREE" && !current ? "You can switch back to Free any time. Cancelling happens through Shopify." : p.note;
             return (
               <div key={p.id} className={`pf-plancard${p.popular ? " pop" : ""}${current ? " cur" : ""}`}>
                 {p.popular ? <span className="pf-plancard__flag">Recommended</span> : null}
