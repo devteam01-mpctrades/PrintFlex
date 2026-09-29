@@ -6,7 +6,7 @@ import type { PdfRenderer } from "../render/pdf.server";
 import { renderDocumentForOrder } from "../render/render-order.server";
 import { DEFAULT_TEMPLATE_SETTINGS } from "../templates/templates.server";
 import { createDocumentJob } from "./create-job.server";
-import { latestPerOrderAndType, printTypeFromBatch, reprintDocument } from "./reprint.server";
+import { documentsForBatch, latestPerOrderAndType, printTypeFromBatch, reprintDocument } from "./reprint.server";
 
 const money = (amount: string, currencyCode = "USD") => ({ presentmentMoney: { amount, currencyCode } });
 
@@ -128,6 +128,29 @@ describe("printTypeFromBatch", () => {
     expect(JSON.parse(created.orderIdsJson)).toEqual([order.id]);
     expect(created.name).toContain("Invoices from");
     expect((await printTypeFromBatch(shop.id, job.id, "PICK_LIST")).ok).toBe(false);
+  });
+});
+
+describe("documentsForBatch", () => {
+  it("lists a reprinted order's documents even though an earlier batch produced them", async () => {
+    const { shop, order, job } = await seed();
+    const invoice = await template(shop.id, "INVOICE", "Invoice");
+    const slip = await template(shop.id, "PACKING_SLIP", "Packing slip");
+    const f = fakes();
+    await renderDocumentForOrder(shop.id, order.id, "INVOICE", f, job.id, { templateId: invoice.id });
+    await renderDocumentForOrder(shop.id, order.id, "PACKING_SLIP", f, job.id, { templateId: slip.id });
+
+    // A second batch for the same order: the renderer reuses the cached documents, so none carry its jobId.
+    const again = await createDocumentJob({ shopId: shop.id, documentTypes: ["INVOICE", "PACKING_SLIP", "PICK_LIST"], orderIds: [order.id] });
+    expect(await prisma.document.count({ where: { jobId: again.id } })).toBe(0);
+
+    const listed = await documentsForBatch(shop.id, again);
+    expect(listed.map((d) => d.documentType)).toEqual(["INVOICE", "PACKING_SLIP"]);
+    expect(listed.every((d) => d.orderId === order.id)).toBe(true);
+
+    // An invoice-only batch lists only the invoice.
+    const invoicesOnly = await createDocumentJob({ shopId: shop.id, documentTypes: ["INVOICE"], orderIds: [order.id] });
+    expect((await documentsForBatch(shop.id, invoicesOnly)).map((d) => d.documentType)).toEqual(["INVOICE"]);
   });
 });
 

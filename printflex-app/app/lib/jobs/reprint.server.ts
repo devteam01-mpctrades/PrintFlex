@@ -91,3 +91,26 @@ export function latestPerOrderAndType<T extends { orderId: string; type: string;
   });
   return [...latest.entries()].sort((a, b) => firstSeen.get(a[0])! - firstSeen.get(b[0])!).map(([, d]) => d);
 }
+
+const TYPE_ORDER: Record<string, number> = { INVOICE: 0, PACKING_SLIP: 1 };
+
+/**
+ * The per-order documents a batch page lists: the newest document of each of the batch's types for
+ * each of its orders, in the batch's order. Not just rows with this jobId: a reprint reuses the
+ * document an earlier batch produced (same template version, no new row), and that document is
+ * still what this batch printed.
+ */
+export async function documentsForBatch(shopId: string, job: { id: string; orderIdsJson: string; documentTypesJson: string }) {
+  const orderIds = JSON.parse(job.orderIdsJson) as string[];
+  const types = (JSON.parse(job.documentTypesJson) as DocumentType[]).filter((t) => t !== "PICK_LIST");
+  const rows = await prisma.document.findMany({
+    where: { shopId, OR: [{ jobId: job.id }, { orderId: { in: orderIds }, documentType: { in: types } }] },
+    orderBy: { renderedAt: "asc" },
+    include: { order: { select: { orderName: true, customerName: true } }, template: { select: { name: true } } },
+  });
+  const position = new Map(orderIds.map((id, i) => [id, i]));
+  const latest = latestPerOrderAndType(rows.map((d) => ({ ...d, type: d.documentType })));
+  return latest.sort(
+    (a, b) => (position.get(a.orderId) ?? Infinity) - (position.get(b.orderId) ?? Infinity) || (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9),
+  );
+}

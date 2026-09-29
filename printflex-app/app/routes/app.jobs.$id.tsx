@@ -7,7 +7,7 @@ import { RouteError } from "../components/RouteError";
 import { downloadFile } from "../components/download";
 import prisma from "../db.server";
 import { getQueue } from "../lib/jobs/worker.server";
-import { latestPerOrderAndType, printTypeFromBatch, reprintDocument } from "../lib/jobs/reprint.server";
+import { documentsForBatch, printTypeFromBatch, reprintDocument } from "../lib/jobs/reprint.server";
 import { createPrintLink, shouldOfferFallback } from "../lib/render/fallback.server";
 import { puppeteerRenderer } from "../lib/render/pdf.server";
 import { templatesForType } from "../lib/templates/templates.server";
@@ -37,15 +37,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { shop } = await requireShop(request);
   const job = await prisma.documentJob.findFirst({
     where: { id: params.id, shopId: shop.id },
-    include: {
-      documents: {
-        orderBy: { renderedAt: "asc" },
-        include: { order: { select: { orderName: true, customerName: true } }, template: { select: { name: true } } },
-      },
-    },
   });
   if (!job) throw new Response("This batch does not exist.", { status: 404 });
   const now = new Date();
+  const batchDocuments = await documentsForBatch(shop.id, job);
   const [invoiceTemplates, slipTemplates] = await Promise.all([templatesForType(shop.id, "INVOICE"), templatesForType(shop.id, "PACKING_SLIP")]);
   const pick = (t: { id: string; name: string }) => ({ id: t.id, name: t.name });
   return {
@@ -69,20 +64,18 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         ? new Intl.DateTimeFormat("en-GB", { timeZone: shop.timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(job.finishedAt)
         : null,
     },
-    // A re-print adds a document to the batch; list only the newest per order and type.
-    documents: latestPerOrderAndType(
-      job.documents.map((d) => ({
-        id: d.id,
-        orderId: d.orderId,
-        type: d.documentType as DocumentType,
-        orderName: d.order.orderName,
-        customerName: d.order.customerName,
-        invoiceNumber: d.invoiceNumber,
-        templateId: d.templateId,
-        templateName: d.template.name,
-        renderedAt: d.renderedAt.toISOString(),
-      })),
-    ),
+    // Newest per order and type for this batch's orders, including documents an earlier batch produced and this one reused.
+    documents: batchDocuments.map((d) => ({
+      id: d.id,
+      orderId: d.orderId,
+      type: d.documentType as DocumentType,
+      orderName: d.order.orderName,
+      customerName: d.order.customerName,
+      invoiceNumber: d.invoiceNumber,
+      templateId: d.templateId,
+      templateName: d.template.name,
+      renderedAt: d.renderedAt.toISOString(),
+    })),
     templates: { INVOICE: invoiceTemplates.map(pick), PACKING_SLIP: slipTemplates.map(pick) } as Partial<Record<DocumentType, Array<{ id: string; name: string }>>>,
   };
 };
