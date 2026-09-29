@@ -82,3 +82,13 @@ resync on the next backfill or webhook.
 To inspect a backup without touching the live data, restore it into a scratch database instead:
 `sudo -u postgres createdb -O printflex_dev printflex_restore_check`, restore with that database
 name in the URL, look around, then `sudo -u postgres dropdb printflex_restore_check`.
+
+## HTTP/2
+
+Enabled on 29 Sep 2026 in the live vhost (`listen 443 ssl http2;` on both certbot-managed
+listen lines of `/etc/nginx/sites-available/dev.printflex.mpctrades.com`; the pre-change copy is
+`~/nginx-dev.printflex.bak-20260929`). Over HTTP/1.1 the browser fetched the app's ~15 script
+chunks six at a time and the embedded page took about 2 s to become clickable; with HTTP/2 it is
+about 1.2 s, the rest being Shopify's own polaris.js. On nginx 1.24, http2 on one server block
+applies to every site on the same IP and port, so all sites on this box now speak HTTP/2 (they
+were checked before and after: no status changed). If certbot rewrites the vhost, re-add `http2`.
