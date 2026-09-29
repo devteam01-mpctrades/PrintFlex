@@ -1,7 +1,7 @@
 import { redirect } from "react-router";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "./shops.server";
-import { isOutsideAdmin } from "./outside-admin";
+import { hasMalformedHost, isOutsideAdmin } from "./outside-admin";
 
 /**
  * Authenticate an embedded admin request and resolve its Shop row. Routes
@@ -14,7 +14,13 @@ export async function requireShop(request: Request) {
   // Send the visitor to the landing page, which says to open PrintFlex from the admin, instead of the
   // library's bare 410 rendered as "unexpected error". Requests from the admin always carry one of these.
   if (isOutsideAdmin(request)) throw redirect("/");
+  rejectMalformedHost(request);
   const context = await authenticate.admin(request);
   const shop = await ensureShop(context.session.shop);
   return { ...context, shop };
+}
+
+/** A garbled `host` would make the Shopify library throw (a 500); answer 400 with what to do instead. */
+export function rejectMalformedHost(request: Request) {
+  if (hasMalformedHost(request)) throw new Response("This link is not valid. Open PrintFlex from Apps in your Shopify admin.", { status: 400 });
 }
