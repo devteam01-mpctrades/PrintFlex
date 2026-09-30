@@ -1,13 +1,15 @@
 import type { ActionFunctionArgs } from "react-router";
-import { authenticate } from "../shopify.server";
 import { handleCustomerRedact, handleDataRequest, handleShopRedact, type DataRequestPayload, type RedactPayload } from "../lib/compliance.server";
+import { verifyWebhook } from "../lib/webhook-auth.server";
 
 /**
  * customers/data_request, customers/redact, shop/redact. Each is real work
  * done now: files off disk, rows out of the database, an audit entry.
+ * Verified without the session (see verifyWebhook): these arrive after uninstall, when the
+ * library's token refresh would fail and answer 500.
  */
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, topic, payload } = await authenticate.webhook(request);
+  const { shop, topic, payload } = await verifyWebhook(request);
   switch (topic) {
     case "CUSTOMERS_DATA_REQUEST": {
       const file = await handleDataRequest(payload as unknown as DataRequestPayload);
